@@ -19,7 +19,7 @@ pip install news-watch
 To run the scraper from the command line:
 
 ```bash
-newswatch -k <keywords> -sd <start_date> -s [<scrapers>] [-v]
+newswatch -k <keywords> -sd <start_date> -s [<scrapers>] -of <output_format> --silent
 ```
 Command-Line Arguments
 
@@ -29,23 +29,31 @@ Command-Line Arguments
 
 `--scrapers`, `-s`: Optional. A comma-separated list of scrapers to use (e.g., -s "kompas,viva"). If not provided, all scrapers will be used by default.
 
-`--verbose`, `-v`: Optional. Increase verbosity level (e.g., `-v`, `-vv`, `-vvv`).
+`--output_format`, `-of`: Optional. Specify the output format (currently support csv, xlsx).
 
+`--silent`, `-S`: Optional. Run the scraper without printing output to the console.
 
 
 ### Examples
 
-Scrape articles related to "ihsg" from October 28, 2024:
+Scrape articles related to "ihsg" from January 1st, 2025:
 
 ```bash
-newswatch -k ihsg -sd 2024-11-01
+newswatch -k ihsg -sd 2025-01-01
 ```
 
-Scrape articles for multiple keywords and increase verbosity:
+Scrape articles for multiple keywords and disable logging:
 
 ```bash
-newswatch -k "ihsg,bank,keuangan" -sd 2024-11-01 -vv
+newswatch -k "ihsg,bank,keuangan" -sd 2025-01-01 --silent
 ```
+
+Scrape articles for specific news website (bisnisindonesia and detik) and excel output format:
+
+```bash
+newswatch -k "ihsg" -s "bisnisindonesia,detik" -of xlsx
+```
+
 
 ## Output
 
@@ -68,6 +76,7 @@ The CSV file contains the following fields:
 - [CNBC Indonesia](https://www.cnbcindonesia.com/)
 - [Detik.com](https://www.detik.com/)
 - [Kompas.com](https://www.kompas.com/)
+- [Katadata.co.id](https://katadata.co.id/)
 - [Kontan.co.id](https://www.kontan.co.id/)
     > Note: Running this on the cloud currently leads to errors due to Cloudflare restrictions.
     >

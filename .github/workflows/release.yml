@@ -6,6 +6,7 @@ on:
 
 jobs:
   build-and-publish:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
@@ -24,14 +25,6 @@ jobs:
       - name: Build Package
         run: |
           python -m build
-
-      - name: Publish to TestPyPI (Optional)
-        if: github.event.release.prerelease == true
-        env:
-          TWINE_USERNAME: '__token__'
-          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
-        run: |
-          python -m twine upload --repository testpypi dist/*
 
       - name: Publish to PyPI
         if: github.event.release.prerelease == false

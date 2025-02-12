@@ -1,3 +1,8 @@
+*ignore_for_debug*
+*.csv
+*.xlsx
+*.DS_store
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

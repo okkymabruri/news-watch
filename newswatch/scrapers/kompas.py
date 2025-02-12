@@ -1,10 +1,6 @@
-import json
 import logging
-import random
 import re
-from urllib.parse import urlencode
 
-import requests
 from bs4 import BeautifulSoup
 
 from .basescraper import BaseScraper

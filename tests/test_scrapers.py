@@ -6,6 +6,7 @@ import pytest
 from newswatch.scrapers.bisnisindonesia import BisnisIndonesiaScraper
 # from newswatch.scrapers.cnbcindonesia import CNBCScraper
 from newswatch.scrapers.detik import DetikScraper
+from newswatch.scrapers.katadata import KatadataScraper
 from newswatch.scrapers.kompas import KompasScraper
 # from newswatch.scrapers.kontan import KontanScraper
 from newswatch.scrapers.viva import VivaScraper
@@ -14,6 +15,7 @@ scraper_classes = [
     BisnisIndonesiaScraper,
     # CNBCScraper, # exclude pytest error
     DetikScraper,
+    KatadataScraper,
     KompasScraper,
     # KontanScraper, # only apply on local
     VivaScraper,

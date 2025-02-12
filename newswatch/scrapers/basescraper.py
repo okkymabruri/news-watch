@@ -1,5 +1,3 @@
-# basescraper.py
-
 from abc import ABC, abstractmethod
 
 import dateparser

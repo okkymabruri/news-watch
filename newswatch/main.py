@@ -13,6 +13,7 @@ from pathlib import Path
 from .scrapers.bisnisindonesia import BisnisIndonesiaScraper
 from .scrapers.cnbcindonesia import CNBCScraper
 from .scrapers.detik import DetikScraper
+from .scrapers.katadata import KatadataScraper
 from .scrapers.kompas import KompasScraper
 from .scrapers.kontan import KontanScraper
 from .scrapers.viva import VivaScraper
@@ -66,19 +67,59 @@ async def write_csv(queue, keywords, filename=None):
         logging.error(f"Error writing to CSV: {e}")
 
 
+async def write_xlsx(queue, keywords, filename=None):
+    import pandas as pd
+
+    fieldnames = [
+        "title",
+        "publish_date",
+        "author",
+        "content",
+        "keyword",
+        "category",
+        "source",
+        "link",
+    ]
+    current_time = datetime.now().strftime("%Y%m%d_%H")
+    filename = (
+        Path.cwd() / f"news-watch-{keywords.replace(',','.')}-{current_time}.xlsx"
+    )
+    items = []
+
+    while True:
+        item = await queue.get()
+        if item is None:  # Sentinel value to stop
+            break
+        # Format datetime objects as strings
+        if isinstance(item.get("publish_date"), datetime):
+            item["publish_date"] = item["publish_date"].strftime("%Y-%m-%d %H:%M:%S")
+        items.append(item)
+
+    try:
+        df = pd.DataFrame(items, columns=fieldnames)
+        df.to_excel(filename, index=False)
+        print(f"Data written to {filename}")
+    except Exception as e:
+        logging.error(f"Error writing to XLSX: {e}")
+
+
 async def main(args):
     start_date = datetime.strptime(args.start_date, "%Y-%m-%d")
     keywords = args.keywords
     selected_scrapers = args.scrapers
 
     queue_ = asyncio.Queue()
-    writer_task = asyncio.create_task(write_csv(queue_, keywords))
+    if args.output_format.lower() == "xlsx":
+        writer_task = asyncio.create_task(write_xlsx(queue_, args.keywords))
+    else:
+        writer_task = asyncio.create_task(write_csv(queue_, args.keywords))
 
     # mapping of scraper names to their corresponding classes and additional parameters
     scraper_classes = {
         "bisnisindonesia": {"class": BisnisIndonesiaScraper, "params": {}},
         "cnbc": {"class": CNBCScraper, "params": {}},
         "detik": {"class": DetikScraper, "params": {}},
+        "katadata": {"class": KatadataScraper, "params": {}},
         "kompas": {"class": KompasScraper, "params": {}},
         "viva": {"class": VivaScraper, "params": {}},
         # FIX ME: add more scrapers here

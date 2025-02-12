@@ -10,7 +10,14 @@ from .main import main as run_main
 def cli():
     # List of available scrapers based on the platform
     is_linux = platform.system().lower() == "linux"
-    available_scrapers = ["bisnisindonesia", "cnbcindonesia", "detik", "kompas", "viva"]
+    available_scrapers = [
+        "bisnisindonesia",
+        "cnbcindonesia",
+        "detik",
+        "katadata",
+        "kompas",
+        "viva",
+    ]
     if not is_linux:
         available_scrapers.append("kontan")
     available_scrapers_str = ",".join(available_scrapers)
@@ -46,22 +53,22 @@ def cli():
         help="Comma-separated list of scrapers to use (e.g., 'kompas,viva'). Default is all.",
     )
     parser.add_argument(
-        "--verbose",
-        "-v",
-        action="count",
-        default=0,
-        help="Increase verbosity level (e.g., -v, -vv, -vvv)",
+        "--output_format",
+        "-of",
+        choices=["csv", "xlsx"],
+        default="csv",
+        help="Output file format. Options are csv or xlsx. Default is csv.",
     )
-    # FIX ME: add argument for output name
-
+    parser.add_argument(
+        "--silent",
+        "-S",
+        action="store_true",
+        help="Suppress all logging output.",
+    )
     args = parser.parse_args()
 
-    # set up logging level based on verbosity
-    log_level = {0: logging.WARNING, 1: logging.INFO, 2: logging.DEBUG}.get(
-        args.verbose, logging.DEBUG
-    )
-
-    logging.basicConfig(level=log_level)
+    if args.silent:
+        logging.disable(logging.CRITICAL)
 
     asyncio.run(run_main(args))
 
