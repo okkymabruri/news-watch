@@ -57,6 +57,7 @@ def cli():
         "-of",
         choices=["csv", "xlsx"],
         default="csv",
+        type=str,
         help="Output file format. Options are csv or xlsx. Default is csv.",
     )
     parser.add_argument(

@@ -109,7 +109,9 @@ async def main(args):
     selected_scrapers = args.scrapers
 
     queue_ = asyncio.Queue()
-    if args.output_format.lower() == "xlsx":
+
+    output_format = getattr(args, "output_format", "xlsx")
+    if output_format.lower() == "xlsx":
         writer_task = asyncio.create_task(write_xlsx(queue_, args.keywords))
     else:
         writer_task = asyncio.create_task(write_csv(queue_, args.keywords))
