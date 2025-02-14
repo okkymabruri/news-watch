@@ -16,6 +16,7 @@ from .scrapers.detik import DetikScraper
 from .scrapers.katadata import KatadataScraper
 from .scrapers.kompas import KompasScraper
 from .scrapers.kontan import KontanScraper
+from .scrapers.metronews import MetroNewsScraper
 from .scrapers.viva import VivaScraper
 
 logging.basicConfig(
@@ -40,7 +41,12 @@ async def write_csv(queue, keywords, filename=None):
     ]
 
     current_time = datetime.now().strftime("%Y%m%d_%H")
-    filename = Path.cwd() / f"news-watch-{keywords.replace(',','.')}-{current_time}.csv"
+    keywords_list = keywords.split(",")
+    if len(keywords_list) > 2:
+        keywords_short = ".".join(keywords_list[:2]) + "..."
+    else:
+        keywords_short = ".".join(keywords_list)
+    filename = Path.cwd() / f"news-watch-{keywords_short}-{current_time}.csv"
 
     try:
         with open(filename, mode="w", newline="", encoding="utf-8") as csvfile:
@@ -81,9 +87,13 @@ async def write_xlsx(queue, keywords, filename=None):
         "link",
     ]
     current_time = datetime.now().strftime("%Y%m%d_%H")
-    filename = (
-        Path.cwd() / f"news-watch-{keywords.replace(',','.')}-{current_time}.xlsx"
-    )
+    keywords_list = keywords.split(",")
+    if len(keywords_list) > 2:
+        keywords_short = ".".join(keywords_list[:2]) + "..."
+    else:
+        keywords_short = ".".join(keywords_list)
+    filename = Path.cwd() / f"news-watch-{keywords_short}-{current_time}.xlsx"
+
     items = []
 
     while True:
@@ -123,6 +133,7 @@ async def main(args):
         "detik": {"class": DetikScraper, "params": {}},
         "katadata": {"class": KatadataScraper, "params": {}},
         "kompas": {"class": KompasScraper, "params": {}},
+        "metronews": {"class": MetroNewsScraper, "params": {}},
         "viva": {"class": VivaScraper, "params": {}},
         # FIX ME: add more scrapers here
         # FIX ME: add english website reuters, CNBC

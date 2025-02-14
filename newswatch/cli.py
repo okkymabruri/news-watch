@@ -16,6 +16,7 @@ def cli():
         "detik",
         "katadata",
         "kompas",
+        "metronews",
         "viva",
     ]
     if not is_linux:
