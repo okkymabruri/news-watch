@@ -12,6 +12,7 @@ def cli():
     is_linux = platform.system().lower() == "linux"
     available_scrapers = [
         "bisnisindonesia",
+        "bloombergtechnoz",
         "cnbcindonesia",
         "detik",
         "katadata",

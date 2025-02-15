@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .scrapers.bisnisindonesia import BisnisIndonesiaScraper
+from .scrapers.bloombergtechnoz import BloombergTechnozScraper
 from .scrapers.cnbcindonesia import CNBCScraper
 from .scrapers.detik import DetikScraper
 from .scrapers.katadata import KatadataScraper
@@ -129,6 +130,7 @@ async def main(args):
     # mapping of scraper names to their corresponding classes and additional parameters
     scraper_classes = {
         "bisnisindonesia": {"class": BisnisIndonesiaScraper, "params": {}},
+        "bloombergtechnoz": {"class": BloombergTechnozScraper, "params": {}},
         "cnbc": {"class": CNBCScraper, "params": {}},
         "detik": {"class": DetikScraper, "params": {}},
         "katadata": {"class": KatadataScraper, "params": {}},

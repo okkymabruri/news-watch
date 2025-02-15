@@ -7,7 +7,7 @@
             "module": "newswatch.cli",
             "console": "integratedTerminal",
             // "args": ["-k", "ihsg,saham", "-sd", "2025-02-09", "-of", "xlsx"]
-            "args": ["-k", "ihsg,saham", "-s", "metronews", "-sd", "2025-02-09"]
+            "args": ["-k", "ihsg,saham", "-s", "bloombergtechnoz", "-sd", "2025-02-09","-of", "xlsx"]
         }
     ]
 }

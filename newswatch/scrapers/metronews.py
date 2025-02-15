@@ -21,7 +21,6 @@ class MetroNewsScraper(BaseScraper):
 
     def parse_article_links(self, response_text):
         soup = BeautifulSoup(response_text, "html.parser")
-        # articles = soup.select(".article__link[href]")
         articles = soup.select(".item .text h3 a[href]")
 
         if not articles:
