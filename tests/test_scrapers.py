@@ -10,7 +10,7 @@ from newswatch.scrapers.detik import DetikScraper
 from newswatch.scrapers.katadata import KatadataScraper
 from newswatch.scrapers.kompas import KompasScraper
 # from newswatch.scrapers.kontan import KontanScraper
-from newswatch.scrapers.metronews import MetroNewsScraper
+from newswatch.scrapers.metrotvnews import MetrotvnewsScraper
 from newswatch.scrapers.viva import VivaScraper
 
 scraper_classes = [
@@ -21,7 +21,7 @@ scraper_classes = [
     KatadataScraper,
     KompasScraper,
     # KontanScraper, # only apply on local
-    MetroNewsScraper,
+    MetrotvnewsScraper,
     VivaScraper,
 ]
 

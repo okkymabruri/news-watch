@@ -5,10 +5,10 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="news-watch",
-    version="0.1.8",
+    version="0.1.9",
     author="Okky Mabruri",
     author_email="okkymbrur@gmail.com",
-    description="A scraper for Indonesian news websites.",
+    description="news-watch is a Python package that scrapes structured news data from Indonesia's top news websites, offering keyword and date filtering queries for targeted research.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/okkymabruri/news-watch",
@@ -28,7 +28,7 @@ setup(
     },
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: Apache Software License",
+        "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
     python_requires=">=3.10",

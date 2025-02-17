@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from .basescraper import BaseScraper
 
 
-class MetroNewsScraper(BaseScraper):
+class MetrotvnewsScraper(BaseScraper):
     def __init__(self, keywords, concurrency=12, start_date=None, queue_=None):
         super().__init__(keywords, concurrency, queue_)
         self.base_url = "https://metrotvnews.com"

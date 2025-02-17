@@ -17,7 +17,7 @@ from .scrapers.detik import DetikScraper
 from .scrapers.katadata import KatadataScraper
 from .scrapers.kompas import KompasScraper
 from .scrapers.kontan import KontanScraper
-from .scrapers.metronews import MetroNewsScraper
+from .scrapers.metrotvnews import MetrotvnewsScraper
 from .scrapers.viva import VivaScraper
 
 logging.basicConfig(
@@ -135,7 +135,7 @@ async def main(args):
         "detik": {"class": DetikScraper, "params": {}},
         "katadata": {"class": KatadataScraper, "params": {}},
         "kompas": {"class": KompasScraper, "params": {}},
-        "metronews": {"class": MetroNewsScraper, "params": {}},
+        "metronews": {"class": MetrotvnewsScraper, "params": {}},
         "viva": {"class": VivaScraper, "params": {}},
         # FIX ME: add more scrapers here
         # FIX ME: add english website reuters, CNBC
