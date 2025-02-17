@@ -1,4 +1,5 @@
 *ignore_for_debug*
+*dev/
 *.csv
 *.xlsx
 *.DS_store

@@ -1,10 +1,11 @@
-# news-watch
+# news-watch: Indonesia's top news websites scraper
 
 [![PyPI version](https://badge.fury.io/py/news-watch.svg)](https://badge.fury.io/py/news-watch)
 [![Build Status](https://github.com/okkymabruri/news-watch/actions/workflows/test.yml/badge.svg)](https://github.com/okkymabruri/news-watch/actions)
+[![PyPI Downloads](https://static.pepy.tech/badge/news-watch)](https://pepy.tech/projects/news-watch)
 
-news-watch allows you to scrape news articles from various Indonesian news websites based on specific keywords and date ranges.
 
+news-watch is a Python package that scrapes structured news data from [Indonesia’s top news websites](#supported-websites), offering keyword and date filtering queries for targeted research
 
 ## Installation
 
@@ -39,27 +40,27 @@ Command-Line Arguments
 Scrape articles related to "ihsg" from January 1st, 2025:
 
 ```bash
-newswatch -k ihsg -sd 2025-01-01
+newswatch --keywords ihsg --start_date 2025-01-01
 ```
 
-Scrape articles for multiple keywords and disable logging:
+Scrape articles for multiple keywords (ihsg, bank, keuangan) and disable logging:
 
 ```bash
 newswatch -k "ihsg,bank,keuangan" -sd 2025-01-01 --silent
 ```
 
-Scrape articles for specific news website (bisnisindonesia and detik) and excel output format:
+Scrape articles for specific news website (bisnisindonesia and detik) with excel output format and disable logging:
 
 ```bash
-newswatch -k "ihsg" -s "bisnisindonesia,detik" -of xlsx
+newswatch -k "ihsg" -s "bisnisindonesia,detik" --output_format xlsx -S
 ```
 
 
 ## Output
 
-The scraped articles are saved as a CSV file in the current working directory with the format `news-watch-{keywords}-YYYYMMDD_HH.csv`.
+The scraped articles are saved as a CSV or XLSX file in the current working directory with the format `news-watch-{keywords}-YYYYMMDD_HH`.
 
-The CSV file contains the following fields:
+The output file contains the following columns:
 
 - `title`
 - `publish_date`
@@ -73,14 +74,16 @@ The CSV file contains the following fields:
 ## Supported Websites
 
 - [Bisnis Indonesia](https://bisnisindonesia.id/)
+- [Bloomberg Technoz](https://www.bloombergtechnoz.com/)
 - [CNBC Indonesia](https://www.cnbcindonesia.com/)
 - [Detik.com](https://www.detik.com/)
-- [Kompas.com](https://www.kompas.com/)
 - [Katadata.co.id](https://katadata.co.id/)
+- [Kompas.com](https://www.kompas.com/)
 - [Kontan.co.id](https://www.kontan.co.id/)
     > Note: Running this on the cloud currently leads to errors due to Cloudflare restrictions.
     >
     > Limitation: The scraper can process a maximum of 50 pages.
+- [Metrotvnews.com](https://metrotvnews.com/)
 - [Viva.co.id](https://www.viva.co.id/)
 
 ## Contributing
@@ -97,4 +100,23 @@ pytest tests/
 
 ## License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT - see the [LICENSE](LICENSE) file for details.
+
+## Citing news-watch
+
+If you use this software, please use the following BibTex entry:
+
+```
+@software{mabruri_newswatch,
+  author       = {Okky Mabruri},
+  title        = {{news-watch: Indonesia's top news websites scraper}},
+  url          = {https://github.com/okkymabruri/news-watch},
+  license      = {MIT},
+  abstract     = {news-watch is a Python package that scrapes structured news data from Indonesia's top news websites, offering keyword and date filtering queries for targeted research.},
+  keywords     = {scraping, news, newswatch, newsscraper, berita, scraping-berita}
+}
+```
+
+### Related Work
+* [indonesia-news-scraper](https://github.com/theyudhiztira/indonesia-news-scraper)
+* [news-scraper](https://github.com/binsarjr/news-scraper)

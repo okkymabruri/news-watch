@@ -105,3 +105,32 @@ class KontanScraper(BaseScraper):
             await self.queue_.put(item)
         except Exception as e:
             logging.error(f"Error parsing article {link}: {e}")
+
+
+# TO DO: fix for internasional/nasional kontan co id
+# Timeout fetching http://nasional.kontan.co.id/news/hati-hati-neraca-perdagangan-berpotensi-tergerus-imbas-ketegangan-iran-israel
+# No response for http://nasional.kontan.co.id/news/hati-hati-neraca-perdagangan-berpotensi-tergerus-imbas-ketegangan-iran-israel
+# Timeout fetching http://nasional.kontan.co.id/news/g20-ketegangan-perdagangan-harus-segera-diselesaikan
+# No response for http://nasional.kontan.co.id/news/g20-ketegangan-perdagangan-harus-segera-diselesaikan
+# Timeout fetching https://bisnisindonesia.id/article/ekspansi-manufaktur-ri-dan-bayangbayang-perang-dagang-aschina
+# No response for https://bisnisindonesia.id/article/ekspansi-manufaktur-ri-dan-bayangbayang-perang-dagang-aschina
+# Timeout fetching http://internasional.kontan.co.id/news/di-tengah-ketegangan-surplus-perdagangan-china-dengan-as-kian-besar
+# No response for http://internasional.kontan.co.id/news/di-tengah-ketegangan-surplus-perdagangan-china-dengan-as-kian-besar
+# Timeout fetching http://internasional.kontan.co.id/news/mendag-pentingnya-peran-g20-dalam-mengurangi-ketegangan-perdagangan-global
+# No response for http://internasional.kontan.co.id/news/mendag-pentingnya-peran-g20-dalam-mengurangi-ketegangan-perdagangan-global
+# Timeout fetching http://nasional.kontan.co.id/news/imf-skenario-terburuk-ketegangan-perdagangan-bisa-picu-krisis-di-negara-berkembang
+# No response for http://nasional.kontan.co.id/news/imf-skenario-terburuk-ketegangan-perdagangan-bisa-picu-krisis-di-negara-berkembang
+# Timeout fetching http://nasional.kontan.co.id/news/waspada-neraca-perdagangan-ri-makin-terkikis-imbas-ketegangan-iran-israel
+# No response for http://nasional.kontan.co.id/news/waspada-neraca-perdagangan-ri-makin-terkikis-imbas-ketegangan-iran-israel
+# Timeout fetching http://investasi.kontan.co.id/news/bursa-asia-melemah-karena-pasang-surut-antusiasme-ketegangan-perdagangan
+# No response for http://investasi.kontan.co.id/news/bursa-asia-melemah-karena-pasang-surut-antusiasme-ketegangan-perdagangan
+# Timeout fetching http://internasional.kontan.co.id/news/the-fed-mewaspadai-risiko-dari-pelemahan-inflasi-dan-ketegangan-perdagangan
+# No response for http://internasional.kontan.co.id/news/the-fed-mewaspadai-risiko-dari-pelemahan-inflasi-dan-ketegangan-perdagangan
+# Timeout fetching http://internasional.kontan.co.id/news/produsen-chip-china-mendesak-perusahaan-as-untuk-bantu-redakan-ketegangan-perdagangan
+# No response for http://internasional.kontan.co.id/news/produsen-chip-china-mendesak-perusahaan-as-untuk-bantu-redakan-ketegangan-perdagangan
+# Timeout fetching http://nasional.kontan.co.id/news/ketegangan-geopolitik-diramal-beri-dampak-ke-perdagangan-ri-hingga-dua-bulan-ke-depan
+# No response for http://nasional.kontan.co.id/news/ketegangan-geopolitik-diramal-beri-dampak-ke-perdagangan-ri-hingga-dua-bulan-ke-depan
+# Timeout fetching http://internasional.kontan.co.id/news/balas-ancaman-tarif-gedung-putih-china-bisa-melakukan-hal-ini-kepada-as
+# No response for http://internasional.kontan.co.id/news/balas-ancaman-tarif-gedung-putih-china-bisa-melakukan-hal-ini-kepada-as
+# Timeout fetching http://internasional.kontan.co.id/news/balas-amerika-china-akan-menerapkan-tarif-impor-senilai-us-60-miliar
+# No response for http://internasional.kontan.co.id/news/balas-amerika-china-akan-menerapkan-tarif-impor-senilai-us-60-miliar
