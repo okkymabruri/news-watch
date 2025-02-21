@@ -65,8 +65,8 @@ class VivaScraper(BaseScraper):
                 return
 
             content_div = soup.find("div", {"class": "main-content-detail"})
-            for elem in content_div.find_all(
-                ["div", {"class": ["recommended-article", "widget-other-article"]}]
+            for elem in content_div.select(
+                "div.recommended-article, div.widget-other-article"
             ):
                 elem.decompose()
             content = content_div.get_text(separator=" ", strip=True)
