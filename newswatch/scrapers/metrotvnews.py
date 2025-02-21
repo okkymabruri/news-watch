@@ -7,7 +7,7 @@ from .basescraper import BaseScraper
 
 
 class MetrotvnewsScraper(BaseScraper):
-    def __init__(self, keywords, concurrency=12, start_date=None, queue_=None):
+    def __init__(self, keywords, concurrency=5, start_date=None, queue_=None):
         super().__init__(keywords, concurrency, queue_)
         self.base_url = "https://metrotvnews.com"
         self.start_date = start_date
@@ -39,7 +39,7 @@ class MetrotvnewsScraper(BaseScraper):
         soup = BeautifulSoup(response_text, "html.parser")
         try:
             category = soup.select_one(".breadcrumb-content p").get_text(strip=True)
-            title = soup.select_one("h2").get_text()
+            title = soup.select_one("h1, h2").get_text()
 
             author_date_str = soup.select_one("p.pt-20.date").get_text(strip=True)
             publish_date_str = author_date_str.split("•")[-1].strip()
@@ -89,4 +89,4 @@ class MetrotvnewsScraper(BaseScraper):
             }
             await self.queue_.put(item)
         except Exception as e:
-            logging.error(f"Error parsing article {link}: {e}")
+            logging.error(f"Error parsing article {link}: {e}", exc_info=True)

@@ -43,7 +43,7 @@ async def test_scraper_fetch_data(scraper_class):
 
     queue = asyncio.Queue()
     scraper = scraper_class(
-        keywords="indonesia",
+        keywords="ihsg",
         start_date=datetime.now() - timedelta(days=1),
         queue_=queue,
     )

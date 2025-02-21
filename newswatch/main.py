@@ -135,6 +135,7 @@ async def main(args):
         "detik": {"class": DetikScraper, "params": {}},
         "katadata": {"class": KatadataScraper, "params": {}},
         "kompas": {"class": KompasScraper, "params": {}},
+        "metrotvnews": {"class": MetrotvnewsScraper, "params": {}},
         "viva": {"class": VivaScraper, "params": {}},
         # FIX ME: add more scrapers here
         # FIX ME: add english website reuters, CNBC
@@ -145,7 +146,6 @@ async def main(args):
     # Limitation: can scrape a maximum of 50 pages
     if platform.system().lower() != "linux":
         scraper_classes["kontan"] = {"class": KontanScraper, "params": {}}
-        scraper_classes["metronews"] = {"class": MetrotvnewsScraper, "params": {}}
 
     if selected_scrapers.lower() == "all":
         scrapers_to_run = list(scraper_classes.keys())

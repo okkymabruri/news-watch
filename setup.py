@@ -18,7 +18,7 @@ setup(
         "beautifulsoup4==4.13.3",
         "dateparser==1.2.1",
         "openpyxl==3.1.5",
-        "pandas==2.2.3",
+        "pandas==2.2.2",
         "requests==2.32.3",
     ],
     entry_points={

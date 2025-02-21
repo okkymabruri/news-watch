@@ -6,7 +6,7 @@
             "request": "launch",
             "module": "newswatch.cli",
             "console": "integratedTerminal",
-            "args": ["-k", "ihsg,saham", "-sd", "2025-02-09", "-of", "xlsx"]
+            "args": ["-k", "ihsg,saham", "-s", "metrotvnews", "-sd", "2025-02-20", "-of", "xlsx"]
             // "args": ["-k", "ihsg,saham", "-s", "katadata", "-sd", "2025-02-09"]
         }
     ]

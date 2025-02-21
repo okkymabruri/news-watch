@@ -55,6 +55,9 @@ Scrape articles for specific news website (bisnisindonesia and detik) with excel
 newswatch -k "ihsg" -s "bisnisindonesia,detik" --output_format xlsx -S
 ```
 
+## Run on Google Colab
+
+You can run news-watch on Google Colab [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/okkymabruri/news-watch/blob/main/notebook/run-newswatch-on-colab.ipynb)
 
 ## Output
 
@@ -80,11 +83,14 @@ The output file contains the following columns:
 - [Katadata.co.id](https://katadata.co.id/)
 - [Kompas.com](https://www.kompas.com/)
 - [Kontan.co.id](https://www.kontan.co.id/)
-    > Note: Running this on the cloud currently leads to errors due to Cloudflare restrictions.
-    >
-    > Limitation: The scraper can process a maximum of 50 pages.
 - [Metrotvnews.com](https://metrotvnews.com/)
 - [Viva.co.id](https://www.viva.co.id/)
+
+
+
+> Note: 
+> - Running [Kontan.co.id](https://www.kontan.co.id/) and [Metrotvnews.com](https://metrotvnews.com/) on the cloud currently leads to errors due to Cloudflare restrictions.
+> - Limitation: [Kontan.co.id](https://www.kontan.co.id/) scraper can process a maximum of 50 pages.
 
 ## Contributing
 
