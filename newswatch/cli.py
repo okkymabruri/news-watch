@@ -19,6 +19,7 @@ def cli():
         "kompas",
         "metronews",
         "viva",
+        "tempo",
     ]
     if not is_linux:
         available_scrapers.append("kontan")

@@ -1,11 +1,12 @@
 cff-version: 1.2.0
-title: "news-watch: Indonesia's top news websites scraper"
+title: "news-watch"
 message: 'If you use this software, please cite it as below.'
 authors:
   - name: "Okky Mabruri"
     website: "okkymabruri.github.io"
     orcid: "https://orcid.org/0000-0002-2103-1311"
-abstract: "news-watch is a Python package that scrapes structured news data from Indonesia's top news websites, offering keyword and date filtering queries for targeted research."
+version: 0.2.0
+abstract: "news-watch: Indonesia's top news websites scraper. A Python package that scrapes structured news data from Indonesia's top news websites, offering keyword and date filtering queries for targeted research."
 # doi: 
 license: MIT
 license-url: "https://github.com/okkymabruri/news-watch/blob/main/LICENSE"
@@ -13,8 +14,12 @@ repository-code: "https://github.com/okkymabruri/news-watch"
 keywords:
   - scraping
   - news
+  - indonesian-news
   - newswatch
   - newsscraper
   - berita
   - scraping-berita
 type: software
+contact:
+  - name: Okky Mabruri
+    email: okkymbrur@gmail.com

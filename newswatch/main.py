@@ -18,6 +18,7 @@ from .scrapers.katadata import KatadataScraper
 from .scrapers.kompas import KompasScraper
 from .scrapers.kontan import KontanScraper
 from .scrapers.metrotvnews import MetrotvnewsScraper
+from .scrapers.tempo import TempoScraper
 from .scrapers.viva import VivaScraper
 
 logging.basicConfig(
@@ -98,7 +99,13 @@ async def write_xlsx(queue, keywords, filename=None):
     items = []
 
     while True:
-        item = await queue.get()
+        try:
+            item = await queue.get()
+        except RuntimeError as e:
+            if 'Event loop is closed' in str(e):
+                break
+            else:
+                raise
         if item is None:  # Sentinel value to stop
             break
         # Format datetime objects as strings
@@ -137,6 +144,7 @@ async def main(args):
         "kompas": {"class": KompasScraper, "params": {}},
         "metrotvnews": {"class": MetrotvnewsScraper, "params": {}},
         "viva": {"class": VivaScraper, "params": {}},
+        "tempo": {"class": TempoScraper, "params": {}},
         # FIX ME: add more scrapers here
         # FIX ME: add english website reuters, CNBC
     }

@@ -5,7 +5,7 @@
 [![PyPI Downloads](https://static.pepy.tech/badge/news-watch)](https://pepy.tech/projects/news-watch)
 
 
-news-watch is a Python package that scrapes structured news data from [Indonesia’s top news websites](#supported-websites), offering keyword and date filtering queries for targeted research
+news-watch is a Python package that scrapes structured news data from [Indonesia's top news websites](#supported-websites), offering keyword and date filtering queries for targeted research
 
 ## Installation
 
@@ -84,12 +84,12 @@ The output file contains the following columns:
 - [Kompas.com](https://www.kompas.com/)
 - [Kontan.co.id](https://www.kontan.co.id/)
 - [Metrotvnews.com](https://metrotvnews.com/)
+- [Tempo.co](https://www.tempo.co/)
 - [Viva.co.id](https://www.viva.co.id/)
 
 
-
 > Note: 
-> - Running [Kontan.co.id](https://www.kontan.co.id/) and [Metrotvnews.com](https://metrotvnews.com/) on the cloud currently leads to errors due to Cloudflare restrictions.
+> - Running [Kontan.co.id](https://www.kontan.co.id/) on the cloud currently leads to errors due to Cloudflare restrictions.
 > - Limitation: [Kontan.co.id](https://www.kontan.co.id/) scraper can process a maximum of 50 pages.
 
 ## Contributing
@@ -98,7 +98,7 @@ Contributions are welcome! If you'd like to add support for more websites or imp
 
 ### Running Tests
 
-To run the test suite:
+To run the test:
 
 ```bash
 pytest tests/
@@ -116,6 +116,7 @@ If you use this software, please use the following BibTex entry:
 @software{mabruri_newswatch,
   author       = {Okky Mabruri},
   title        = {{news-watch: Indonesia's top news websites scraper}},
+  year         = {2025},
   url          = {https://github.com/okkymabruri/news-watch},
   license      = {MIT},
   abstract     = {news-watch is a Python package that scrapes structured news data from Indonesia's top news websites, offering keyword and date filtering queries for targeted research.},
