@@ -34,6 +34,8 @@ Command-Line Arguments
 
 `--silent`, `-S`: Optional. Run the scraper without printing output to the console.
 
+`--list_scrapers`: Optional. List supported scrapers.
+
 
 ### Examples
 

@@ -30,3 +30,10 @@ def test_cli_help(monkeypatch, capsys):
         cli()
     captured = capsys.readouterr()
     assert "News Watch - Scrape news articles" in captured.out
+
+
+def test_cli_list_scrapers(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["cli.py", "--list_scrapers"])
+    cli()
+    captured = capsys.readouterr()
+    assert "Supported scrapers:" in captured.out
