@@ -5,7 +5,7 @@ authors:
   - name: "Okky Mabruri"
     website: "okkymabruri.github.io"
     orcid: "https://orcid.org/0000-0002-2103-1311"
-version: 0.2.0
+version: 0.2.1
 abstract: "news-watch: Indonesia's top news websites scraper. A Python package that scrapes structured news data from Indonesia's top news websites, offering keyword and date filtering queries for targeted research."
 publisher: Zenodo
 doi: "10.5281/zenodo.14908390"

@@ -2,6 +2,7 @@ from .bisnisindonesia import BisnisIndonesiaScraper
 from .bloombergtechnoz import BloombergTechnozScraper
 from .cnbcindonesia import CNBCScraper
 from .detik import DetikScraper
+from .jawapos import JawaposScraper
 from .katadata import KatadataScraper
 from .kompas import KompasScraper
 from .kontan import KontanScraper
