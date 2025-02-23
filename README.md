@@ -51,6 +51,12 @@ Scrape articles for multiple keywords (ihsg, bank, keuangan) and disable logging
 newswatch -k "ihsg,bank,keuangan" -sd 2025-01-01 --silent
 ```
 
+List supported scrapers:
+
+```bash
+newswatch --list_scrapers
+```
+
 Scrape articles for specific news website (bisnisindonesia and detik) with excel output format and disable logging:
 
 ```bash
@@ -82,6 +88,7 @@ The output file contains the following columns:
 - [Bloomberg Technoz](https://www.bloombergtechnoz.com/)
 - [CNBC Indonesia](https://www.cnbcindonesia.com/)
 - [Detik.com](https://www.detik.com/)
+- [Jawapos](https://www.jawapos.com/)
 - [Katadata.co.id](https://katadata.co.id/)
 - [Kompas.com](https://www.kompas.com/)
 - [Kontan.co.id](https://www.kontan.co.id/)
@@ -110,7 +117,7 @@ pytest tests/
 
 This project is licensed under the MIT - see the [LICENSE](LICENSE) file for details.
 
-## Citing news-watch
+## Citation
 
 If you use this software, please use the following BibTex entry:
 
@@ -125,6 +132,8 @@ If you use this software, please use the following BibTex entry:
   url          = {https://doi.org/10.5281/zenodo.14908390}
 }
 ```
+
+Available on Zenodo: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14908390.svg)](https://doi.org/10.5281/zenodo.14908390)
 
 ### Related Work
 * [indonesia-news-scraper](https://github.com/theyudhiztira/indonesia-news-scraper)

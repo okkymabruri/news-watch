@@ -15,6 +15,7 @@ def cli():
         "bloombergtechnoz",
         "cnbcindonesia",
         "detik",
+        "jawapos",
         "katadata",
         "kompas",
         "metronews",

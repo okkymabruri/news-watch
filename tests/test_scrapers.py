@@ -7,6 +7,7 @@ from newswatch.scrapers.bisnisindonesia import BisnisIndonesiaScraper
 from newswatch.scrapers.bloombergtechnoz import BloombergTechnozScraper
 # from newswatch.scrapers.cnbcindonesia import CNBCScraper
 from newswatch.scrapers.detik import DetikScraper
+from newswatch.scrapers.jawapos import JawaposScraper
 from newswatch.scrapers.katadata import KatadataScraper
 from newswatch.scrapers.kompas import KompasScraper
 # from newswatch.scrapers.kontan import KontanScraper
@@ -19,7 +20,8 @@ scraper_classes = [
     BloombergTechnozScraper,
     # CNBCScraper, # exclude pytest error
     DetikScraper,
-    KatadataScraper,
+    JawaposScraper,
+    # KatadataScraper, # currently disabled due to katadata.co.id search results are not showing the latest articles
     KompasScraper,
     # KontanScraper, # only apply on local
     MetrotvnewsScraper,
@@ -45,7 +47,7 @@ async def test_scraper_fetch_data(scraper_class):
 
     queue = asyncio.Queue()
     scraper = scraper_class(
-        keywords="ihsg",
+        keywords="prabowo",
         start_date=datetime.now() - timedelta(days=1),
         queue_=queue,
     )

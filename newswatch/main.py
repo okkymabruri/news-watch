@@ -14,6 +14,7 @@ from .scrapers.bisnisindonesia import BisnisIndonesiaScraper
 from .scrapers.bloombergtechnoz import BloombergTechnozScraper
 from .scrapers.cnbcindonesia import CNBCScraper
 from .scrapers.detik import DetikScraper
+from .scrapers.jawapos import JawaposScraper
 from .scrapers.katadata import KatadataScraper
 from .scrapers.kompas import KompasScraper
 from .scrapers.kontan import KontanScraper
@@ -102,7 +103,7 @@ async def write_xlsx(queue, keywords, filename=None):
         try:
             item = await queue.get()
         except RuntimeError as e:
-            if 'Event loop is closed' in str(e):
+            if "Event loop is closed" in str(e):
                 break
             else:
                 raise
@@ -140,6 +141,7 @@ async def main(args):
         "bloombergtechnoz": {"class": BloombergTechnozScraper, "params": {}},
         "cnbc": {"class": CNBCScraper, "params": {}},
         "detik": {"class": DetikScraper, "params": {}},
+        "jawapos": {"class": JawaposScraper, "params": {}},
         "katadata": {"class": KatadataScraper, "params": {}},
         "kompas": {"class": KompasScraper, "params": {}},
         "metrotvnews": {"class": MetrotvnewsScraper, "params": {}},
