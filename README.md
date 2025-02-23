@@ -98,7 +98,7 @@ The output file contains the following columns:
 
 
 > Note: 
-> - Running [Kontan.co.id](https://www.kontan.co.id/) on the cloud currently leads to errors due to Cloudflare restrictions.
+> - Running [Kontan.co.id](https://www.kontan.co.id/) and [Jawapos](https://www.jawapos.com/) on the cloud currently leads to errors due to Cloudflare restrictions.
 > - Limitation: [Kontan.co.id](https://www.kontan.co.id/) scraper can process a maximum of 50 pages.
 
 ## Contributing

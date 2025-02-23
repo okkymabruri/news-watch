@@ -8,22 +8,23 @@ from .main import main as run_main
 
 
 def cli():
-    # List of available scrapers based on the platform
-    is_linux = platform.system().lower() == "linux"
-    available_scrapers = [
+    base_scrapers = [
         "bisnisindonesia",
-        "bloombergtechnoz",
+        "bloombergtechnoz", 
         "cnbcindonesia",
         "detik",
-        "jawapos",
         "katadata",
         "kompas",
         "metronews",
         "viva",
         "tempo",
     ]
-    if not is_linux:
-        available_scrapers.append("kontan")
+
+    is_linux = platform.system().lower() == "linux"
+    non_linux_scrapers = [] if is_linux else ["kontan", "jawapos"]
+    
+    # base and platform-specific scrapers
+    available_scrapers = base_scrapers + non_linux_scrapers
     available_scrapers_str = ",".join(available_scrapers)
 
     # main description with platform-specific notes
@@ -32,7 +33,7 @@ def cli():
         f"Currently supports: {available_scrapers_str}.\n"
     )
     if is_linux:
-        description += "Note: The 'kontan' scraper is not available on Linux platforms due to known issues."
+        description += "Note: The 'kontan' and 'jawapos' scrapers are not available on Linux platforms due to known issues."
 
     parser = argparse.ArgumentParser(
         description=description,

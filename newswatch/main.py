@@ -141,7 +141,6 @@ async def main(args):
         "bloombergtechnoz": {"class": BloombergTechnozScraper, "params": {}},
         "cnbc": {"class": CNBCScraper, "params": {}},
         "detik": {"class": DetikScraper, "params": {}},
-        "jawapos": {"class": JawaposScraper, "params": {}},
         "katadata": {"class": KatadataScraper, "params": {}},
         "kompas": {"class": KompasScraper, "params": {}},
         "metrotvnews": {"class": MetrotvnewsScraper, "params": {}},
@@ -156,6 +155,7 @@ async def main(args):
     # Limitation: can scrape a maximum of 50 pages
     if platform.system().lower() != "linux":
         scraper_classes["kontan"] = {"class": KontanScraper, "params": {}}
+        scraper_classes["jawapos"] = {"class": JawaposScraper, "params": {}}
 
     if selected_scrapers.lower() == "all":
         scrapers_to_run = list(scraper_classes.keys())

@@ -20,7 +20,7 @@ scraper_classes = [
     BloombergTechnozScraper,
     # CNBCScraper, # exclude pytest error
     DetikScraper,
-    JawaposScraper,
+    # JawaposScraper, # only apply on local
     # KatadataScraper, # currently disabled due to katadata.co.id search results are not showing the latest articles
     KompasScraper,
     # KontanScraper, # only apply on local
