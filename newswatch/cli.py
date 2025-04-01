@@ -9,7 +9,7 @@ from .main import main as run_main
 
 def cli():
     base_scrapers = [
-        "bisnisindonesia",
+        # "bisnisindonesia",
         "bloombergtechnoz", 
         "cnbcindonesia",
         "detik",

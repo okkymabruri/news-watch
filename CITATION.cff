@@ -8,7 +8,7 @@ authors:
 version: 0.2.1
 abstract: "news-watch: Indonesia's top news websites scraper. A Python package that scrapes structured news data from Indonesia's top news websites, offering keyword and date filtering queries for targeted research."
 publisher: Zenodo
-doi: "10.5281/zenodo.14908390"
+doi: "10.5281/zenodo.14912258"
 license: MIT
 license-url: "https://github.com/okkymabruri/news-watch/blob/main/LICENSE"
 repository-code: "https://github.com/okkymabruri/news-watch"

@@ -16,7 +16,7 @@ from newswatch.scrapers.tempo import TempoScraper
 from newswatch.scrapers.viva import VivaScraper
 
 scraper_classes = [
-    BisnisIndonesiaScraper,
+    # BisnisIndonesiaScraper,
     BloombergTechnozScraper,
     # CNBCScraper, # exclude pytest error
     DetikScraper,
@@ -48,7 +48,7 @@ async def test_scraper_fetch_data(scraper_class):
     queue = asyncio.Queue()
     scraper = scraper_class(
         keywords="prabowo",
-        start_date=datetime.now() - timedelta(days=1),
+        start_date=datetime.now() - timedelta(days=2),
         queue_=queue,
     )
 

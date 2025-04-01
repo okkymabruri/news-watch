@@ -84,7 +84,7 @@ The output file contains the following columns:
 
 ## Supported Websites
 
-- [Bisnis Indonesia](https://bisnisindonesia.id/)
+- [Bisnis Indonesia](https://bisnisindonesia.id/) **(temporarily disabled)**
 - [Bloomberg Technoz](https://www.bloombergtechnoz.com/)
 - [CNBC Indonesia](https://www.cnbcindonesia.com/)
 - [Detik.com](https://www.detik.com/)
@@ -98,6 +98,7 @@ The output file contains the following columns:
 
 
 > Note: 
+> - **BisnisIndonesia scraper is currently disabled due to parsing errors. It will be re-enabled in a future update.**
 > - Running [Kontan.co.id](https://www.kontan.co.id/) and [Jawapos](https://www.jawapos.com/) on the cloud currently leads to errors due to Cloudflare restrictions.
 > - Limitation: [Kontan.co.id](https://www.kontan.co.id/) scraper can process a maximum of 50 pages.
 
@@ -119,17 +120,19 @@ This project is licensed under the MIT - see the [LICENSE](LICENSE) file for det
 
 ## Citation
 
-If you use this software, please use the following BibTex entry:
+If you use this software, please cite it using the following:
 
-```
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14912258.svg)](https://doi.org/10.5281/zenodo.14912258)
+
+```bibtex
 @software{mabruri_newswatch,
   author       = {Okky Mabruri},
   title        = {news-watch},
-  version      = {0.2.0},
+  version      = {0.2.1},
   year         = {2025},
   publisher    = {Zenodo},
-  doi          = {10.5281/zenodo.14908390},
-  url          = {https://doi.org/10.5281/zenodo.14908390}
+  doi          = {10.5281/zenodo.14912258},
+  url          = {https://doi.org/10.5281/zenodo.14912258}
 }
 ```
 

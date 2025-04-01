@@ -22,6 +22,8 @@ class KompasScraper(BaseScraper):
         soup = BeautifulSoup(response_text, "html.parser")
         articles = soup.select(".article__link[href]")
         if not articles:
+            articles = soup.select(".article-link[href]")
+        if not articles:
             return None
 
         filtered_hrefs = {a.get("href") for a in articles if a.get("href")}
