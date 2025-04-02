@@ -10,7 +10,7 @@ from .basescraper import BaseScraper
 class TempoScraper(BaseScraper):
     def __init__(self, keywords, concurrency=2, start_date=None, queue_=None):
         super().__init__(keywords, concurrency, queue_)
-        self.base_url = "https://tempo.co"
+        self.base_url = "https://www.tempo.co"
         self.api_url = "https://www.tempo.co/api/gateway/articles"
         self.start_date = start_date
 
