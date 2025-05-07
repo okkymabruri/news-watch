@@ -58,11 +58,6 @@ newswatch -k "ihsg,bank,keuangan" -sd 2025-01-01 -v
 ```
 
 List supported scrapers:
-```bash
-newswatch --list_scrapers
-```
-
-Scrape articles for specific news website (bisnisindonesia and detik) with excel output format and disable logging:
 
 ```bash
 newswatch --list_scrapers
@@ -140,7 +135,7 @@ If you use this software, please cite it using the following:
 @software{mabruri_newswatch,
   author       = {Okky Mabruri},
   title        = {news-watch},
-  version      = {0.2.1},
+  version      = {0.2.2},
   year         = {2025},
   publisher    = {Zenodo},
   doi          = {10.5281/zenodo.14912258},
