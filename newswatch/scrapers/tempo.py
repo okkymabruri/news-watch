@@ -8,7 +8,7 @@ from .basescraper import BaseScraper
 
 
 class TempoScraper(BaseScraper):
-    def __init__(self, keywords, concurrency=2, start_date=None, queue_=None):
+    def __init__(self, keywords, concurrency=1, start_date=None, queue_=None):
         super().__init__(keywords, concurrency, queue_)
         self.base_url = "https://www.tempo.co"
         self.api_url = "https://www.tempo.co/api/gateway/articles"
@@ -27,7 +27,7 @@ class TempoScraper(BaseScraper):
         }
         query_string = urlencode(query_params, doseq=True)
         url = f"{self.api_url}?{query_string}"
-        return await self.fetch(url, headers={"User-Agent": "Mozilla/5.0"})
+        return await self.fetch(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=45)
 
     def parse_article_links(self, response_text):
         try:
@@ -44,7 +44,9 @@ class TempoScraper(BaseScraper):
         return filtered_hrefs
 
     async def get_article(self, link, keyword):
-        response_text = await self.fetch(link, headers={"User-Agent": "Mozilla/5.0"})
+        response_text = await self.fetch(
+            link, headers={"User-Agent": "Mozilla/5.0"}, timeout=45
+        )
         if not response_text:
             logging.warning(f"No response fetched for {link}")
             return

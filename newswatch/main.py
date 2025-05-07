@@ -137,7 +137,9 @@ async def main(args):
 
     # mapping of scraper names to their corresponding classes and additional parameters
     scraper_classes = {
+        # FIX ME: fix bisnisindonesia scraper
         # "bisnisindonesia": {"class": BisnisIndonesiaScraper, "params": {}},
+        
         "bloombergtechnoz": {"class": BloombergTechnozScraper, "params": {}},
         "cnbcindonesia": {"class": CNBCScraper, "params": {}},
         "detik": {"class": DetikScraper, "params": {}},

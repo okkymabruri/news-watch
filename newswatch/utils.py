@@ -18,18 +18,20 @@ class AsyncScraper:
         if self.session:
             await self.session.close()
 
-    async def fetch(self, url, method="GET", data=None, headers=None, retries=0):
+    async def fetch(
+        self, url, method="GET", data=None, headers=None, retries=0, timeout=30
+    ):
         async with self.semaphore:
             try:
                 if method == "GET":
                     async with self.session.get(
-                        url, headers=headers, timeout=10
+                        url, headers=headers, timeout=timeout
                     ) as response:
                         response.raise_for_status()
                         return await response.text()
                 elif method == "POST":
                     async with self.session.post(
-                        url, data=data, headers=headers, timeout=10
+                        url, data=data, headers=headers, timeout=timeout
                     ) as response:
                         response.raise_for_status()
                         return await response.text()
@@ -37,7 +39,9 @@ class AsyncScraper:
                 if retries < self.max_retries:
                     logging.warning(f"Retry {retries+1}/{self.max_retries} for {url}")
                     await asyncio.sleep(1 * retries)
-                    return await self.fetch(url, method, data, headers, retries + 1)
+                    return await self.fetch(
+                        url, method, data, headers, retries + 1, timeout
+                    )
                 else:
                     logging.error(f"Error fetching {url}: {e}")
                     return None
