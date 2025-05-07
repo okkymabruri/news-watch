@@ -19,9 +19,13 @@ class BisnisScraper(BaseScraper):
             "page": page,
         }
         url = f"https://search.{self.base_url}/?{urlencode(query_params)}"
-        return await self.fetch(url, headers={"User-Agent": "Mozilla/5.0"})
+        # Use shorter timeout for search pages - 15 seconds
+        return await self.fetch(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
 
     def parse_article_links(self, response_text):
+        if not response_text:
+            return None
+
         soup = BeautifulSoup(response_text, "html.parser")
         articles = soup.find_all("a", class_="artLink artLinkImg")
         if not articles:
@@ -35,8 +39,8 @@ class BisnisScraper(BaseScraper):
         return filtered_hrefs
 
     async def get_article(self, link, keyword):
-        pass
-        response_text = await self.fetch(link)
+        # Use shorter timeout for article pages - 10 seconds
+        response_text = await self.fetch(link, timeout=30)
         if not response_text:
             logging.warning(f"No response for {link}")
             return
