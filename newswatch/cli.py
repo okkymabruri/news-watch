@@ -67,10 +67,10 @@ def cli():
         help="Output file format. Options are csv or xlsx. Default is csv.",
     )
     parser.add_argument(
-        "--silent",
-        "-S",
+        "--verbose",
+        "-v",
         action="store_true",
-        help="Suppress all logging output.",
+        help="Show all logging output.",
     )
     parser.add_argument(
         "--list_scrapers",
@@ -83,7 +83,8 @@ def cli():
         print("Supported scrapers:\n- " + available_scrapers_str.replace(",", "\n- "))
         return
 
-    if args.silent:
+    # By default, suppress all logging unless verbose is specified
+    if not args.verbose:
         logging.disable(logging.CRITICAL)
 
     asyncio.run(run_main(args))

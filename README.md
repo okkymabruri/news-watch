@@ -15,12 +15,18 @@ You can install newswatch via pip:
 pip install news-watch
 ```
 
+To install the development version from the GitHub 'dev' branch:
+
+```bash
+pip install git+https://github.com/okkymabruri/news-watch.git@dev
+```
+
 ## Usage
 
 To run the scraper from the command line:
 
 ```bash
-newswatch -k <keywords> -sd <start_date> -s [<scrapers>] -of <output_format> --silent
+newswatch -k <keywords> -sd <start_date> -s [<scrapers>] -of <output_format> -v
 ```
 Command-Line Arguments
 
@@ -32,7 +38,7 @@ Command-Line Arguments
 
 `--output_format`, `-of`: Optional. Specify the output format (currently support csv, xlsx).
 
-`--silent`, `-S`: Optional. Run the scraper without printing output to the console.
+`--verbose`, `-v`: Optional. Show all logging output (silent by default).
 
 `--list_scrapers`: Optional. List supported scrapers.
 
@@ -45,10 +51,10 @@ Scrape articles related to "ihsg" from January 1st, 2025:
 newswatch --keywords ihsg --start_date 2025-01-01
 ```
 
-Scrape articles for multiple keywords (ihsg, bank, keuangan) and disable logging:
+Scrape articles for multiple keywords (ihsg, bank, keuangan) with verbose logging:
 
 ```bash
-newswatch -k "ihsg,bank,keuangan" -sd 2025-01-01 --silent
+newswatch -k "ihsg,bank,keuangan" -sd 2025-01-01 -v
 ```
 
 List supported scrapers:
@@ -57,10 +63,10 @@ List supported scrapers:
 newswatch --list_scrapers
 ```
 
-Scrape articles for specific news website (bisnisindonesia and detik) with excel output format and disable logging:
+Scrape articles for specific news website (bisnisindonesia and detik) with excel output format:
 
 ```bash
-newswatch -k "ihsg" -s "bisnisindonesia,detik" --output_format xlsx -S
+newswatch -k "ihsg" -s "bisnisindonesia,detik" --output_format xlsx
 ```
 
 ## Run on Google Colab
@@ -85,6 +91,7 @@ The output file contains the following columns:
 ## Supported Websites
 
 - [Bisnis Indonesia](https://bisnisindonesia.id/) **(temporarily disabled)**
+- [Bisnis.com](https://www.bisnis.com/)
 - [Bloomberg Technoz](https://www.bloombergtechnoz.com/)
 - [CNBC Indonesia](https://www.cnbcindonesia.com/)
 - [Detik.com](https://www.detik.com/)

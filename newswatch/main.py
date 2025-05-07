@@ -140,7 +140,6 @@ async def main(args):
     scraper_classes = {
         # FIX ME: fix bisnisindonesia scraper
         # "bisnisindonesia": {"class": BisnisIndonesiaScraper, "params": {}},
-        "bisnis": {"class": BisnisScraper, "params": {}},  # switch to bisnis.com from bisnisindonesia
         "bloombergtechnoz": {"class": BloombergTechnozScraper, "params": {}},
         "cnbcindonesia": {"class": CNBCScraper, "params": {}},
         "detik": {"class": DetikScraper, "params": {}},
@@ -157,6 +156,7 @@ async def main(args):
     # Currently results in an error when run on the cloud due to Cloudflare ban
     # Limitation: can scrape a maximum of 50 pages
     if platform.system().lower() != "linux":
+        scraper_classes["bisnis"] = {"class": BisnisScraper, "params": {}} # switch to bisnis.com from bisnisindonesia
         scraper_classes["kontan"] = {"class": KontanScraper, "params": {}}
         scraper_classes["jawapos"] = {"class": JawaposScraper, "params": {}}
 
