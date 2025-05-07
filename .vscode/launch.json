@@ -6,7 +6,7 @@
             "request": "launch",
             "module": "newswatch.cli",
             "console": "integratedTerminal",
-            "args": ["-k", "prabowo", "-s", "bisnisindonesia", "-sd", "2025-03-23"]
+            "args": ["-k", "prabowo", "-s", "bisnis", "-sd", "2025-05-07"]
         }
     ]
 }

@@ -3,7 +3,8 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from newswatch.scrapers.bisnisindonesia import BisnisIndonesiaScraper
+# from newswatch.scrapers.bisnisindonesia import BisnisIndonesiaScraper
+from newswatch.scrapers.bisnis import BisnisScraper
 from newswatch.scrapers.bloombergtechnoz import BloombergTechnozScraper
 # from newswatch.scrapers.cnbcindonesia import CNBCScraper
 from newswatch.scrapers.detik import DetikScraper
@@ -17,6 +18,7 @@ from newswatch.scrapers.viva import VivaScraper
 
 scraper_classes = [
     # BisnisIndonesiaScraper,
+    BisnisScraper,
     BloombergTechnozScraper,
     # CNBCScraper, # exclude pytest error
     DetikScraper,

@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 # from .scrapers.bisnisindonesia import BisnisIndonesiaScraper
+from .scrapers.bisnis import BisnisScraper
 from .scrapers.bloombergtechnoz import BloombergTechnozScraper
 from .scrapers.cnbcindonesia import CNBCScraper
 from .scrapers.detik import DetikScraper
@@ -139,7 +140,7 @@ async def main(args):
     scraper_classes = {
         # FIX ME: fix bisnisindonesia scraper
         # "bisnisindonesia": {"class": BisnisIndonesiaScraper, "params": {}},
-        
+        "bisnis": {"class": BisnisScraper, "params": {}},  # switch to bisnis.com from bisnisindonesia
         "bloombergtechnoz": {"class": BloombergTechnozScraper, "params": {}},
         "cnbcindonesia": {"class": CNBCScraper, "params": {}},
         "detik": {"class": DetikScraper, "params": {}},
