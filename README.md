@@ -58,6 +58,11 @@ newswatch -k "ihsg,bank,keuangan" -sd 2025-01-01 -v
 ```
 
 List supported scrapers:
+```bash
+newswatch --list_scrapers
+```
+
+Scrape articles for specific news website (bisnisindonesia and detik) with excel output format and disable logging:
 
 ```bash
 newswatch --list_scrapers
