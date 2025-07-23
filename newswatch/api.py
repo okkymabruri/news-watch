@@ -319,7 +319,7 @@ def scrape_to_file(keywords: str, start_date: str, output_path: Union[str, Path]
         keywords (str): Comma-separated keywords to search for
         start_date (str): Start date in YYYY-MM-DD format
         output_path (Union[str, Path]): Path to save the output file
-        output_format (str): Output format - "xlsx" or "csv"
+        output_format (str): Output format - "xlsx", "csv", or "json"
         scrapers (str): Scrapers to use - "auto", "all", or comma-separated list
         verbose (bool): Enable verbose logging
         timeout (int): Maximum time in seconds for scraping operation
@@ -330,8 +330,8 @@ def scrape_to_file(keywords: str, start_date: str, output_path: Union[str, Path]
         NewsWatchError: For other newswatch-related errors
     """
     # validate output format
-    if output_format.lower() not in ["csv", "xlsx"]:
-        raise ValidationError(f"Invalid output format: {output_format}. Use 'csv' or 'xlsx'.")
+    if output_format.lower() not in ["csv", "xlsx", "json"]:
+        raise ValidationError(f"Invalid output format: {output_format}. Use 'csv', 'xlsx', or 'json'.")
     
     # ensure output path has correct extension
     output_path = Path(output_path)
@@ -350,6 +350,12 @@ def scrape_to_file(keywords: str, start_date: str, output_path: Union[str, Path]
         # save to file
         if output_format.lower() == "xlsx":
             df.to_excel(output_path, index=False)
+        elif output_format.lower() == "json":
+            # ensure dates are formatted as strings for JSON
+            if "publish_date" in df.columns:
+                df["publish_date"] = df["publish_date"].dt.strftime("%Y-%m-%d %H:%M:%S")
+            # convert dataframe to json with proper formatting
+            df.to_json(output_path, orient="records", indent=2, force_ascii=False)
         else:
             df.to_csv(output_path, index=False, encoding="utf-8")
         

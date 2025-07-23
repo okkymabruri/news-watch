@@ -43,7 +43,7 @@ newswatch -k <keywords> -sd <start_date> -s [<scrapers>] -of <output_format> -v
 | `-k, --keywords` | **Required.** Comma-separated keywords to scrape (e.g., `"ojk,bank,npl"`) |
 | `-sd, --start_date` | **Required.** Start date in YYYY-MM-DD format (e.g., `2025-01-01`) |
 | `-s, --scrapers` | Scrapers to use: specific names (e.g., `"kompas,viva"`), `"auto"` (default, platform-appropriate), or `"all"` (force all, may fail) |
-| `-of, --output_format` | Output format: `csv` or `xlsx` (default: xlsx) |
+| `-of, --output_format` | Output format: `csv`, `xlsx`, or `json` (default: csv) |
 | `-v, --verbose` | Show detailed logging output (default: silent) |
 | `--list_scrapers` | List all supported scrapers and exit |
 
@@ -98,7 +98,7 @@ You can run news-watch on Google Colab [![Open In Colab](https://colab.research.
 
 ## Output
 
-The scraped articles are saved as a CSV or XLSX file in the current working directory with the format `news-watch-{keywords}-YYYYMMDD_HH`.
+The scraped articles are saved as a CSV, XLSX, or JSON file in the current working directory with the format `news-watch-{keywords}-YYYYMMDD_HH`.
 
 The output file contains the following columns:
 

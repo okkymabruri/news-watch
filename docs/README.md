@@ -9,7 +9,7 @@ news-watch is designed specifically for the Indonesian media landscape. It under
 Key capabilities:
 - **Keyword-based search** across multiple Indonesian news sources simultaneously
 - **Date range filtering** to focus on specific time periods
-- **Multiple output formats** including CSV, Excel, and pandas DataFrames
+- **Multiple output formats** including CSV, Excel, JSON, and pandas DataFrames
 - **Async-powered performance** with intelligent rate limiting
 - **Platform-aware operation** that adapts to different environments
 

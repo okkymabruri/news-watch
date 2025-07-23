@@ -123,7 +123,7 @@ def scrape_to_file(keywords, start_date, output_path, output_format="xlsx",
 **Parameters:**
 - `keywords`, `start_date`, `scrapers`, `verbose`, `timeout`: Same as other functions
 - `output_path` (str): Where to save the file
-- `output_format` (str, optional): `"xlsx"` or `"csv"` (default: "xlsx")
+- `output_format` (str, optional): `"xlsx"`, `"csv"`, or `"json"` (default: "xlsx")
 
 **Returns:**
 Nothing - file is saved to the specified location.
@@ -145,6 +145,16 @@ nw.scrape_to_file(
     start_date="2025-01-01",
     output_path="/path/to/startup_news.csv",
     output_format="csv",
+    scrapers="detik,kompas",
+    verbose=True
+)
+
+# Save as JSON for API integration
+nw.scrape_to_file(
+    keywords="fintech,digital", 
+    start_date="2025-01-01",
+    output_path="tech_articles.json",
+    output_format="json",
     scrapers="detik,kompas",
     verbose=True
 )

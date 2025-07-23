@@ -5,6 +5,7 @@ maintainer: Okky Mabruri <okkymbrur@gmail.com>
 
 import asyncio
 import csv
+import json
 import logging
 import platform
 from datetime import datetime
@@ -77,6 +78,40 @@ async def write_csv(queue, keywords, filename=None):
         print(f"Data written to {filename}")
     except Exception as e:
         logging.error(f"Error writing to CSV: {e}")
+
+
+async def write_json(queue, keywords, filename=None):
+    """Write scraped articles to JSON file format."""
+    current_time = datetime.now().strftime("%Y%m%d_%H")
+    keywords_list = keywords.split(",")
+    if len(keywords_list) > 2:
+        keywords_short = ".".join(keywords_list[:2]) + "..."
+    else:
+        keywords_short = ".".join(keywords_list)
+    filename = Path.cwd() / f"news-watch-{keywords_short}-{current_time}.json"
+
+    articles = []
+    
+    try:
+        while True:
+            item = await queue.get()
+            if item is None:  # Sentinel value to stop the writer
+                break
+
+            # Format datetime objects as strings for JSON serialization
+            if isinstance(item.get("publish_date"), datetime):
+                item["publish_date"] = item["publish_date"].strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
+            articles.append(item)
+
+        # Write all articles to JSON file
+        with open(filename, mode="w", encoding="utf-8") as jsonfile:
+            json.dump(articles, jsonfile, indent=2, ensure_ascii=False)
+
+        print(f"Data written to {filename}")
+    except Exception as e:
+        logging.error(f"Error writing to JSON: {e}")
 
 
 async def write_xlsx(queue, keywords, filename=None):
@@ -175,6 +210,8 @@ async def main(args):
     output_format = getattr(args, "output_format", "xlsx")
     if output_format.lower() == "xlsx":
         writer_task = asyncio.create_task(write_xlsx(queue_, args.keywords))
+    elif output_format.lower() == "json":
+        writer_task = asyncio.create_task(write_json(queue_, args.keywords))
     else:
         writer_task = asyncio.create_task(write_csv(queue_, args.keywords))
 
