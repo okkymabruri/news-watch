@@ -91,7 +91,7 @@ async def write_json(queue, keywords, filename=None):
     filename = Path.cwd() / f"news-watch-{keywords_short}-{current_time}.json"
 
     articles = []
-    
+
     try:
         while True:
             item = await queue.get()

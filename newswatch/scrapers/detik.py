@@ -55,7 +55,11 @@ class DetikScraper(BaseScraper):
         try:
             category = soup.find("div", class_="page__breadcrumb").find("a").get_text()
             title = soup.select_one(".detail__title").get_text(strip=True)
-            author = soup.select_one(".detail__author").get_text(strip=True)
+            # Try regular article author first, then column author
+            author_elem = soup.select_one(".detail__author")
+            if not author_elem:
+                author_elem = soup.select_one(".box-kolumnis h5")
+            author = author_elem.get_text(strip=True) if author_elem else "Unknown"
             publish_date_str = soup.select_one(".detail__date").get_text(strip=True)
 
             content_div = soup.find("div", {"class": "detail__body-text"})

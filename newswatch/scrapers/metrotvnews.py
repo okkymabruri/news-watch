@@ -14,9 +14,9 @@ class MetrotvnewsScraper(BaseScraper):
         self.continue_scraping = True
 
     async def build_search_url(self, keyword, page):
-        # https://www.metrotvnews.com/search?query=ekonomi
+        # https://www.metrotvnews.com/search?query=ekonomi&page=1
         return await self.fetch(
-            f"https://www.metrotvnews.com/search?query={keyword.replace(' ', '%20')}"
+            f"https://www.metrotvnews.com/search?query={keyword.replace(' ', '%20')}&page={page}"
         )
 
     def parse_article_links(self, response_text):
