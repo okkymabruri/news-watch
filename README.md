@@ -16,12 +16,25 @@ news-watch is a Python package that scrapes structured news data from [Indonesia
 
 ## Installation
 
+### Using pip (standard)
 ```bash
 pip install news-watch
 playwright install chromium
 
 # Development version
 pip install git+https://github.com/okkymabruri/news-watch.git@dev
+```
+
+### Using UV (recommended for development)
+```bash
+# Install UV (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Clone and setup
+git clone https://github.com/okkymabruri/news-watch.git
+cd news-watch
+uv sync --all-extras
+uv run playwright install chromium
 ```
 
 ## Performance Notes

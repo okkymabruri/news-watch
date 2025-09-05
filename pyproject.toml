@@ -1,8 +1,97 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "news-watch"
+version = "0.3.0"
+description = "news-watch is a Python package that scrapes structured news data from Indonesia's top news websites, offering keyword and date filtering queries for targeted research."
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Okky Mabruri", email = "okkymbrur@gmail.com"}
+]
+requires-python = ">=3.10"
+dependencies = [
+    "aiohttp==3.12.14",
+    "beautifulsoup4==4.13.4",
+    "dateparser==1.2.1",
+    "openpyxl==3.1.5",
+    "pandas==2.2.2",
+    "requests==2.32.4",
+    "playwright==1.42.0",
+]
+keywords = [
+    "news",
+    "scraper",
+    "indonesia",
+    "async",
+    "data-collection",
+    "web-scraping",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.3",
+    "pytest-asyncio==0.24.0",
+    "pytest-timeout==2.3.1",
+]
+
+[project.scripts]
+newswatch = "newswatch.cli:cli"
+
+[project.urls]
+Homepage = "https://github.com/okkymabruri/news-watch"
+Repository = "https://github.com/okkymabruri/news-watch.git"
+Issues = "https://github.com/okkymabruri/news-watch/issues"
+Documentation = "https://github.com/okkymabruri/news-watch/tree/main/docs"
+Changelog = "https://github.com/okkymabruri/news-watch/blob/main/docs/changelog.md"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.3.3",
+    "pytest-asyncio>=0.24.0",
+    "pytest-timeout>=2.3.1",
+]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 timeout = 120
-
 markers = [
-  "network: tests that require network access",
+    "network: tests that require network access",
+]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["newswatch"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/newswatch",
+    "/tests",
+    "/docs",
+    "/README.md",
+    "/LICENSE",
+    "/CITATION.cff",
+    "/pyproject.toml",
 ]

@@ -1,9 +1,0 @@
-requests==2.32.4
-aiohttp==3.12.14
-beautifulsoup4==4.13.4
-dateparser==1.2.1
-openpyxl==3.1.5
-pandas==2.2.2
-pytest==8.3.3
-pytest-asyncio==0.24.0
-playwright==1.42.0
