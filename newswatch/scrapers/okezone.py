@@ -45,11 +45,19 @@ class OkezoneScraper(BaseScraper):
             breadcrumb = soup.select(".breadcrumb a")
             category = breadcrumb[-1].get_text(strip=True) if breadcrumb else "Unknown"
 
-            title = soup.select_one(".title-article h1").get_text(strip=True)
-            author = soup.select_one(".journalist a[title]").get("title")
+            title_elem = soup.select_one(".title-article h1")
+            if not title_elem:
+                return
+            title = title_elem.get_text(strip=True)
+            
+            author_elem = soup.select_one(".journalist a[title]")
+            author = author_elem.get("title") if author_elem else "Unknown"
+            
+            date_elem = soup.select_one(".journalist span")
+            if not date_elem:
+                return
             publish_date_str = (
-                soup.select_one(".journalist span")
-                .get_text(strip=True)
+                date_elem.get_text(strip=True)
                 .split("Jurnalis-")[1]
                 .strip()
                 .replace("|", "")
@@ -83,9 +91,7 @@ class OkezoneScraper(BaseScraper):
 
             publish_date = self.parse_date(publish_date_str, locales=["id"])
             if not publish_date:
-                logging.error(
-                    f"Error parsing date for article {link}: {publish_date_str}"
-                )
+                logging.error(f"Okezone date parse failed | url: {link} | date: {repr(publish_date_str[:50])}")
                 return
 
             if self.start_date and publish_date < self.start_date:
@@ -103,5 +109,5 @@ class OkezoneScraper(BaseScraper):
                 "link": link,
             }
             await self.queue_.put(item)
-        except Exception as e:
-            logging.error(f"Error parsing article {link}: {e}")
+        except Exception:
+            pass

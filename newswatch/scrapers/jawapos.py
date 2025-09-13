@@ -1,6 +1,6 @@
 import logging
-import re
 
+import cloudscraper
 from bs4 import BeautifulSoup
 
 from .basescraper import BaseScraper
@@ -12,13 +12,17 @@ class JawaposScraper(BaseScraper):
         self.base_url = "https://www.jawapos.com"
         self.start_date = start_date
         self.continue_scraping = True
+        # Use cloudscraper for Cloudflare bypass
+        self.scraper = cloudscraper.create_scraper()
 
     async def build_search_url(self, keyword, page):
         # https://www.jawapos.com/search?q=presiden&sort=latest&page=1
-        return await self.fetch(
-            f"https://www.jawapos.com/search?q={keyword.replace(' ', '+')}&sort=latest&page={page}",
-            headers={"User-Agent": "Mozilla/5.0"},
-        )
+        url = f"https://www.jawapos.com/search?q={keyword.replace(' ', '+')}&sort=latest&page={page}"
+        # Use cloudscraper synchronously (it handles Cloudflare automatically)
+        response = self.scraper.get(url)
+        if response.status_code == 200:
+            return response.text
+        return None
 
     def parse_article_links(self, response_text):
         soup = BeautifulSoup(response_text, "html.parser")
@@ -31,7 +35,12 @@ class JawaposScraper(BaseScraper):
         return filtered_hrefs
 
     async def get_article(self, link, keyword):
-        response_text = await self.fetch(link, headers={"User-Agent": "Mozilla/5.0"})
+        # Use cloudscraper for article pages
+        response = self.scraper.get(link)
+        if response.status_code != 200:
+            logging.warning(f"No response for {link}")
+            return
+        response_text = response.text
         if not response_text:
             logging.warning(f"No response for {link}")
             return
@@ -62,7 +71,7 @@ class JawaposScraper(BaseScraper):
 
             publish_date = self.parse_date(publish_date_str)
             if not publish_date:
-                logging.error(f"Error parsing date for article {link}")
+                logging.error(f"JawaPos date parse failed | url: {link} | date: {repr(publish_date_str[:50])}")
                 return
             if self.start_date and publish_date < self.start_date:
                 self.continue_scraping = False

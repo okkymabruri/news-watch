@@ -52,13 +52,12 @@ class VivaScraper(BaseScraper):
             publish_date_str = soup.find(
                 "div", {"class": "main-content-date"}
             ).get_text(strip=True)
-            author = soup.find("div", {"class": "main-content-author"}).get_text(
-                strip=True
-            )
+            author_elem = soup.find("div", {"class": "main-content-author"})
+            author = author_elem.get_text(strip=True) if author_elem else "Unknown"
 
             publish_date = self.parse_date(publish_date_str)
             if not publish_date:
-                logging.error(f"Error parsing date for article {link}")
+                logging.error(f"Viva date parse failed | url: {link} | date: {repr(publish_date_str[:50])}")
                 return
             if self.start_date and publish_date < self.start_date:
                 self.continue_scraping = False
