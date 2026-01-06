@@ -14,7 +14,7 @@ setup(
     url="https://github.com/okkymabruri/news-watch",
     packages=find_packages(),
     install_requires=[
-        "aiohttp==3.12.14",
+        "aiohttp==3.13.3",
         "beautifulsoup4==4.13.4",
         "dateparser==1.2.1",
         "openpyxl==3.1.5",
