@@ -13,7 +13,7 @@ authors = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "aiohttp==3.12.14",
+    "aiohttp==3.13.3",
     "beautifulsoup4==4.13.4",
     "dateparser==1.2.1",
     "openpyxl==3.1.5",
@@ -60,13 +60,6 @@ Repository = "https://github.com/okkymabruri/news-watch.git"
 Issues = "https://github.com/okkymabruri/news-watch/issues"
 Documentation = "https://github.com/okkymabruri/news-watch/tree/main/docs"
 Changelog = "https://github.com/okkymabruri/news-watch/blob/main/docs/changelog.md"
-
-[tool.uv]
-dev-dependencies = [
-    "pytest>=8.3.3",
-    "pytest-asyncio>=0.24.0",
-    "pytest-timeout>=2.3.1",
-]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
