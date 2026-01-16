@@ -1,4 +1,4 @@
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 # main api functions
 from .api import list_scrapers as list_scrapers
