@@ -1,5 +1,3 @@
-import asyncio
-
 import pytest
 
 from newswatch.scrapers.basescraper import BaseScraper

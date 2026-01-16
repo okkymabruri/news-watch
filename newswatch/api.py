@@ -12,13 +12,12 @@ import asyncio
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Union
 
 import pandas as pd
 
 from .exceptions import NewsWatchError, ValidationError
 from .main import get_available_scrapers
-from .main import main as async_main
 
 
 class MockArgs:
@@ -209,12 +208,12 @@ async def _async_scrape_to_list(
         scraper_tasks = [
             asyncio.create_task(scraper.scrape()) for scraper in scraper_instances
         ]
-        # set overall timeout to 3 minutes for all scrapers
-        await asyncio.wait_for(asyncio.gather(*scraper_tasks), timeout=180)
+        # respect caller-provided timeout for overall scrape
+        await asyncio.wait_for(asyncio.gather(*scraper_tasks), timeout=timeout)
         logging.debug(f"All {total_scrapers} scrapers completed successfully")
     except asyncio.TimeoutError:
         logging.warning(
-            f"Scraping took too long and was stopped after 3 minutes. {total_scrapers} scrapers were running."
+            f"Scraping took too long and was stopped after {timeout} seconds. {total_scrapers} scrapers were running."
         )
     except Exception as e:
         logging.error(f"Error during scraping: {e}")
@@ -465,16 +464,3 @@ def quick_scrape(
 
     start_date = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
     return scrape_to_dataframe(keywords, start_date, scrapers)
-
-
-def scrape_ihsg_news(days_back: int = 1) -> pd.DataFrame:
-    """
-    Convenience function to scrape IHSG-related news.
-
-    Args:
-        days_back (int): Number of days back from today
-
-    Returns:
-        pd.DataFrame: IHSG-related articles
-    """
-    return quick_scrape("ihsg,bursa,saham", days_back)

@@ -1,5 +1,3 @@
-import asyncio
-
 import pytest
 
 from newswatch.utils import AsyncScraper

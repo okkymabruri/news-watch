@@ -6,10 +6,14 @@ import pytest
 from newswatch.scrapers.bisnis import BisnisScraper
 from newswatch.scrapers.bloombergtechnoz import BloombergTechnozScraper
 from newswatch.scrapers.cnbcindonesia import CNBCScraper
+from newswatch.scrapers.cnnindonesia import CNNIndonesiaScraper
 from newswatch.scrapers.detik import DetikScraper
+from newswatch.scrapers.liputan6 import Liputan6Scraper
+
 # from newswatch.scrapers.jawapos import JawaposScraper
 # from newswatch.scrapers.katadata import KatadataScraper
 from newswatch.scrapers.kompas import KompasScraper
+
 # from newswatch.scrapers.kontan import KontanScraper
 from newswatch.scrapers.mediaindonesia import MediaIndonesiaScraper
 from newswatch.scrapers.metrotvnews import MetrotvnewsScraper
@@ -21,11 +25,13 @@ scraper_classes = [
     BisnisScraper,
     BloombergTechnozScraper,
     CNBCScraper,
+    CNNIndonesiaScraper,
     DetikScraper,
     # JawaposScraper, # only apply on local
     # KatadataScraper, # only apply on local
     KompasScraper,
     # KontanScraper, # only apply on local
+    Liputan6Scraper,
     MediaIndonesiaScraper,
     MetrotvnewsScraper,
     OkezoneScraper,

@@ -1,5 +1,5 @@
 ## Custom
-*dev/
+dev/
 *.csv
 *.xlsx
 *.DS_store
@@ -7,7 +7,6 @@
 ## AI and IDE
 .vscode/
 .claude/
-CLAUDE*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

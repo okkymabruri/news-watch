@@ -13,7 +13,7 @@ def test_cli_no_args(monkeypatch, capsys):
     # Mock the main scraping function to avoid real network calls
     with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main:
         cli()
-        captured = capsys.readouterr()
+        capsys.readouterr()
 
         # Verify that main was called with expected arguments
         mock_main.assert_called_once()
@@ -43,7 +43,7 @@ def test_cli_help(monkeypatch, capsys):
 
     # Mock the main function (shouldn't be called due to help exit)
     with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main:
-        with pytest.raises(SystemExit) as e:
+        with pytest.raises(SystemExit):
             cli()
         captured = capsys.readouterr()
         assert "News Watch - Scrape news articles" in captured.out

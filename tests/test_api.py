@@ -8,10 +8,14 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from newswatch.api import (list_scrapers, quick_scrape, scrape,
-                           scrape_ihsg_news, scrape_to_dataframe,
-                           scrape_to_file)
-from newswatch.exceptions import NewsWatchError, ValidationError
+from newswatch.api import (
+    list_scrapers,
+    quick_scrape,
+    scrape,
+    scrape_to_dataframe,
+    scrape_to_file,
+)
+from newswatch.exceptions import ValidationError
 
 
 class TestListScrapers:
@@ -187,17 +191,6 @@ class TestConvenienceFunctions:
         # verify date is approximately 2 days ago
         expected_date = (datetime.now() - timedelta(days=2)).strftime("%Y-%m-%d")
         assert start_date == expected_date
-
-    @patch("newswatch.api.quick_scrape")
-    def test_scrape_ihsg_news(self, mock_quick_scrape):
-        """Test scrape_ihsg_news convenience function."""
-        mock_df = MagicMock()
-        mock_quick_scrape.return_value = mock_df
-
-        result = scrape_ihsg_news(days_back=3)
-
-        assert result == mock_df
-        mock_quick_scrape.assert_called_once_with("ihsg,bursa,saham", 3)
 
 
 class TestAPIIntegration:
