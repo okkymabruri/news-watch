@@ -5,6 +5,26 @@ All notable changes to news-watch will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-01-16
+
+### Added
+- New scrapers: CNN Indonesia, Liputan6, Tribunnews
+- MkDocs documentation site and GitHub Pages deploy workflow
+- Tag-based release automation (GitHub Release + PyPI publish) and Makefile release targets
+- Version bump script (`scripts/version.py`) that also syncs `CITATION.cff`
+
+### Changed
+- Packaging migrated to `pyproject.toml` + `uv` (lockfile-based installs)
+- Package moved to `src/` layout
+- Minimal network scraper test keyword switched to `ihsg` for stability
+
+### Fixed
+- Linux CI scraping reliability via Playwright fallback when sources are blocked or return challenge pages
+- RSS fallbacks for blocked search/API endpoints across multiple scrapers
+
+### Documentation
+- Updated docs and README for new scrapers, new layout, docs site, and release workflow
+
 ## [0.3.0] - 2025-07-22
 
 ### Added
