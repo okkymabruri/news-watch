@@ -77,11 +77,11 @@ python_functions = ["test_*"]
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["newswatch"]
+packages = ["src/newswatch"]
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "/newswatch",
+    "/src/newswatch",
     "/tests",
     "/docs",
     "/README.md",

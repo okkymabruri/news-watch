@@ -37,7 +37,7 @@ def test_scraper_minimal_data(scraper):
 
     try:
         # Use the same keyword across scrapers to keep the test consistent.
-        keywords = "ekonomi"
+        keywords = "ihsg"
         articles = scrape(
             keywords=keywords,
             start_date=week_ago,
