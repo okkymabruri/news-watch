@@ -4,6 +4,22 @@ import logging
 import aiohttp
 
 
+async def _cloudscraper_get(url: str, headers: dict | None, timeout: int) -> str | None:
+    try:
+        import cloudscraper
+
+        def _do_request():
+            scraper = cloudscraper.create_scraper()
+            r = scraper.get(url, headers=headers, timeout=timeout)
+            r.raise_for_status()
+            return r.text
+
+        return await asyncio.to_thread(_do_request)
+    except Exception as e:
+        logging.debug("cloudscraper fallback failed for %s: %s", url, e)
+        return None
+
+
 class AsyncScraper:
     def __init__(self, concurrency=12, max_retries=3):
         self.semaphore = asyncio.Semaphore(concurrency)
@@ -54,6 +70,13 @@ class AsyncScraper:
                         return await response.text()
             except aiohttp.ClientResponseError as e:
                 status = getattr(e, "status", None)
+                if method == "GET" and status in (401, 403, 406, 418):
+                    merged_headers = dict(self.session.headers)
+                    if headers:
+                        merged_headers.update(headers)
+                    text = await _cloudscraper_get(url, merged_headers, timeout)
+                    if text:
+                        return text
                 if status == 429 or status in (
                     500,
                     502,
@@ -72,6 +95,13 @@ class AsyncScraper:
                 logging.error(f"Error {status} fetching {url}: {e}")
                 return None
             except aiohttp.ClientError as e:
+                if method == "GET":
+                    merged_headers = dict(self.session.headers)
+                    if headers:
+                        merged_headers.update(headers)
+                    text = await _cloudscraper_get(url, merged_headers, timeout)
+                    if text:
+                        return text
                 if retries < self.max_retries:
                     wait_time = 1 * (retries + 1)
                     logging.warning(

@@ -82,7 +82,33 @@ class CNNIndonesiaScraper(BaseScraper):
             page += 1
 
         if not found_articles:
-            logging.info(f"No news found on {self.base_url} for keyword: '{keyword}'")
+            # Fallback to RSS in case API search is blocked/empty in some environments.
+            rss_text = await self.fetch(
+                f"{self.base_url}/rss?{urlencode({'tag': keyword})}",
+                headers={"Accept": "application/xml,*/*", "User-Agent": "Mozilla/5.0"},
+                timeout=30,
+            )
+            if not rss_text:
+                logging.info(
+                    f"No news found on {self.base_url} for keyword: '{keyword}'"
+                )
+                return
+
+            soup = BeautifulSoup(rss_text, "xml")
+            links = {
+                (item.link.get_text(strip=True) if item.link else "")
+                for item in soup.select("item")
+            }
+            links = {link for link in links if link.startswith("http")}
+            links = {link for link in links if self._article_href.search(link)}
+            if not links:
+                logging.info(
+                    f"No news found on {self.base_url} for keyword: '{keyword}'"
+                )
+                return
+
+            await self.process_page(links, keyword)
+            return
 
     async def get_article(self, link, keyword):
         response_text = await self.fetch(link, timeout=30)

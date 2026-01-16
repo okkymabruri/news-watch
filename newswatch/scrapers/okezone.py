@@ -42,8 +42,10 @@ class OkezoneScraper(BaseScraper):
             return None
 
         # Keep links that mention the keyword (case-insensitive) and look like articles.
+        # If RSS doesn't contain the keyword (common), fall back to all article links.
         kw = keyword.lower().strip()
-        links = {link for link in links if kw in link.lower() and "/read/" in link}
+        filtered = {link for link in links if kw in link.lower() and "/read/" in link}
+        links = filtered or {link for link in links if "/read/" in link}
         return links or None
 
     def parse_article_links(self, response_text):
