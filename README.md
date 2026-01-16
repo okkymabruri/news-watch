@@ -130,15 +130,18 @@ The output file contains the following columns:
 - [Bisnis.com](https://www.bisnis.com/)
 - [Bloomberg Technoz](https://www.bloombergtechnoz.com/)
 - [CNBC Indonesia](https://www.cnbcindonesia.com/)
+- [CNN Indonesia](https://www.cnnindonesia.com/)
 - [Detik.com](https://www.detik.com/)
 - [Jawapos.com](https://www.jawapos.com/)
 - [Katadata.co.id](https://katadata.co.id/)
 - [Kompas.com](https://www.kompas.com/)
 - [Kontan.co.id](https://www.kontan.co.id/)
+- [Liputan6.com](https://www.liputan6.com/)
 - [Media Indonesia](https://mediaindonesia.com/)
 - [Metrotvnews.com](https://metrotvnews.com/)
 - [Okezone.com](https://www.okezone.com/)
 - [Tempo.co](https://www.tempo.co/)
+- [Tribunnews.com](https://www.tribunnews.com/)
 - [Viva.co.id](https://www.viva.co.id/)
 
 

@@ -15,7 +15,6 @@ nw.scrape_to_file("bank", "2025-01-01", "output.xlsx")       # Saves to file
 # Convenience functions
 scrapers = nw.list_scrapers()                                # Get available scrapers
 recent_df = nw.quick_scrape("politik", days_back=3)          # Recent articles
-ihsg_df = nw.scrape_ihsg_news(days_back=1)                   # Stock market news
 ```
 
 ## Core Functions
@@ -222,44 +221,7 @@ banking = nw.quick_scrape(
 print(f"Found {len(banking)} banking articles in last 3 days")
 ```
 
-### scrape_ihsg_news()
 
-Specialized function for Indonesian stock market news.
-
-```python
-def scrape_ihsg_news(days_back=1)
-```
-
-**Parameters:**
-- `days_back` (int, optional): Days back to search (default: 1)
-
-**Returns:**
-pandas DataFrame with IHSG-related articles.
-
-**Example:**
-```python
-import newswatch as nw
-
-# Today's stock market news
-today_stocks = nw.scrape_ihsg_news()
-
-# Last week's market news
-week_stocks = nw.scrape_ihsg_news(days_back=7)
-
-# Analyze market sentiment
-sentiment_words = week_stocks['title'].str.contains(
-    'naik|turun|menguat|melemah|bullish|bearish', 
-    case=False
-)
-print(f"Articles with sentiment indicators: {sentiment_words.sum()}")
-
-# Daily market news volume
-daily_counts = week_stocks.groupby(
-    week_stocks['publish_date'].dt.date
-).size()
-print("Daily IHSG news volume:")
-print(daily_counts)
-```
 
 ## Working with Multiple Keywords
 

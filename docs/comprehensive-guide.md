@@ -35,7 +35,7 @@ uv pip install news-watch
 
 ### Your First Scrape
 
-Let's start with something simple - finding recent news about Indonesia's stock market:
+Let's start with something simple - finding recent news about Indonesian economics:
 
 ```python
 import newswatch as nw

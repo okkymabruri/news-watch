@@ -125,9 +125,6 @@ Monitor Indonesian financial markets:
 ```python
 import newswatch as nw
 
-# Get stock market news
-ihsg_news = nw.scrape_ihsg_news(days_back=3)
-
 # Banking sector analysis
 banking_news = nw.scrape_to_dataframe(
     "bank,bca,mandiri,bri,bni", 
