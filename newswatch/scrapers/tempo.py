@@ -59,19 +59,56 @@ class TempoScraper(BaseScraper):
 
             ld_json = json.loads(ld_json_script.string)
 
-            title = ld_json.get("headline", "")
-            publish_date_str = ld_json.get("datePublished", "")
-            content = ld_json.get("articleBody", "")
+            # Tempo uses @graph; pick the node that contains article fields.
+            article_node = ld_json
+            if isinstance(ld_json, dict) and "@graph" in ld_json:
+                graph = ld_json.get("@graph") or []
+                if isinstance(graph, list):
+                    article_node = next(
+                        (
+                            n
+                            for n in graph
+                            if isinstance(n, dict)
+                            and (
+                                n.get("@type") in {"NewsArticle", "Article"}
+                                or n.get("headline")
+                                or n.get("datePublished")
+                            )
+                        ),
+                        {},
+                    )
 
-            author_field = ld_json.get("author", "")
+            title = (article_node.get("headline") or "").strip()
+            publish_date_str = (article_node.get("datePublished") or "").strip()
+            content = (article_node.get("articleBody") or "").strip()
+
+            author_field = article_node.get("author", "")
             if isinstance(author_field, list):
-                author = ", ".join([a.get("name", "") for a in author_field])
+                author = ", ".join(
+                    [a.get("name", "") for a in author_field if a.get("name")]
+                )
+            elif isinstance(author_field, dict):
+                author = author_field.get("name", "")
             else:
                 author = ""
 
-            main_entity = ld_json.get("mainEntityOfPage", {})
-            category_url = main_entity.get("@id", "")
-            category = category_url.split("/")[3] if category_url else ""
+            main_entity = article_node.get("mainEntityOfPage", {})
+            if isinstance(main_entity, dict):
+                category_url = main_entity.get("@id", "")
+                parts = category_url.split("/") if category_url else []
+                category = parts[3] if len(parts) > 3 else ""
+            else:
+                category = ""
+
+            # Fallback: if structured data doesn't include articleBody, parse HTML.
+            if not content:
+                body = (
+                    soup.select_one('[data-testid="article-content"]')
+                    or soup.select_one('div[itemprop="articleBody"]')
+                    or soup.select_one("article")
+                )
+                if body:
+                    content = body.get_text(separator=" ", strip=True)
 
             publish_date = self.parse_date(publish_date_str)
             if not publish_date:

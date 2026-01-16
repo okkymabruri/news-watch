@@ -48,8 +48,10 @@ class KontanScraper(BaseScraper):
         soup = BeautifulSoup(response_text, "html.parser")
         try:
             category_elem = soup.select_one("div.breadcumb.fs18")
-            category = category_elem.get_text(strip=True) if category_elem else "Unknown"
-            
+            category = (
+                category_elem.get_text(strip=True) if category_elem else "Unknown"
+            )
+
             title_elem = soup.select_one("h1.detail-desk")
             if not title_elem:
                 return
@@ -62,7 +64,7 @@ class KontanScraper(BaseScraper):
             content_div = soup.find(
                 "div", {"class": "tmpt-desk-kon", "itemprop": "articleBody"}
             )
-            
+
             if not content_div:
                 return
 
@@ -94,7 +96,9 @@ class KontanScraper(BaseScraper):
 
             publish_date = self.parse_date(publish_date_str)
             if not publish_date:
-                logging.error(f"Kontan date parse failed | url: {link} | date: {repr(publish_date_str[:50])}")
+                logging.error(
+                    f"Kontan date parse failed | url: {link} | date: {repr(publish_date_str[:50])}"
+                )
                 return
             if self.start_date and publish_date < self.start_date:
                 self.continue_scraping = False

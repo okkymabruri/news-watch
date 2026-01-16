@@ -9,7 +9,7 @@ from .basescraper import BaseScraper
 
 
 class KatadataScraper(BaseScraper):
-    def __init__(self, keywords, concurrency=12, start_date=None, queue_=None):
+    def __init__(self, keywords, concurrency=5, start_date=None, queue_=None):
         super().__init__(keywords, concurrency, queue_)
         self.base_url = "katadata.co.id"
         self.api_url = "https://search.katadata.co.id/api/search"
@@ -105,18 +105,26 @@ class KatadataScraper(BaseScraper):
     def parse_article_links(self, response_text):
         try:
             response_json = json.loads(response_text)
-        except Exception as e:
-            logging.error(f"Error decoding JSON response: {e}")
+        except Exception:
             return None
 
         articles = response_json.get("results", [])
         if not articles:
             return None
 
-        filtered_hrefs = {
-            article.get("url") for article in articles if article.get("url")
-        }
-        return filtered_hrefs
+        # Filter for actual keyword relevance in URL or title
+        filtered_hrefs = set()
+        for article in articles:
+            url = article.get("url", "")
+            title = article.get("title", "").lower()
+            # Check if keyword appears in URL or title
+            if url and any(
+                keyword.lower() in url.lower() or keyword.lower() in title
+                for keyword in self.keywords
+            ):
+                filtered_hrefs.add(url)
+
+        return filtered_hrefs if filtered_hrefs else None
 
     async def get_article(self, link, keyword):
         response_text = await self.fetch(link)
@@ -125,6 +133,7 @@ class KatadataScraper(BaseScraper):
             return
         soup = BeautifulSoup(response_text, "html.parser")
         try:
+            # Try each element, let AttributeError bubble up if missing
             category = soup.select_one(".section-breadcrumb").get_text(strip=True)
             title = soup.select_one(".detail-title.mb-4").get_text(strip=True)
             author = (
@@ -139,6 +148,9 @@ class KatadataScraper(BaseScraper):
             # content_div = soup.find_all("div", class_ = "detail-main")
             content_div = soup.select_one(".detail-main")
 
+            if not content_div:
+                return
+
             # loop through paragraphs and remove those with class patterns "widget-baca-juga*" or if any class contains "ai-summary"
             for tag in content_div.find_all("div"):
                 classes = tag.get("class", [])
@@ -152,7 +164,9 @@ class KatadataScraper(BaseScraper):
 
             publish_date = self.parse_date(publish_date_str, locales=["id"])
             if not publish_date:
-                logging.error(f"Error parsing date for article {link}")
+                logging.error(
+                    f"KataData date parse failed | url: {link} | date: {repr(publish_date_str[:50])}"
+                )
                 return
             if self.start_date and publish_date < self.start_date:
                 self.continue_scraping = False
@@ -169,5 +183,17 @@ class KatadataScraper(BaseScraper):
                 "link": link,
             }
             await self.queue_.put(item)
-        except Exception as e:
-            logging.error(f"Error parsing article {link}: {e}")
+        except AttributeError:
+            # Find which selector is missing
+            if not soup.select_one(".section-breadcrumb"):
+                logging.error(f"KataData missing .section-breadcrumb | url: {link}")
+            elif not soup.select_one(".detail-title.mb-4"):
+                logging.error(f"KataData missing .detail-title.mb-4 | url: {link}")
+            elif not soup.select_one(".detail-author-name"):
+                logging.error(f"KataData missing .detail-author-name | url: {link}")
+            elif not soup.select_one(".detail-date.text-gray"):
+                logging.error(f"KataData missing .detail-date.text-gray | url: {link}")
+            else:
+                logging.error(f"KataData missing .detail-main | url: {link}")
+        except Exception:
+            pass

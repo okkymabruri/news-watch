@@ -59,27 +59,96 @@ class BisnisScraper(BaseScraper):
 
             category = " - ".join(category_parts) if category_parts else ""
 
-            title = soup.select_one("h1.detailsTitleCaption").get_text()
-
-            publish_date_str = soup.select_one(".detailsAttributeDates").get_text(
-                strip=True
+            title_elem = soup.select_one("h1.detailsTitleCaption") or soup.select_one(
+                "h1"
             )
-            author = soup.select_one(".authorName").get_text(strip=True).split("-")[0]
+            if not title_elem:
+                logging.error(f"Title not found for article {link}")
+                return
+            title = title_elem.get_text()
+
+            # Try multiple date selectors based on bisnis.com subdomain
+            date_elem = soup.select_one(".detailsAttributeDates")  # regular bisnis.com
+            if date_elem:
+                publish_date_str = date_elem.get_text(strip=True)
+            else:
+                date_elem = soup.select_one(".authorTime")  # premium.bisnis.com
+                if date_elem:
+                    publish_date_str = date_elem.get_text(strip=True)
+                else:
+                    # koran.bisnis.com - date is in .author div after <br>
+                    author_div = soup.select_one(".author")
+                    if author_div:
+                        import re
+
+                        full_text = author_div.get_text(separator="|", strip=True)
+                        # Extract date pattern: DD/MM/YYYY HH:MM WIB
+                        date_match = re.search(
+                            r"\d{1,2}/\d{1,2}/\d{4}\s+\d{1,2}:\d{2}\s+\w+", full_text
+                        )
+                        if date_match:
+                            # Also get the day name if present (e.g., "Kamis")
+                            parts = full_text.split("|")
+                            if len(parts) > 1:
+                                publish_date_str = parts[
+                                    -1
+                                ].strip()  # Get the last part after the separator
+                            else:
+                                publish_date_str = date_match.group()
+                        else:
+                            publish_date_str = ""
+                    else:
+                        meta_date = soup.find(
+                            "meta", {"property": "article:published_time"}
+                        )
+                        publish_date_str = (
+                            meta_date.get("content", "") if meta_date else ""
+                        )
+
+            # Try multiple author selectors based on bisnis.com subdomain
+            author_elem = soup.select_one(".authorName") or soup.select_one(
+                ".authorNames"
+            )
+            if author_elem:
+                author = author_elem.get_text(strip=True).split("-")[0]
+            else:
+                # koran.bisnis.com - author is in .author div before <br>
+                author_div = soup.select_one(".author")
+                if author_div:
+                    full_text = author_div.get_text(separator="|", strip=True)
+                    parts = full_text.split("|")
+                    if parts:
+                        # First part is the author name (before the date)
+                        author = parts[0].strip()
+                    else:
+                        author = "Unknown"
+                else:
+                    author = "Unknown"
 
             content_div = soup.select_one("article.detailsContent.force-17.mt40")
+            if not content_div:
+                content_div = soup.select_one("article.detailsContent")
+            if not content_div:
+                content_div = soup.select_one(".detailsContent")
 
-            # loop through paragraphs and remove those with class patterns like "read__others"
-            for tag in content_div.find_all(["div"]):
-                if tag and any(
-                    cls.startswith("baca-juga-box") for cls in tag.get("class", [])
-                ):
-                    tag.extract()
+            if content_div:
+                # loop through paragraphs and remove those with class patterns like "read__others"
+                for tag in content_div.find_all(["div"]):
+                    if tag and any(
+                        cls.startswith("baca-juga-box") for cls in tag.get("class", [])
+                    ):
+                        tag.extract()
+                content = content_div.get_text(separator=" ", strip=True)
+            else:
+                content = ""
 
-            content = content_div.get_text(separator=" ", strip=True)
-
-            publish_date = self.parse_date(publish_date_str)
+            # Clean apostrophe from day names like "Jum'at" -> "Jumat"
+            publish_date_str_clean = publish_date_str.replace("'", "")
+            publish_date = self.parse_date(publish_date_str_clean)
             if not publish_date:
-                logging.error(f"Error parsing date for article {link}")
+                logging.error(
+                    f"Bisnis date parse failed | url: {link} | date: {repr(publish_date_str[:50])}"
+                )
                 return
             if self.start_date and publish_date < self.start_date:
                 self.continue_scraping = False

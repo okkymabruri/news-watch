@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import re
 
@@ -63,11 +62,17 @@ class KompasScraper(BaseScraper):
                 separator="/", strip=True
             )
             title = soup.select_one(".read__title").get_text(strip=True)
-            publish_date_str = (
-                soup.select_one(".read__time").get_text(strip=True).split("- ")[1]
-            )
+            time_text = soup.select_one(".read__time").get_text(strip=True)
+            publish_date_str = time_text
+            if "-" in time_text:
+                parts = time_text.split("- ", 1)
+                if len(parts) == 2:
+                    publish_date_str = parts[1]
             if "Diperbarui" in publish_date_str:
                 publish_date_str = publish_date_str.split("Diperbarui")[1].strip()
+
+            # Normalize common Kompas prefix so dateparser can parse it.
+            publish_date_str = re.sub(r"^Kompas\.com\s*,\s*", "", publish_date_str)
             author = soup.select_one(".credit-title-name").get_text(strip=True)
 
             content_div = soup.select_one(".read__content")
@@ -95,7 +100,16 @@ class KompasScraper(BaseScraper):
 
             content = content_div.get_text(separator=" ", strip=True)
 
+            if not content:
+                return
+
             publish_date = self.parse_date(publish_date_str, locales=["id"])
+            if not publish_date:
+                publish_date = self.parse_date(
+                    publish_date_str,
+                    languages=["id"],
+                    settings={"PREFER_DAY_OF_MONTH": "first"},
+                )
             if not publish_date:
                 logging.error(f"Error parsing date for article {link}")
                 return

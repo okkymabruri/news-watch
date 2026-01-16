@@ -71,7 +71,9 @@ class JawaposScraper(BaseScraper):
 
             publish_date = self.parse_date(publish_date_str)
             if not publish_date:
-                logging.error(f"JawaPos date parse failed | url: {link} | date: {repr(publish_date_str[:50])}")
+                logging.error(
+                    f"JawaPos date parse failed | url: {link} | date: {repr(publish_date_str[:50])}"
+                )
                 return
             if self.start_date and publish_date < self.start_date:
                 self.continue_scraping = False

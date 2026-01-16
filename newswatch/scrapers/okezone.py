@@ -49,10 +49,10 @@ class OkezoneScraper(BaseScraper):
             if not title_elem:
                 return
             title = title_elem.get_text(strip=True)
-            
+
             author_elem = soup.select_one(".journalist a[title]")
             author = author_elem.get("title") if author_elem else "Unknown"
-            
+
             date_elem = soup.select_one(".journalist span")
             if not date_elem:
                 return
@@ -91,7 +91,9 @@ class OkezoneScraper(BaseScraper):
 
             publish_date = self.parse_date(publish_date_str, locales=["id"])
             if not publish_date:
-                logging.error(f"Okezone date parse failed | url: {link} | date: {repr(publish_date_str[:50])}")
+                logging.error(
+                    f"Okezone date parse failed | url: {link} | date: {repr(publish_date_str[:50])}"
+                )
                 return
 
             if self.start_date and publish_date < self.start_date:
