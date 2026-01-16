@@ -29,6 +29,41 @@ class DetikScraper(BaseScraper):
         url = f"{self.base_url}/search/searchnews?{urlencode(query_params)}"
         return await self.fetch(url)
 
+    async def _fetch_rss_links(self, keyword):
+        # Fallback for environments where search is blocked/empty.
+        # These RSS endpoints are stable (unlike rss.detik.com which may reset connections).
+        rss_text = await self.fetch(
+            "https://news.detik.com/rss",
+            headers={"Accept": "application/xml,*/*", "User-Agent": "Mozilla/5.0"},
+            timeout=30,
+        )
+        if not rss_text:
+            rss_text = await self.fetch(
+                "https://finance.detik.com/rss",
+                headers={"Accept": "application/xml,*/*", "User-Agent": "Mozilla/5.0"},
+                timeout=30,
+            )
+        if not rss_text:
+            return None
+
+        soup = BeautifulSoup(rss_text, "xml")
+        links = {
+            (item.link.get_text(strip=True) if item.link else "")
+            for item in soup.select("item")
+        }
+        links = {link for link in links if link.startswith("http")}
+
+        # Keep only detik article URLs and exclude unwanted sections.
+        links = {
+            link
+            for link in links
+            if self.href_pattern.match(link)
+            and "wolipop.detik.com" not in link
+            and "/detiktv/" not in link
+            and "/pop/" not in link
+        }
+        return links or None
+
     def parse_article_links(self, response_text):
         soup = BeautifulSoup(response_text, "html.parser")
         articles = soup.select(".list-content__item .media__link")
@@ -46,6 +81,36 @@ class DetikScraper(BaseScraper):
         }
         return filtered_hrefs
 
+    async def fetch_search_results(self, keyword):
+        page = 1
+        found_articles = False
+
+        while self.continue_scraping:
+            response_text = await self.build_search_url(keyword, page)
+            if not response_text:
+                break
+
+            filtered_hrefs = self.parse_article_links(response_text)
+            if not filtered_hrefs:
+                break
+
+            found_articles = True
+            continue_scraping = await self.process_page(filtered_hrefs, keyword)
+            if not continue_scraping:
+                return
+
+            page += 1
+
+        if found_articles:
+            return
+
+        rss_links = await self._fetch_rss_links(keyword)
+        if not rss_links:
+            logging.info(f"No news found on {self.base_url} for keyword: '{keyword}'")
+            return
+
+        await self.process_page(rss_links, keyword)
+
     async def get_article(self, link, keyword):
         response_text = await self.fetch(f"{link}?single=1")
         if not response_text:
@@ -55,7 +120,11 @@ class DetikScraper(BaseScraper):
         try:
             category = soup.find("div", class_="page__breadcrumb").find("a").get_text()
             title = soup.select_one(".detail__title").get_text(strip=True)
-            author = soup.select_one(".detail__author").get_text(strip=True)
+            # Try regular article author first, then column author
+            author_elem = soup.select_one(".detail__author")
+            if not author_elem:
+                author_elem = soup.select_one(".box-kolumnis h5")
+            author = author_elem.get_text(strip=True) if author_elem else "Unknown"
             publish_date_str = soup.select_one(".detail__date").get_text(strip=True)
 
             content_div = soup.find("div", {"class": "detail__body-text"})

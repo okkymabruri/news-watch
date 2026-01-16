@@ -16,12 +16,25 @@ news-watch is a Python package that scrapes structured news data from [Indonesia
 
 ## Installation
 
+### Using pip (standard)
 ```bash
 pip install news-watch
 playwright install chromium
 
 # Development version
 pip install git+https://github.com/okkymabruri/news-watch.git@dev
+```
+
+### Using UV (recommended for development)
+```bash
+# Install UV (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Clone and setup
+git clone https://github.com/okkymabruri/news-watch.git
+cd news-watch
+uv sync --all-extras
+uv run playwright install chromium
 ```
 
 ## Performance Notes
@@ -43,7 +56,7 @@ newswatch -k <keywords> -sd <start_date> -s [<scrapers>] -of <output_format> -v
 | `-k, --keywords` | **Required.** Comma-separated keywords to scrape (e.g., `"ojk,bank,npl"`) |
 | `-sd, --start_date` | **Required.** Start date in YYYY-MM-DD format (e.g., `2025-01-01`) |
 | `-s, --scrapers` | Scrapers to use: specific names (e.g., `"kompas,viva"`), `"auto"` (default, platform-appropriate), or `"all"` (force all, may fail) |
-| `-of, --output_format` | Output format: `csv` or `xlsx` (default: xlsx) |
+| `-of, --output_format` | Output format: `csv`, `xlsx`, or `json` (default: csv) |
 | `-v, --verbose` | Show detailed logging output (default: silent) |
 | `--list_scrapers` | List all supported scrapers and exit |
 
@@ -98,7 +111,7 @@ You can run news-watch on Google Colab [![Open In Colab](https://colab.research.
 
 ## Output
 
-The scraped articles are saved as a CSV or XLSX file in the current working directory with the format `news-watch-{keywords}-YYYYMMDD_HH`.
+The scraped articles are saved as a CSV, XLSX, or JSON file in the current working directory with the format `news-watch-{keywords}-YYYYMMDD_HH`.
 
 The output file contains the following columns:
 
@@ -117,15 +130,18 @@ The output file contains the following columns:
 - [Bisnis.com](https://www.bisnis.com/)
 - [Bloomberg Technoz](https://www.bloombergtechnoz.com/)
 - [CNBC Indonesia](https://www.cnbcindonesia.com/)
+- [CNN Indonesia](https://www.cnnindonesia.com/)
 - [Detik.com](https://www.detik.com/)
 - [Jawapos.com](https://www.jawapos.com/)
 - [Katadata.co.id](https://katadata.co.id/)
 - [Kompas.com](https://www.kompas.com/)
 - [Kontan.co.id](https://www.kontan.co.id/)
+- [Liputan6.com](https://www.liputan6.com/)
 - [Media Indonesia](https://mediaindonesia.com/)
 - [Metrotvnews.com](https://metrotvnews.com/)
 - [Okezone.com](https://www.okezone.com/)
 - [Tempo.co](https://www.tempo.co/)
+- [Tribunnews.com](https://www.tribunnews.com/)
 - [Viva.co.id](https://www.viva.co.id/)
 
 

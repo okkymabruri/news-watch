@@ -47,21 +47,31 @@ class KontanScraper(BaseScraper):
             return
         soup = BeautifulSoup(response_text, "html.parser")
         try:
-            # FIX ME: change to select_one
-            category = soup.find("div", {"class": "breadcumb fs18"}).get_text(
-                strip=True
+            category_elem = soup.select_one("div.breadcumb.fs18")
+            category = (
+                category_elem.get_text(strip=True) if category_elem else "Unknown"
             )
-            title = soup.find("h1", {"class": "detail-desk"}).get_text(strip=True)
-            publish_date_str = soup.find(
-                "div", {"class": "fs14 ff-opensans font-gray"}
-            ).get_text(strip=True)
+
+            title_elem = soup.select_one("h1.detail-desk")
+            if not title_elem:
+                return
+            title = title_elem.get_text(strip=True)
+            date_elem = soup.find("div", {"class": "fs14 ff-opensans font-gray"})
+            if not date_elem:
+                return
+            publish_date_str = date_elem.get_text(strip=True)
 
             content_div = soup.find(
                 "div", {"class": "tmpt-desk-kon", "itemprop": "articleBody"}
             )
 
-            author = content_div.find("p").get_text(strip=True)
-            content_div.find("p").extract()
+            if not content_div:
+                return
+
+            author_elem = content_div.find("p")
+            author = author_elem.get_text(strip=True) if author_elem else "Unknown"
+            if author_elem:
+                author_elem.extract()
 
             # loop through paragraphs and remove those with class patterns like "track-*"
             for tag in content_div.find_all(["p", "h2"]):
@@ -86,7 +96,9 @@ class KontanScraper(BaseScraper):
 
             publish_date = self.parse_date(publish_date_str)
             if not publish_date:
-                logging.error(f"Error parsing date for article {link}")
+                logging.error(
+                    f"Kontan date parse failed | url: {link} | date: {repr(publish_date_str[:50])}"
+                )
                 return
             if self.start_date and publish_date < self.start_date:
                 self.continue_scraping = False
@@ -103,5 +115,5 @@ class KontanScraper(BaseScraper):
                 "link": link,
             }
             await self.queue_.put(item)
-        except Exception as e:
-            logging.error(f"Error parsing article {link}: {e}")
+        except Exception:
+            pass

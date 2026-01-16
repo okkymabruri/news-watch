@@ -6,23 +6,22 @@ from bs4 import BeautifulSoup
 from .basescraper import BaseScraper
 
 
-class JawaposScraper(BaseScraper):
+class MetrotvnewsScraper(BaseScraper):
     def __init__(self, keywords, concurrency=5, start_date=None, queue_=None):
         super().__init__(keywords, concurrency, queue_)
-        self.base_url = "https://www.jawapos.com"
+        self.base_url = "https://www.metrotvnews.com"
         self.start_date = start_date
         self.continue_scraping = True
 
     async def build_search_url(self, keyword, page):
-        # https://www.jawapos.com/search?q=presiden&sort=latest&page=1
+        # https://www.metrotvnews.com/search?query=ekonomi&page=1
         return await self.fetch(
-            f"https://www.jawapos.com/search?q={keyword.replace(' ', '+')}&sort=latest&page={page}",
-            headers={"User-Agent": "Mozilla/5.0"},
+            f"https://www.metrotvnews.com/search?query={keyword.replace(' ', '%20')}&page={page}"
         )
 
     def parse_article_links(self, response_text):
         soup = BeautifulSoup(response_text, "html.parser")
-        articles = soup.select("a.latest__link[href]")
+        articles = soup.select(".item .text h3 a[href]")
 
         if not articles:
             return None
@@ -31,31 +30,30 @@ class JawaposScraper(BaseScraper):
         return filtered_hrefs
 
     async def get_article(self, link, keyword):
-        response_text = await self.fetch(link, headers={"User-Agent": "Mozilla/5.0"})
+        response_text = await self.fetch(link)
         if not response_text:
             logging.warning(f"No response for {link}")
             return
-
         soup = BeautifulSoup(response_text, "html.parser")
         try:
-            category = soup.select_one(".breadcrumb__wrap").get_text(strip=True)
-            title = soup.select_one("h1.read__title").get_text()
+            category = soup.select_one(".breadcrumb-content p").get_text(strip=True)
+            title = soup.select_one("h1, h2").get_text()
 
-            publish_date_str = (
-                soup.select_one(".read__info__date")
-                .get_text(strip=True)
-                .replace("- ", "")
-                .replace("| ", "")
-            )
-            author = soup.select_one(".read__info__author").get_text(strip=True)
+            author_date_str = soup.select_one("p.pt-20.date").get_text(strip=True)
+            publish_date_str = author_date_str.split("•")[-1].strip()
+            author = author_date_str.split("•")[0].strip()
 
-            content_div = soup.select_one(".read__content.clearfix")
+            content_div = soup.select_one(".news-text")
 
-            # loop through paragraphs and remove those with class patterns like "read__others"
-            for tag in content_div.find_all(["strong"]):
-                if tag and any(
-                    cls.startswith("read__others") for cls in tag.get("class", [])
-                ):
+            unwanted_phrases = [
+                r"Baca juga: ",
+            ]
+            unwanted_pattern = re.compile("|".join(unwanted_phrases), re.IGNORECASE)
+
+            # Remove unwanted elements from paragraphs, italics, and table cells.
+            for tag in content_div.find_all(["td"]):
+                tag_text = tag.get_text()
+                if unwanted_pattern.search(tag_text):
                     tag.extract()
 
             content = content_div.get_text(separator=" ", strip=True)
@@ -75,7 +73,7 @@ class JawaposScraper(BaseScraper):
                 "content": content,
                 "keyword": keyword,
                 "category": category,
-                "source": self.base_url.split("www.")[1],
+                "source": self.base_url.split("https://")[1],
                 "link": link,
             }
             await self.queue_.put(item)

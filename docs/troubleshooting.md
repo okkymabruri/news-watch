@@ -98,6 +98,9 @@ newswatch --keywords politik --start_date 2025-01-01 --scrapers "kompas,detik"
 
 # Use output file instead of keeping in memory
 newswatch --keywords politik --start_date 2025-01-01 --output_format xlsx
+
+# Use JSON for smaller file size and API integration
+newswatch --keywords politik --start_date 2025-01-01 --output_format json
 ```
 
 ### Memory Issues
@@ -108,6 +111,9 @@ newswatch --keywords politik --start_date 2025-01-01 --output_format xlsx
 ```bash
 # Always save to file for large datasets
 newswatch --keywords ekonomi --start_date 2024-01-01 --output_format xlsx
+
+# Use JSON for more efficient storage of large datasets
+newswatch --keywords ekonomi --start_date 2024-01-01 --output_format json
 
 # Use smaller date ranges
 newswatch --keywords ekonomi --start_date 2025-01-01 --end_date 2025-01-07
@@ -223,6 +229,7 @@ newswatch --help
 # Common patterns:
 newswatch --keywords "term1,term2" --start_date 2025-01-01
 newswatch -k politik -s "kompas,detik" --output_format xlsx -v
+newswatch -k politik -s "kompas,detik" --output_format json -v  # JSON alternative
 ```
 
 ## Testing Issues

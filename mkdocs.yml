@@ -1,0 +1,39 @@
+site_name: news-watch
+site_description: Scrape structured news data from Indonesia's top news websites.
+site_url: https://okkymabruri.github.io/news-watch
+repo_url: https://github.com/okkymabruri/news-watch
+repo_name: okkymabruri/news-watch
+
+theme:
+  name: material
+  palette:
+    primary: indigo
+    accent: indigo
+  features:
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Comprehensive Guide: comprehensive-guide.md
+  - API Reference: api-reference.md
+  - Troubleshooting: troubleshooting.md
+  - Changelog: changelog.md
+
+markdown_extensions:
+  - tables
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/okkymabruri/news-watch

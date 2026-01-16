@@ -82,6 +82,10 @@ Add more keywords and options:
 # Multiple keywords, specific sources, with verbose output
 newswatch --keywords "bank,kredit,pinjaman" --start_date "2025-01-01" \
           --scrapers "kompas,bisnis,detik" --output_format "csv" --verbose
+
+# Save as JSON for API integration
+newswatch --keywords "teknologi,startup" --start_date "2025-01-01" \
+          --scrapers "detik,kompas" --output_format "json" --verbose
 ```
 
 ### Python API
@@ -120,9 +124,6 @@ Monitor Indonesian financial markets:
 
 ```python
 import newswatch as nw
-
-# Get stock market news
-ihsg_news = nw.scrape_ihsg_news(days_back=3)
 
 # Banking sector analysis
 banking_news = nw.scrape_to_dataframe(
@@ -209,7 +210,7 @@ print(f"\nRecent articles (>= Jan 15): {len(recent)}")
 | `-k, --keywords` | Comma-separated search terms | `"bank,kredit,fintech"` |
 | `-sd, --start_date` | Start date (YYYY-MM-DD) | `"2025-01-01"` |
 | `-s, --scrapers` | Specific scrapers or "auto"/"all" | `"kompas,detik"` |
-| `-of, --output_format` | Output format: csv or xlsx | `"csv"` |
+| `-of, --output_format` | Output format: csv, xlsx, or json | `"csv"` |
 | `-v, --verbose` | Show detailed progress | (flag only) |
 | `--list_scrapers` | Show available scrapers | (flag only) |
 

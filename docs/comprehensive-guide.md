@@ -35,7 +35,7 @@ uv pip install news-watch
 
 ### Your First Scrape
 
-Let's start with something simple - finding recent news about Indonesia's stock market:
+Let's start with something simple - finding recent news about Indonesian economics:
 
 ```python
 import newswatch as nw
@@ -116,6 +116,17 @@ nw.scrape_to_file(
 )
 
 print("Health news saved to health_news.csv")
+
+# Save to JSON for API integration
+nw.scrape_to_file(
+    keywords="teknologi",
+    start_date="2025-01-10", 
+    output_path="tech_news.json",
+    output_format="json",
+    scrapers="detik"
+)
+
+print("Tech news saved to tech_news.json")
 ```
 
 ## Working with DataFrames
@@ -593,6 +604,15 @@ nw.scrape_to_file(
     output_path="daily_news_report.xlsx",
     output_format="xlsx",
     scrapers="kompas,detik,tempo"
+)
+
+# For API integration - use JSON
+nw.scrape_to_file(
+    keywords="fintech,digital",
+    start_date="2025-01-01",
+    output_path="financial_tech_data.json",
+    output_format="json",
+    scrapers="cnbcindonesia,bisnis"
 )
 
 # Process and save custom analysis

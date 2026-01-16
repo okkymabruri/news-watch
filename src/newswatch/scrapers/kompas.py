@@ -16,11 +16,23 @@ class KompasScraper(BaseScraper):
     async def build_search_url(self, keyword, page):
         return await self.fetch(
             f"https://search.kompas.com/search?q={keyword}&sort=latest&page={page}",
-            headers={"User-Agent": "Mozilla/5.0"},
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+                )
+            },
         )
 
     def parse_article_links(self, response_text):
         soup = BeautifulSoup(response_text, "html.parser")
+
+        # Check for "no results" message
+        if (
+            "tidak ditemukan" in response_text
+            or "Coba kata kunci lain" in response_text
+        ):
+            return None
+
         articles = soup.select(".article-link[href]")
         if not articles:
             return None
@@ -33,7 +45,14 @@ class KompasScraper(BaseScraper):
         return filtered_hrefs
 
     async def get_article(self, link, keyword):
-        response_text = await self.fetch(f"{link}?page=all")
+        response_text = await self.fetch(
+            f"{link}?page=all",
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+                )
+            },
+        )
         if not response_text:
             logging.warning(f"No response for {link}")
             return
@@ -43,11 +62,17 @@ class KompasScraper(BaseScraper):
                 separator="/", strip=True
             )
             title = soup.select_one(".read__title").get_text(strip=True)
-            publish_date_str = (
-                soup.select_one(".read__time").get_text(strip=True).split("- ")[1]
-            )
+            time_text = soup.select_one(".read__time").get_text(strip=True)
+            publish_date_str = time_text
+            if "-" in time_text:
+                parts = time_text.split("- ", 1)
+                if len(parts) == 2:
+                    publish_date_str = parts[1]
             if "Diperbarui" in publish_date_str:
                 publish_date_str = publish_date_str.split("Diperbarui")[1].strip()
+
+            # Normalize common Kompas prefix so dateparser can parse it.
+            publish_date_str = re.sub(r"^Kompas\.com\s*,\s*", "", publish_date_str)
             author = soup.select_one(".credit-title-name").get_text(strip=True)
 
             content_div = soup.select_one(".read__content")
@@ -75,7 +100,16 @@ class KompasScraper(BaseScraper):
 
             content = content_div.get_text(separator=" ", strip=True)
 
+            if not content:
+                return
+
             publish_date = self.parse_date(publish_date_str, locales=["id"])
+            if not publish_date:
+                publish_date = self.parse_date(
+                    publish_date_str,
+                    languages=["id"],
+                    settings={"PREFER_DAY_OF_MONTH": "first"},
+                )
             if not publish_date:
                 logging.error(f"Error parsing date for article {link}")
                 return

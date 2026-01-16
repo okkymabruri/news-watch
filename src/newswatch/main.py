@@ -5,6 +5,7 @@ maintainer: Okky Mabruri <okkymbrur@gmail.com>
 
 import asyncio
 import csv
+import json
 import logging
 import platform
 from datetime import datetime
@@ -14,20 +15,23 @@ from .scrapers.antaranews import AntaranewsScraper
 from .scrapers.bisnis import BisnisScraper
 from .scrapers.bloombergtechnoz import BloombergTechnozScraper
 from .scrapers.cnbcindonesia import CNBCScraper
+from .scrapers.cnnindonesia import CNNIndonesiaScraper
 from .scrapers.detik import DetikScraper
 from .scrapers.jawapos import JawaposScraper
 from .scrapers.katadata import KatadataScraper
 from .scrapers.kompas import KompasScraper
 from .scrapers.kontan import KontanScraper
+from .scrapers.liputan6 import Liputan6Scraper
 from .scrapers.mediaindonesia import MediaIndonesiaScraper
 from .scrapers.metrotvnews import MetrotvnewsScraper
 from .scrapers.okezone import OkezoneScraper
 from .scrapers.tempo import TempoScraper
+from .scrapers.tribunnews import TribunnewsScraper
 from .scrapers.viva import VivaScraper
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[logging.StreamHandler()],
 )
 
@@ -46,13 +50,16 @@ async def write_csv(queue, keywords, filename=None):
         "link",
     ]
 
-    current_time = datetime.now().strftime("%Y%m%d_%H")
-    keywords_list = keywords.split(",")
-    if len(keywords_list) > 2:
-        keywords_short = ".".join(keywords_list[:2]) + "..."
+    if filename is None:
+        current_time = datetime.now().strftime("%Y%m%d_%H")
+        keywords_list = keywords.split(",")
+        if len(keywords_list) > 2:
+            keywords_short = ".".join(keywords_list[:2]) + "..."
+        else:
+            keywords_short = ".".join(keywords_list)
+        filename = Path.cwd() / f"news-watch-{keywords_short}-{current_time}.csv"
     else:
-        keywords_short = ".".join(keywords_list)
-    filename = Path.cwd() / f"news-watch-{keywords_short}-{current_time}.csv"
+        filename = Path(filename)
 
     try:
         with open(filename, mode="w", newline="", encoding="utf-8") as csvfile:
@@ -79,6 +86,43 @@ async def write_csv(queue, keywords, filename=None):
         logging.error(f"Error writing to CSV: {e}")
 
 
+async def write_json(queue, keywords, filename=None):
+    """Write scraped articles to JSON file format."""
+    if filename is None:
+        current_time = datetime.now().strftime("%Y%m%d_%H")
+        keywords_list = keywords.split(",")
+        if len(keywords_list) > 2:
+            keywords_short = ".".join(keywords_list[:2]) + "..."
+        else:
+            keywords_short = ".".join(keywords_list)
+        filename = Path.cwd() / f"news-watch-{keywords_short}-{current_time}.json"
+    else:
+        filename = Path(filename)
+
+    articles = []
+
+    try:
+        while True:
+            item = await queue.get()
+            if item is None:  # Sentinel value to stop the writer
+                break
+
+            # Format datetime objects as strings for JSON serialization
+            if isinstance(item.get("publish_date"), datetime):
+                item["publish_date"] = item["publish_date"].strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
+            articles.append(item)
+
+        # Write all articles to JSON file
+        with open(filename, mode="w", encoding="utf-8") as jsonfile:
+            json.dump(articles, jsonfile, indent=2, ensure_ascii=False)
+
+        print(f"Data written to {filename}")
+    except Exception as e:
+        logging.error(f"Error writing to JSON: {e}")
+
+
 async def write_xlsx(queue, keywords, filename=None):
     import pandas as pd
 
@@ -92,13 +136,17 @@ async def write_xlsx(queue, keywords, filename=None):
         "source",
         "link",
     ]
-    current_time = datetime.now().strftime("%Y%m%d_%H")
-    keywords_list = keywords.split(",")
-    if len(keywords_list) > 2:
-        keywords_short = ".".join(keywords_list[:2]) + "..."
+
+    if filename is None:
+        current_time = datetime.now().strftime("%Y%m%d_%H")
+        keywords_list = keywords.split(",")
+        if len(keywords_list) > 2:
+            keywords_short = ".".join(keywords_list[:2]) + "..."
+        else:
+            keywords_short = ".".join(keywords_list)
+        filename = Path.cwd() / f"news-watch-{keywords_short}-{current_time}.xlsx"
     else:
-        keywords_short = ".".join(keywords_list)
-    filename = Path.cwd() / f"news-watch-{keywords_short}-{current_time}.xlsx"
+        filename = Path(filename)
 
     items = []
 
@@ -139,11 +187,14 @@ def get_available_scrapers():
         "bisnis": {"class": BisnisScraper, "params": {"concurrency": 5}},
         "bloombergtechnoz": {"class": BloombergTechnozScraper, "params": {}},
         "cnbcindonesia": {"class": CNBCScraper, "params": {"concurrency": 5}},
+        "cnnindonesia": {"class": CNNIndonesiaScraper, "params": {"concurrency": 5}},
         "detik": {"class": DetikScraper, "params": {"concurrency": 5}},
         "kompas": {"class": KompasScraper, "params": {"concurrency": 7}},
+        "liputan6": {"class": Liputan6Scraper, "params": {"concurrency": 5}},
         "metrotvnews": {"class": MetrotvnewsScraper, "params": {"concurrency": 2}},
         "okezone": {"class": OkezoneScraper, "params": {"concurrency": 7}},
         "tempo": {"class": TempoScraper, "params": {"concurrency": 1}},
+        "tribunnews": {"class": TribunnewsScraper, "params": {"concurrency": 5}},
         "viva": {"class": VivaScraper, "params": {"concurrency": 7}},
         "mediaindonesia": {"class": MediaIndonesiaScraper, "params": {}},
         # FIX ME: add more scrapers here
@@ -172,11 +223,20 @@ async def main(args):
 
     queue_ = asyncio.Queue()
 
+    # Get custom output path if provided
+    output_path = getattr(args, "output_path", None)
+
     output_format = getattr(args, "output_format", "xlsx")
     if output_format.lower() == "xlsx":
-        writer_task = asyncio.create_task(write_xlsx(queue_, args.keywords))
+        writer_task = asyncio.create_task(
+            write_xlsx(queue_, args.keywords, output_path)
+        )
+    elif output_format.lower() == "json":
+        writer_task = asyncio.create_task(
+            write_json(queue_, args.keywords, output_path)
+        )
     else:
-        writer_task = asyncio.create_task(write_csv(queue_, args.keywords))
+        writer_task = asyncio.create_task(write_csv(queue_, args.keywords, output_path))
 
     scraper_classes, linux_excluded_scrapers = get_available_scrapers()
 
