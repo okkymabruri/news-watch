@@ -22,6 +22,30 @@ class OkezoneScraper(BaseScraper):
             headers={"user-agent": "Mozilla/5.0"},
         )
 
+    async def _fetch_rss_links(self, keyword):
+        # Reliable fallback in environments where the search endpoint gets blocked.
+        rss_text = await self.fetch(
+            f"{self.base_url}/rss",
+            headers={"Accept": "application/xml,*/*", "User-Agent": "Mozilla/5.0"},
+            timeout=30,
+        )
+        if not rss_text:
+            return None
+
+        soup = BeautifulSoup(rss_text, "xml")
+        links = {
+            (item.link.get_text(strip=True) if item.link else "")
+            for item in soup.select("item")
+        }
+        links = {link for link in links if link.startswith("http")}
+        if not links:
+            return None
+
+        # Keep links that mention the keyword (case-insensitive) and look like articles.
+        kw = keyword.lower().strip()
+        links = {link for link in links if kw in link.lower() and "/read/" in link}
+        return links or None
+
     def parse_article_links(self, response_text):
         soup = BeautifulSoup(response_text, "html.parser")
         articles = soup.select("a[href*='/read/']")
@@ -34,6 +58,36 @@ class OkezoneScraper(BaseScraper):
             if a.get("href") and a.get("href").startswith("http")
         }
         return filtered_hrefs
+
+    async def fetch_search_results(self, keyword):
+        page = 1
+        found_articles = False
+
+        while self.continue_scraping:
+            response_text = await self.build_search_url(keyword, page)
+            if not response_text:
+                break
+
+            filtered_hrefs = self.parse_article_links(response_text)
+            if not filtered_hrefs:
+                break
+
+            found_articles = True
+            continue_scraping = await self.process_page(filtered_hrefs, keyword)
+            if not continue_scraping:
+                return
+
+            page += 1
+
+        if found_articles:
+            return
+
+        rss_links = await self._fetch_rss_links(keyword)
+        if not rss_links:
+            logging.info(f"No news found on {self.base_url} for keyword: '{keyword}'")
+            return
+
+        await self.process_page(rss_links, keyword)
 
     async def get_article(self, link, keyword):
         response_text = await self.fetch(link)
@@ -65,6 +119,8 @@ class OkezoneScraper(BaseScraper):
             )
 
             content_div = soup.select_one(".c-detail.read")
+            if not content_div:
+                return
 
             # remove unwanted elements
             for tag in content_div.find_all(["div", "span"]):
@@ -88,11 +144,15 @@ class OkezoneScraper(BaseScraper):
                     tag.extract()
 
             content = content_div.get_text(separator=" ", strip=True)
+            if not content:
+                return
 
             publish_date = self.parse_date(publish_date_str, locales=["id"])
             if not publish_date:
                 logging.error(
-                    f"Okezone date parse failed | url: {link} | date: {repr(publish_date_str[:50])}"
+                    "Okezone date parse failed | url: %s | date: %r",
+                    link,
+                    publish_date_str[:50],
                 )
                 return
 
