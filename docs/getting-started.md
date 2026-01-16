@@ -6,7 +6,7 @@ This guide will get you up and running with news-watch in just a few minutes. We
 
 ### Basic Installation
 
-news-watch requires Python 3.7+ and uses Playwright for browser automation. Install both:
+news-watch requires Python 3.10+ and uses Playwright for browser automation. Install both:
 
 ```bash
 pip install news-watch
@@ -18,14 +18,17 @@ playwright install chromium
 If you're planning to contribute or want the latest development version:
 
 ```bash
-# Clone and install development version
+# Clone and setup
 git clone https://github.com/okkymabruri/news-watch.git
 cd news-watch
-pip install -e .
-pip install -r requirements-dev.txt
 
-# Install browser dependencies
-playwright install chromium
+# Install dependencies (recommended)
+uv sync --all-extras
+uv run playwright install chromium
+
+# Run commands/tests via uv
+uv run newswatch --list_scrapers
+uv run pytest
 ```
 
 ### Virtual Environment (Recommended)

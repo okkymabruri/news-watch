@@ -29,15 +29,14 @@ apt-get update && apt-get install -y \
 
 **Solutions**:
 ```bash
-# Use uv pip as recommended for news-watch
-conda activate newswatch-env
-uv pip install -r requirements.txt
-
-# For development
-uv pip install -r requirements-dev.txt
-
 # If uv is not available, fallback to pip
 pip install news-watch
+
+# Development setup (recommended)
+git clone https://github.com/okkymabruri/news-watch.git
+cd news-watch
+uv sync --all-extras
+uv run playwright install chromium
 ```
 
 ## Runtime Issues
@@ -214,7 +213,7 @@ conda activate newswatch-env
 which newswatch
 
 # If not found, reinstall
-uv pip install -e .
+uv sync --all-extras
 ```
 
 ### Invalid Arguments

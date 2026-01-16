@@ -30,7 +30,7 @@ If you're using conda (recommended for data science work):
 
 ```bash
 conda activate newswatch-env
-uv pip install news-watch
+pip install news-watch
 ```
 
 ### Your First Scrape
