@@ -28,7 +28,7 @@ def bump_version(version, part):
 
 
 def update_version_files(new_version):
-    """Update version in pyproject.toml and src/newswatch/__init__.py."""
+    """Update version in pyproject.toml, src/newswatch/__init__.py, and CITATION.cff."""
     pyproject_path = Path("pyproject.toml")
     content = pyproject_path.read_text()
     new_content = re.sub(
@@ -50,6 +50,18 @@ def update_version_files(new_version):
     init_path.write_text(new_init_content)
     print(f"Updated src/newswatch/__init__.py to v{new_version}")
 
+    citation_path = Path("CITATION.cff")
+    if citation_path.exists():
+        citation_content = citation_path.read_text()
+        new_citation_content = re.sub(
+            r"^version:\s*.+$",
+            f"version: {new_version}",
+            citation_content,
+            flags=re.MULTILINE,
+        )
+        citation_path.write_text(new_citation_content)
+        print(f"Updated CITATION.cff to v{new_version}")
+
 
 def git_commit_and_tag(version):
     """Commit version change, create tag, and push."""
@@ -60,9 +72,10 @@ def git_commit_and_tag(version):
         print(f"Tag {tag} already exists")
         return
 
-    subprocess.run(
-        ["git", "add", "pyproject.toml", "src/newswatch/__init__.py"], check=True
-    )
+    to_add = ["pyproject.toml", "src/newswatch/__init__.py"]
+    if Path("CITATION.cff").exists():
+        to_add.append("CITATION.cff")
+    subprocess.run(["git", "add", *to_add], check=True)
     subprocess.run(["git", "commit", "-m", f"Bump version to {version}"], check=True)
     print("Committed version changes")
 
