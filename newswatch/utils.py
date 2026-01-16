@@ -14,7 +14,18 @@ class AsyncScraper:
         timeout = aiohttp.ClientTimeout(
             total=60, connect=10, sock_connect=10, sock_read=30
         )
-        self.session = aiohttp.ClientSession(timeout=timeout)
+        self.session = aiohttp.ClientSession(
+            timeout=timeout,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/126.0.0.0 Safari/537.36"
+                ),
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
+            },
+        )
         return self
 
     async def __aexit__(self, exc_type, exc_value, traceback):
@@ -52,7 +63,7 @@ class AsyncScraper:
                     if retries < self.max_retries:
                         wait_time = 2**retries  # Exponential backoff
                         logging.warning(
-                            f"Received status {status}, retry {retries+1}/{self.max_retries} for {url} in {wait_time}s"
+                            f"Received status {status}, retry {retries + 1}/{self.max_retries} for {url} in {wait_time}s"
                         )
                         await asyncio.sleep(wait_time)
                         return await self.fetch(
@@ -64,7 +75,7 @@ class AsyncScraper:
                 if retries < self.max_retries:
                     wait_time = 1 * (retries + 1)
                     logging.warning(
-                        f"Retry {retries+1}/{self.max_retries} for {url} in {wait_time}s"
+                        f"Retry {retries + 1}/{self.max_retries} for {url} in {wait_time}s"
                     )
                     await asyncio.sleep(wait_time)
                     return await self.fetch(
@@ -77,7 +88,7 @@ class AsyncScraper:
                 if retries < self.max_retries:
                     wait_time = 1 * (retries + 1)
                     logging.warning(
-                        f"Timeout retry {retries+1}/{self.max_retries} for {url} in {wait_time}s"
+                        f"Timeout retry {retries + 1}/{self.max_retries} for {url} in {wait_time}s"
                     )
                     await asyncio.sleep(wait_time)
                     return await self.fetch(

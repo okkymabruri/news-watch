@@ -53,6 +53,12 @@ def cli():
         help="Output file format. Options are csv, xlsx, or json. Default is csv.",
     )
     parser.add_argument(
+        "--output_path",
+        "-o",
+        type=str,
+        help="Custom output file path (e.g., 'news-watch-output.csv'). If not specified, uses default naming.",
+    )
+    parser.add_argument(
         "--verbose",
         "-v",
         action="store_true",
