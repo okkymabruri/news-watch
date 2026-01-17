@@ -1,14 +1,10 @@
-# news-watch Troubleshooting Guide
+# Troubleshooting
 
-This guide covers common issues specific to news-watch and how to resolve them.
+## Installation
 
-## Installation Issues
+### Playwright
 
-### Playwright Installation Problems
-
-**Problem**: `playwright install chromium` fails or browser not found errors.
-
-**Solutions**:
+If `playwright install chromium` fails:
 ```bash
 # Install playwright browser for news-watch
 conda activate newswatch-env
@@ -23,11 +19,9 @@ apt-get update && apt-get install -y \
     libxdamage1 libxrandr2 libgbm1 libxss1 libasound2
 ```
 
-### news-watch Installation Issues
+### Package install
 
-**Problem**: Package installation fails or import errors.
-
-**Solutions**:
+If install/import fails:
 ```bash
 # If uv is not available, fallback to pip
 pip install news-watch
@@ -39,247 +33,108 @@ uv sync --all-extras
 uv run playwright install chromium
 ```
 
-## Runtime Issues
+## Runtime
 
-### No Articles Found
+### No results
 
-**Problem**: Scraping returns empty results even though articles should exist.
-
-**Diagnostic steps**:
+Quick checks:
 ```bash
-# Using CLI with verbose output
-newswatch --keywords test --start_date 2025-01-01 -v
-
-# Check available scrapers
 newswatch --list_scrapers
-
-# Test with common Indonesian keyword
 newswatch --keywords indonesia --start_date 2025-01-15 -v
 ```
 
-**Common causes and fixes**:
+Common causes:
 
-1. **Keywords too specific**: Use broader, more common Indonesian terms
-   ```bash
-   # Instead of very specific terms
-   newswatch --keywords "very-specific-company-name" --start_date 2025-01-01
-   
-   # Try broader categories
-   newswatch --keywords "ekonomi,bisnis" --start_date 2025-01-01
-   ```
+- keywords too specific → try `ekonomi,bisnis,indonesia`
+- date too old → try a recent date first
+- blocked in cloud/Linux → try fewer scrapers or run locally
 
-2. **Date range too far back**: Some scrapers have limited archives
-   ```bash
-   # Instead of very old dates
-   newswatch --keywords politik --start_date 2020-01-01
-   
-   # Try recent dates first
-   newswatch --keywords politik --start_date 2025-01-01
-   ```
+### Timeout
 
-3. **Platform-specific scraper issues**: Let news-watch choose appropriate scrapers
-   ```bash
-   # Use specific working scrapers instead of all
-   newswatch --keywords berita --start_date 2025-01-01 --scrapers "kompas,detik,tempo"
-   ```
-
-### Timeout Errors
-
-**Problem**: Scraping times out before completing.
-
-**Solutions**:
+Try:
 ```bash
-# Use smaller date ranges to avoid timeouts
-newswatch --keywords politik --start_date 2025-01-01 --end_date 2025-01-07
-
-# Use fewer scrapers to reduce load
 newswatch --keywords politik --start_date 2025-01-01 --scrapers "kompas,detik"
-
-# Use output file instead of keeping in memory
-newswatch --keywords politik --start_date 2025-01-01 --output_format xlsx
-
-# Use JSON for smaller file size and API integration
-newswatch --keywords politik --start_date 2025-01-01 --output_format json
 ```
 
-### Memory Issues
+### Memory
 
-**Problem**: Out of memory errors when scraping large amounts of data.
-
-**Solutions**:
+For large runs, write to a file:
 ```bash
-# Always save to file for large datasets
 newswatch --keywords ekonomi --start_date 2024-01-01 --output_format xlsx
-
-# Use JSON for more efficient storage of large datasets
-newswatch --keywords ekonomi --start_date 2024-01-01 --output_format json
-
-# Use smaller date ranges
-newswatch --keywords ekonomi --start_date 2025-01-01 --end_date 2025-01-07
-
-# Use fewer scrapers to reduce memory usage
-newswatch --keywords ekonomi --start_date 2025-01-01 --scrapers "kompas,detik"
 ```
 
-## Platform-Specific Issues
+## Platform notes
 
-### Linux Performance Problems
+### Linux / cloud
 
-**Problem**: Some scrapers fail or perform poorly on Linux.
+Some sites block server/cloud IPs more aggressively.
 
-**Causes**: Anti-bot measures often target cloud/server environments.
-
-**Solutions**:
+Try:
 ```bash
-# news-watch automatically excludes problematic scrapers on Linux
 newswatch --keywords berita --start_date 2025-01-01
-
-# Or manually specify known working scrapers
-newswatch --keywords berita --start_date 2025-01-01 --scrapers "kompas,detik,bisnis,tempo"
 ```
 
-### Cloud Environment Issues
+## Data quality
 
-**Problem**: High failure rates or IP blocking in cloud environments like Google Colab.
+### Missing/truncated content
 
-**Understanding**: Cloud platforms often have shared IPs that news sites block.
+Causes:
 
-**Solutions**:
+- HTML structure changed
+- paywall
+- blocked
+
+Check with verbose + single scraper:
 ```bash
-# Use fewer scrapers to reduce detection
-newswatch --keywords berita --start_date 2025-01-01 --scrapers "kompas,detik"
-
-# Use smaller date ranges
-newswatch --keywords politik --start_date 2025-01-15 --end_date 2025-01-16
-
-# Consider running locally if cloud environment fails consistently
-```
-
-## Data Quality Issues
-
-### Incomplete Article Content
-
-**Problem**: Some articles have missing or truncated content.
-
-**Causes**: 
-- Website changes their HTML structure
-- Paywall or subscription content
-- Anti-scraping measures
-
-**Diagnostics**:
-```bash
-# Run with verbose output to see scraping issues
 newswatch --keywords ekonomi --start_date 2025-01-01 -v
-
-# Check which scrapers are having issues by testing individually
 newswatch --keywords ekonomi --start_date 2025-01-01 --scrapers kompas -v
 newswatch --keywords ekonomi --start_date 2025-01-01 --scrapers detik -v
 ```
 
-### Duplicate Articles
+### Duplicates
 
-**Problem**: Same article appears multiple times across different sources.
+Normal when multiple sites cover the same story. Deduplicate in post-processing.
 
-**Understanding**: This is normal behavior when multiple news sites cover the same story. news-watch doesn't automatically deduplicate because users may want to see coverage differences.
+### Encoding
 
-**Note**: Post-processing deduplication should be done in your analysis workflow if needed.
-
-### Encoding Issues
-
-**Problem**: Strange characters in article text.
-
-**Understanding**: This can happen due to website encoding issues or character set problems.
-
-**Solutions**:
+If text has broken characters, try another source:
 ```bash
-# Try different scrapers if one source has encoding issues
 newswatch --keywords berita --start_date 2025-01-01 --scrapers "kompas,tempo" -v
-
-# The verbose flag will show which sources have problems
 ```
 
-## CLI and Command Issues
+## CLI
 
-### Command Not Found
+### Command not found
 
-**Problem**: `newswatch` command not recognized.
-
-**Solutions**:
+If `newswatch` is not found:
 ```bash
-# Activate the correct conda environment
 conda activate newswatch-env
-
-# Check if news-watch is installed
 which newswatch
-
-# If not found, reinstall
 uv sync --all-extras
 ```
 
-### Invalid Arguments
+### Arguments
 
-**Problem**: CLI arguments not working as expected.
-
-**Solutions**:
+Check:
 ```bash
-# Check command syntax
 newswatch --help
-
-# Common patterns:
-newswatch --keywords "term1,term2" --start_date 2025-01-01
-newswatch -k politik -s "kompas,detik" --output_format xlsx -v
-newswatch -k politik -s "kompas,detik" --output_format json -v  # JSON alternative
 ```
 
-## Testing Issues
+## Tests
 
-### Test Failures
+### Running tests
 
-**Problem**: pytest tests fail when running development tests.
-
-**Solutions**:
 ```bash
-# Run tests with proper environment
-conda activate newswatch-env
-
-# Run all tests
 pytest tests/
-
-# Run only network tests
 pytest -m network
-
-# Run specific scraper tests
-pytest tests/test_scrapers.py -v
-
-# Skip network tests if offline
 pytest -m "not network"
 ```
 
-## Getting Help
+## Reporting bugs
 
-### Diagnostic Information to Collect
+Include:
 
-When reporting issues, include:
-
-```bash
-# System and environment information
-echo "Platform: $(uname -a)"
-echo "Python version: $(python --version)"
-conda list | grep news-watch
-
-# Test basic functionality
-newswatch --list_scrapers
-newswatch --keywords indonesia --start_date 2025-01-15 -v
-```
-
-### Where to Get Help
-
-1. **Check this troubleshooting guide** for common solutions
-2. **Search existing issues** on [GitHub Issues](https://github.com/okkymabruri/news-watch/issues)
-3. **Create a new issue** with:
-   - Complete error messages
-   - Your system information (from diagnostic script above)
-   - Minimal command that reproduces the problem
-   - What you expected vs. what happened
-
-Remember: news-watch is actively developed, and many issues have simple solutions. Don't hesitate to ask for help!
+- OS + Python version
+- command you ran
+- full error output
+- one example URL if relevant

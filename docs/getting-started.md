@@ -214,6 +214,7 @@ print(f"\nRecent articles (>= Jan 15): {len(recent)}")
 | `-sd, --start_date` | Start date (YYYY-MM-DD) | `"2025-01-01"` |
 | `-s, --scrapers` | Specific scrapers or "auto"/"all" | `"kompas,detik"` |
 | `-of, --output_format` | Output format: csv, xlsx, or json | `"csv"` |
+| `-o, --output_path` | Custom output file path | `"news-watch-output.csv"` |
 | `-v, --verbose` | Show detailed progress | (flag only) |
 | `--list_scrapers` | Show available scrapers | (flag only) |
 
@@ -238,6 +239,7 @@ If you run into issues:
 
 1. Check the [Troubleshooting guide](troubleshooting.md)
 2. Look at existing [GitHub Issues](https://github.com/okkymabruri/news-watch/issues)
-3. Create a new issue with details about your setup and the problem
-
-Happy scraping!
+3. Create a new issue with:
+   - error message
+   - your OS + Python version
+   - the command you ran

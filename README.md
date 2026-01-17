@@ -25,17 +25,7 @@ playwright install chromium
 pip install git+https://github.com/okkymabruri/news-watch.git@dev
 ```
 
-### Using UV (recommended for development)
-```bash
-# Install UV (if not already installed)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Clone and setup
-git clone https://github.com/okkymabruri/news-watch.git
-cd news-watch
-uv sync --all-extras
-uv run playwright install chromium
-```
+Development setup: see https://okky.dev/news-watch/getting-started/
 
 ## Performance Notes
 
@@ -57,6 +47,7 @@ newswatch -k <keywords> -sd <start_date> -s [<scrapers>] -of <output_format> -v
 | `-sd, --start_date` | **Required.** Start date in YYYY-MM-DD format (e.g., `2025-01-01`) |
 | `-s, --scrapers` | Scrapers to use: specific names (e.g., `"kompas,viva"`), `"auto"` (default, platform-appropriate), or `"all"` (force all, may fail) |
 | `-of, --output_format` | Output format: `csv`, `xlsx`, or `json` (default: csv) |
+| `-o, --output_path` | Custom output file path (optional) |
 | `-v, --verbose` | Show detailed logging output (default: silent) |
 | `--list_scrapers` | List all supported scrapers and exit |
 

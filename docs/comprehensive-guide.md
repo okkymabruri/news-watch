@@ -19,19 +19,7 @@ This comprehensive guide covers everything you need to know about using news-wat
 
 ## Getting Started
 
-### Installation
-
-```bash
-pip install news-watch
-playwright install chromium
-```
-
-If you're using conda (recommended for data science work):
-
-```bash
-conda activate newswatch-env
-pip install news-watch
-```
+For installation, see the [Getting Started guide](getting-started.md).
 
 ### Your First Scrape
 
@@ -53,14 +41,17 @@ if articles:
 ```
 
 Each article contains these fields:
-- `title`: Article headline
-- `publish_date`: When it was published
-- `author`: Writer (might be empty)
-- `content`: Full article text
-- `keyword`: Which search term matched
-- `category`: News section (Ekonomi, Politik, etc.)
-- `source`: Website name (detik, kompas, etc.)
-- `link`: Original URL
+
+| Field | Description |
+|---|---|
+| `title` | Article headline |
+| `publish_date` | When it was published |
+| `author` | Writer (might be empty) |
+| `content` | Full article text |
+| `keyword` | Which search term matched |
+| `category` | News section (Ekonomi, Politik, etc.) |
+| `source` | Website name (detik, kompas, etc.) |
+| `link` | Original URL |
 
 ## Basic Usage
 

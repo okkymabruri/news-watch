@@ -1,7 +1,5 @@
 # API Reference
 
-The news-watch Python API provides a clean, synchronous interface for integrating Indonesian news scraping into your Python projects. All functions handle the complexity of async operations internally, so you can focus on your analysis.
-
 ## Quick Reference
 
 ```python
@@ -24,21 +22,25 @@ recent_df = nw.quick_scrape("politik", days_back=3)          # Recent articles
 The foundation function that returns raw article data.
 
 ```python
-def scrape(keywords, start_date, scrapers="auto", verbose=False, timeout=300, **kwargs)
+def scrape(keywords, start_date, scrapers="auto", verbose=False, timeout=300, **kwargs):
+    ...
 ```
 
 **Parameters:**
+
 - `keywords` (str): What to search for. Use commas for multiple terms: `"bank,kredit,fintech"`
 - `start_date` (str): When to start looking, in YYYY-MM-DD format: `"2025-01-01"`
 - `scrapers` (str, optional): Which sites to scrape:
   - `"auto"` (default) - Let news-watch pick based on your platform
-  - `"all"` - Try every scraper (might fail on some systems)  
+  - `"all"` - Try every scraper (might fail on some systems)
   - `"kompas,detik"` - Pick specific sites by name
 - `verbose` (bool, optional): Show progress details (default: False)
 - `timeout` (int, optional): Max seconds to wait (default: 300)
 
 **Returns:**
+
 List of dictionaries, each containing:
+
 - `title` - Article headline
 - `author` - Writer name (when available)
 - `publish_date` - When it was published
@@ -73,10 +75,11 @@ for article in financial_articles:
 
 ### scrape_to_dataframe()
 
-Perfect for data analysis - returns a pandas DataFrame ready for immediate use.
+Returns a pandas DataFrame ready for analysis.
 
 ```python
-def scrape_to_dataframe(keywords, start_date, scrapers="auto", verbose=False, timeout=300, **kwargs)
+def scrape_to_dataframe(keywords, start_date, scrapers="auto", verbose=False, timeout=300, **kwargs):
+    ...
 ```
 
 **Parameters:**
@@ -116,7 +119,8 @@ Save results directly to CSV or Excel files.
 
 ```python
 def scrape_to_file(keywords, start_date, output_path, output_format="xlsx", 
-                  scrapers="auto", verbose=False, timeout=300, **kwargs)
+                  scrapers="auto", verbose=False, timeout=300, **kwargs):
+    ...
 ```
 
 **Parameters:**
@@ -166,7 +170,8 @@ nw.scrape_to_file(
 Find out which Indonesian news sites are available.
 
 ```python
-def list_scrapers()
+def list_scrapers():
+    ...
 ```
 
 **Returns:**
@@ -190,7 +195,8 @@ df = nw.scrape_to_dataframe("saham", "2025-01-01", scrapers=",".join(financial_s
 Get recent news without worrying about exact dates.
 
 ```python
-def quick_scrape(keywords, days_back=1, scrapers="auto")
+def quick_scrape(keywords, days_back=1, scrapers="auto"):
+    ...
 ```
 
 **Parameters:**
@@ -276,19 +282,10 @@ The comprehensive guide covers:
 - **Large dataset management strategies**
 - **Troubleshooting common issues**
 
-All examples are tested, practical, and use safe generic keywords appropriate for research purposes.
+## Notes
 
-## Performance Tips
-
-- **Use specific scrapers** instead of "all" when possible
-- **Start with recent dates** to test before running large historical scrapes  
-- **Local environments work best** - cloud platforms may have restrictions
-- **Reasonable timeouts** - increase timeout for large scraping jobs
-- **Batch processing** - process results in chunks for large datasets
-
-## Error Scenarios
-
-Common issues and solutions:
+- Prefer `scrapers="auto"` unless you know which sites you need.
+- Cloud/server environments are more likely to be blocked.
 
 **Empty results**: Check if your keywords are in Indonesian or try broader terms
 ```python

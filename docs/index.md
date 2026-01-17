@@ -11,6 +11,8 @@ news-watch scrapes structured news data from Indonesia's top news websites with 
 ```bash
 pip install news-watch
 playwright install chromium
+
+Development setup: https://okky.dev/news-watch/getting-started/
 ```
 
 ## Quick Start
