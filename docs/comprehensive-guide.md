@@ -1074,7 +1074,7 @@ def scrape_by_chunks(keywords, start_date, chunk_days=3):
 historical_df = scrape_by_chunks("ekonomi,politik", "2024-12-01", chunk_days=2)
 ```
 
-This method is much more reliable than trying to grab everything at once. You'll see progress as it goes, and if something fails partway through, you won't lose everything you've already collected. Plus, it's easier on the news websites' servers, which makes you a better citizen of the internet.
+This approach is more reliable than scraping a large range in a single run, and it reduces the chance of losing partial results.
 
 ---
 
@@ -1113,4 +1113,4 @@ df = nw.scrape_to_dataframe("berita", "2025-01-01", scrapers="auto")
 
 ---
 
-These examples demonstrate practical, tested patterns for using news-watch in various scenarios. All code has been verified to work with the current API and uses safe, generic keywords appropriate for educational and research purposes.
+These examples are intended to match the current API.
