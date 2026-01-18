@@ -1,4 +1,5 @@
 import logging
+import json
 import re
 from urllib.parse import urlencode
 
@@ -96,6 +97,13 @@ class CNBCScraper(BaseScraper):
 
             filtered_hrefs = self.parse_article_links(response_text)
             if not filtered_hrefs:
+                # Some environments return HTML that isn't detected as blocked but doesn't contain results.
+                # Retry once via rnet before giving up on HTML search.
+                url = f"{self.base_url}/search?{urlencode({'query': keyword, 'fromdate': self.start_date.strftime('%Y/%m/%d'), 'page': page})}"
+                response_text = await self._fetch_rnet(url)
+                if response_text:
+                    filtered_hrefs = self.parse_article_links(response_text)
+            if not filtered_hrefs:
                 break
 
             continue_scraping = await self.process_page(filtered_hrefs, keyword)
@@ -119,36 +127,93 @@ class CNBCScraper(BaseScraper):
             logging.warning(f"No response for {link}")
             return
         soup = BeautifulSoup(response_text, "html.parser")
-        try:
-            category = soup.select_one("a.text-xs.font-semibold[href='#']").get_text(
-                strip=True
-            )
-            title = soup.select_one("h1.mb-4.text-32.font-extrabold").get_text(
-                strip=True
-            )
-            author = soup.select("div.mb-1.text-base.font-semibold")[1].get_text(
-                strip=True
-            )
-            publish_date_str = soup.select_one("div.text-cm.text-gray").get_text(
-                strip=True
-            )
 
+        # JSON-LD fallback (more stable across templates / A/B variants)
+        ld_json = None
+        for sc in soup.select("script[type='application/ld+json']"):
+            raw = (sc.string or sc.get_text() or "").strip()
+            if not raw:
+                continue
+            try:
+                data = json.loads(raw)
+            except Exception:
+                continue
+
+            nodes = data if isinstance(data, list) else [data]
+            for node in nodes:
+                if not isinstance(node, dict):
+                    continue
+                if node.get("@type") in ("NewsArticle", "Article"):
+                    ld_json = node
+                    break
+                graph = node.get("@graph")
+                if isinstance(graph, list):
+                    for g in graph:
+                        if isinstance(g, dict) and g.get("@type") in (
+                            "NewsArticle",
+                            "Article",
+                        ):
+                            ld_json = g
+                            break
+                if ld_json:
+                    break
+            if ld_json:
+                break
+
+        try:
+            category_el = soup.select_one("a.text-xs.font-semibold[href='#']")
+            title_el = soup.select_one("h1.mb-4.text-32.font-extrabold")
+            author_els = soup.select("div.mb-1.text-base.font-semibold")
+            date_el = soup.select_one("div.text-cm.text-gray")
             content_div = soup.find("div", {"class": "detail-text"})
 
-            # loop through paragraphs and remove those with class patterns like "sisip-*"
-            for tag in content_div.find_all(["table", "div"]):
-                class_list = tag.get("class", [])
-                if any(
-                    cls.startswith("sisip_") or cls.startswith("link_sisip")
-                    for cls in class_list
-                ):
-                    tag.extract()
+            category = category_el.get_text(strip=True) if category_el else ""
+            title = title_el.get_text(strip=True) if title_el else ""
+            author = author_els[1].get_text(strip=True) if len(author_els) > 1 else ""
+            publish_date_str = date_el.get_text(strip=True) if date_el else ""
 
-            content = content_div.get_text(separator="\n", strip=True)
+            content = ""
+            if content_div:
+                # loop through paragraphs and remove those with class patterns like "sisip-*"
+                for tag in content_div.find_all(["table", "div"]):
+                    class_list = tag.get("class", [])
+                    if any(
+                        cls.startswith("sisip_") or cls.startswith("link_sisip")
+                        for cls in class_list
+                    ):
+                        tag.extract()
+                content = content_div.get_text(separator="\n", strip=True)
+
+            if ld_json:
+                title = title or (ld_json.get("headline") or "").strip()
+                category = category or (ld_json.get("articleSection") or "").strip()
+                publish_date_str = publish_date_str or (
+                    ld_json.get("datePublished")
+                    or ld_json.get("dateCreated")
+                    or ld_json.get("dateModified")
+                    or ""
+                )
+                if not author:
+                    a = ld_json.get("author")
+                    if isinstance(a, dict):
+                        author = (a.get("name") or "").strip()
+                    elif isinstance(a, list) and a:
+                        first = a[0]
+                        if isinstance(first, dict):
+                            author = (first.get("name") or "").strip()
+                        elif isinstance(first, str):
+                            author = first.strip()
+                if not content:
+                    body = ld_json.get("articleBody")
+                    if isinstance(body, str):
+                        content = body.strip()
 
             publish_date = self.parse_date(publish_date_str)
             if not publish_date:
                 logging.error(f"Error parsing date for article {link}")
+                return
+            if not title or not content:
+                logging.error(f"Error parsing article {link}: missing title/content")
                 return
             if self.start_date and publish_date < self.start_date:
                 self.continue_scraping = False
