@@ -2,9 +2,19 @@ name: Test
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ "**" ]
+    paths:
+      - "**/*.py"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/test.yml"
   pull_request:
     branches: [ main ]
+    paths:
+      - "**/*.py"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/test.yml"
 
 jobs:
   unit-tests:
