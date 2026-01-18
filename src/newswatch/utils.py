@@ -1,7 +1,5 @@
 import asyncio
 import logging
-import platform
-
 import aiohttp
 
 
@@ -40,6 +38,9 @@ async def _playwright_get(url: str, headers: dict | None, timeout: int) -> str |
                     await context.close()
             finally:
                 await browser.close()
+    except asyncio.CancelledError:
+        # Let cancellations propagate cleanly to avoid leaving the event loop in a bad state.
+        raise
     except Exception as e:
         logging.debug("playwright fallback failed for %s: %s", url, e)
         return None
@@ -107,11 +108,7 @@ class AsyncScraper:
                         response.raise_for_status()
                         text = await response.text()
 
-                        if (
-                            platform.system().lower() == "linux"
-                            and text
-                            and _looks_blocked(text)
-                        ):
+                        if text and _looks_blocked(text):
                             merged_headers = dict(self.session.headers)
                             if headers:
                                 merged_headers.update(headers)
@@ -132,7 +129,6 @@ class AsyncScraper:
                 status = getattr(e, "status", None)
                 if (
                     method == "GET"
-                    and platform.system().lower() == "linux"
                     and status in (401, 403, 406, 418)
                 ):
                     merged_headers = dict(self.session.headers)
@@ -159,7 +155,7 @@ class AsyncScraper:
                 logging.error(f"Error {status} fetching {url}: {e}")
                 return None
             except aiohttp.ClientError as e:
-                if method == "GET" and platform.system().lower() == "linux":
+                if method == "GET":
                     merged_headers = dict(self.session.headers)
                     if headers:
                         merged_headers.update(headers)

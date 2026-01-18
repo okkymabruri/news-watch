@@ -17,11 +17,17 @@ LINUX_SCRAPERS = [
     "cnbcindonesia",
     "cnnindonesia",
     "detik",
+    "idntimes",
     "kompas",
+    "kumparan",
     "liputan6",
     # "metrotvnews",  # disabled: timeout issues in CI
+    "merdeka",
     "okezone",
+    "republika",
+    "suara",
     "tempo",
+    "tirto",
     "viva",
     "mediaindonesia",
 ]

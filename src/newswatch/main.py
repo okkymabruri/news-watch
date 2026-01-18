@@ -22,12 +22,18 @@ from .scrapers.katadata import KatadataScraper
 from .scrapers.kompas import KompasScraper
 from .scrapers.kontan import KontanScraper
 from .scrapers.liputan6 import Liputan6Scraper
+from .scrapers.merdeka import MerdekaScraper
 from .scrapers.mediaindonesia import MediaIndonesiaScraper
 from .scrapers.metrotvnews import MetrotvnewsScraper
 from .scrapers.okezone import OkezoneScraper
+from .scrapers.republika import RepublikaScraper
+from .scrapers.suara import SuaraScraper
 from .scrapers.tempo import TempoScraper
+from .scrapers.tirto import TirtoScraper
 from .scrapers.tribunnews import TribunnewsScraper
 from .scrapers.viva import VivaScraper
+from .scrapers.idntimes import IDNTimesScraper
+from .scrapers.kumparan import KumparanScraper
 
 logging.basicConfig(
     level=logging.INFO,
@@ -61,8 +67,10 @@ async def write_csv(queue, keywords, filename=None):
     else:
         filename = Path(filename)
 
+    tmp_filename = filename.with_suffix(filename.suffix + ".tmp")
+
     try:
-        with open(filename, mode="w", newline="", encoding="utf-8") as csvfile:
+        with open(tmp_filename, mode="w", newline="", encoding="utf-8") as csvfile:
             csv_writer = csv.DictWriter(
                 csvfile, fieldnames=fieldnames, quoting=csv.QUOTE_ALL
             )
@@ -81,6 +89,7 @@ async def write_csv(queue, keywords, filename=None):
                 csv_writer.writerow(item)
                 csvfile.flush()  # Ensure data is written to disk
 
+        tmp_filename.replace(filename)
         print(f"Data written to {filename}")
     except Exception as e:
         logging.error(f"Error writing to CSV: {e}")
@@ -189,11 +198,17 @@ def get_available_scrapers():
         "cnbcindonesia": {"class": CNBCScraper, "params": {"concurrency": 5}},
         "cnnindonesia": {"class": CNNIndonesiaScraper, "params": {"concurrency": 5}},
         "detik": {"class": DetikScraper, "params": {"concurrency": 5}},
+        "idntimes": {"class": IDNTimesScraper, "params": {"concurrency": 7}},
         "kompas": {"class": KompasScraper, "params": {"concurrency": 7}},
+        "kumparan": {"class": KumparanScraper, "params": {"concurrency": 5}},
         "liputan6": {"class": Liputan6Scraper, "params": {"concurrency": 5}},
+        "merdeka": {"class": MerdekaScraper, "params": {"concurrency": 7}},
         "metrotvnews": {"class": MetrotvnewsScraper, "params": {"concurrency": 2}},
         "okezone": {"class": OkezoneScraper, "params": {"concurrency": 7}},
+        "republika": {"class": RepublikaScraper, "params": {"concurrency": 7}},
+        "suara": {"class": SuaraScraper, "params": {"concurrency": 12}},
         "tempo": {"class": TempoScraper, "params": {"concurrency": 1}},
+        "tirto": {"class": TirtoScraper, "params": {"concurrency": 5}},
         "tribunnews": {"class": TribunnewsScraper, "params": {"concurrency": 5}},
         "viva": {"class": VivaScraper, "params": {"concurrency": 7}},
         "mediaindonesia": {"class": MediaIndonesiaScraper, "params": {}},
@@ -285,19 +300,23 @@ async def main(args):
         return
 
     # run all scrapers concurrently with a timeout
+    scraper_tasks: list[asyncio.Task] = []
     try:
         scraper_tasks = [asyncio.create_task(scraper.scrape()) for scraper in scrapers]
         # Set overall timeout to 3 minutes for all scrapers
         await asyncio.wait_for(asyncio.gather(*scraper_tasks), timeout=180)
     except asyncio.TimeoutError:
         logging.warning("Scraping took too long and was stopped after 3 minutes")
+        for t in scraper_tasks:
+            t.cancel()
     except Exception as e:
         logging.error(f"Error during scraping: {e}")
+        for t in scraper_tasks:
+            t.cancel()
     finally:
-        # Cancel any remaining scraper tasks
-        for task in asyncio.all_tasks():
-            if task is not asyncio.current_task() and task is not writer_task:
-                task.cancel()
+        # Ensure scrapers are fully stopped (don't cancel unrelated tasks).
+        if scraper_tasks:
+            await asyncio.gather(*scraper_tasks, return_exceptions=True)
 
     # After scraping is done, put a sentinel value into the queue to signal the writer to finish
     await queue_.put(None)
