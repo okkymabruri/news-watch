@@ -3,6 +3,22 @@ import logging
 import aiohttp
 
 
+async def _rnet_get(url: str, headers: dict | None, timeout: int) -> str | None:
+    try:
+        from rnet import Client
+
+        client = Client()
+        resp = await client.get(url, headers=headers, timeout=timeout)
+        if resp.status != 200:
+            return None
+        return await resp.text()
+    except asyncio.CancelledError:
+        raise
+    except Exception as e:
+        logging.debug("rnet fallback failed for %s: %s", url, e)
+        return None
+
+
 async def _playwright_get(url: str, headers: dict | None, timeout: int) -> str | None:
     try:
         from playwright.async_api import async_playwright
@@ -112,9 +128,11 @@ class AsyncScraper:
                             merged_headers = dict(self.session.headers)
                             if headers:
                                 merged_headers.update(headers)
-                            pw_text = await _playwright_get(
-                                url, merged_headers, timeout
-                            )
+                            rnet_text = await _rnet_get(url, merged_headers, timeout)
+                            if rnet_text and not _looks_blocked(rnet_text):
+                                return rnet_text
+
+                            pw_text = await _playwright_get(url, merged_headers, timeout)
                             if pw_text:
                                 return pw_text
 
@@ -134,6 +152,10 @@ class AsyncScraper:
                     merged_headers = dict(self.session.headers)
                     if headers:
                         merged_headers.update(headers)
+                    rnet_text = await _rnet_get(url, merged_headers, timeout)
+                    if rnet_text and not _looks_blocked(rnet_text):
+                        return rnet_text
+
                     text = await _playwright_get(url, merged_headers, timeout)
                     if text:
                         return text
@@ -159,6 +181,10 @@ class AsyncScraper:
                     merged_headers = dict(self.session.headers)
                     if headers:
                         merged_headers.update(headers)
+                    rnet_text = await _rnet_get(url, merged_headers, timeout)
+                    if rnet_text and not _looks_blocked(rnet_text):
+                        return rnet_text
+
                     text = await _playwright_get(url, merged_headers, timeout)
                     if text:
                         return text
