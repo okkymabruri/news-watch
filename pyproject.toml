@@ -20,7 +20,7 @@ dependencies = [
     "pandas==2.2.2",
     "requests==2.32.4",
     "playwright==1.42.0",
-    "cloudscraper>=1.2.71",
+    "cloudscraper @ git+https://github.com/VeNoMouS/cloudscraper.git",
 ]
 keywords = [
     "news",
