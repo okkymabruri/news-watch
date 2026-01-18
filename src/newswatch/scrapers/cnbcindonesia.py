@@ -1,9 +1,10 @@
+import asyncio
 import logging
 import re
 from urllib.parse import urlencode
 
-from bs4 import BeautifulSoup
 import cloudscraper
+from bs4 import BeautifulSoup
 
 from .basescraper import BaseScraper
 
@@ -15,8 +16,15 @@ class CNBCScraper(BaseScraper):
         self.start_date = start_date
         self.max_pages = 10
         self._cf = cloudscraper.create_scraper()
+        self._cf_sem = asyncio.Semaphore(2)
 
-    def _fetch_cf(self, url: str, *, headers: dict | None = None, timeout: int = 30) -> str | None:
+    def _fetch_cf_sync(
+        self,
+        url: str,
+        *,
+        headers: dict | None = None,
+        timeout: int = 20,
+    ) -> str | None:
         try:
             resp = self._cf.get(url, headers=headers, timeout=timeout)
             if resp.status_code == 200 and resp.text:
@@ -25,6 +33,21 @@ class CNBCScraper(BaseScraper):
         except Exception as e:
             logging.debug(f"cloudscraper failed for {url}: {e}")
             return None
+
+    async def _fetch_cf(
+        self,
+        url: str,
+        *,
+        headers: dict | None = None,
+        timeout: int = 20,
+    ) -> str | None:
+        async with self._cf_sem:
+            return await asyncio.to_thread(
+                self._fetch_cf_sync,
+                url,
+                headers=headers,
+                timeout=timeout,
+            )
 
     async def build_search_url(self, keyword, page):
         # https://www.cnbcindonesia.com/search?query=&fromdate=&page=
@@ -37,7 +60,7 @@ class CNBCScraper(BaseScraper):
         text = await self.fetch(url)
         if text:
             return text
-        return self._fetch_cf(url)
+        return await self._fetch_cf(url)
 
     async def _fetch_rss_links(self, keyword):
         # Reliable fallback in environments where HTML search gets blocked.
@@ -48,7 +71,7 @@ class CNBCScraper(BaseScraper):
             timeout=30,
         )
         if not rss_text:
-            rss_text = self._fetch_cf(
+            rss_text = await self._fetch_cf(
                 rss_url,
                 headers={"Accept": "application/xml,*/*", "User-Agent": "Mozilla/5.0"},
                 timeout=30,
@@ -107,7 +130,7 @@ class CNBCScraper(BaseScraper):
     async def get_article(self, link, keyword):
         response_text = await self.fetch(link)
         if not response_text:
-            response_text = self._fetch_cf(link)
+            response_text = await self._fetch_cf(link)
         if not response_text:
             logging.warning(f"No response for {link}")
             return
