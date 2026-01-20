@@ -20,9 +20,6 @@ news-watch is a Python package that scrapes structured news data from [Indonesia
 ```bash
 pip install news-watch
 playwright install chromium
-
-# Development version
-pip install git+https://github.com/okkymabruri/news-watch.git@dev
 ```
 
 Development setup: see https://okky.dev/news-watch/getting-started/
@@ -123,6 +120,7 @@ The output file contains the following columns:
 - [CNBC Indonesia](https://www.cnbcindonesia.com/)
 - [CNN Indonesia](https://www.cnnindonesia.com/)
 - [Detik.com](https://www.detik.com/)
+- [IDN Times](https://www.idntimes.com/)
 - [Jawapos.com](https://www.jawapos.com/)
 - [Katadata.co.id](https://katadata.co.id/)
 - [Kompas.com](https://www.kompas.com/)
@@ -131,13 +129,20 @@ The output file contains the following columns:
 - [Media Indonesia](https://mediaindonesia.com/)
 - [Metrotvnews.com](https://metrotvnews.com/)
 - [Okezone.com](https://www.okezone.com/)
+- [Kumparan](https://kumparan.com/)
+- [Merdeka](https://www.merdeka.com/)
+- [Republika](https://www.republika.co.id/)
+- [Suara](https://www.suara.com/)
 - [Tempo.co](https://www.tempo.co/)
+- [Tirto](https://tirto.id/)
 - [Tribunnews.com](https://www.tribunnews.com/)
 - [Viva.co.id](https://www.viva.co.id/)
 
 
 > **Note:** 
-> - On Linux platforms: [Kontan](https://www.kontan.co.id/), [Jawapos](https://www.jawapos.com/), [Katadata](https://katadata.co.id/) are automatically excluded due to compatibility issues. Use `-s all` to force (may cause errors)
+> - On Linux platforms: [Kontan](https://www.kontan.co.id/), [Jawapos](https://www.jawapos.com/), 
+>    [Katadata](https://katadata.co.id/), [Tirto](https://tirto.id) are automatically excluded due to 
+>    Cloudflare/Anti Scraper issues. Use `-s all` to force (may cause errors)
 > - Limitation: Kontan scraper maximum 50 pages
 
 ## Contributing
