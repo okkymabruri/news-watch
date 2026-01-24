@@ -1,6 +1,5 @@
 import logging
 
-import cloudscraper
 from bs4 import BeautifulSoup
 
 from .basescraper import BaseScraper
@@ -12,17 +11,11 @@ class JawaposScraper(BaseScraper):
         self.base_url = "https://www.jawapos.com"
         self.start_date = start_date
         self.continue_scraping = True
-        # Use cloudscraper for Cloudflare bypass
-        self.scraper = cloudscraper.create_scraper()
 
     async def build_search_url(self, keyword, page):
         # https://www.jawapos.com/search?q=presiden&sort=latest&page=1
         url = f"https://www.jawapos.com/search?q={keyword.replace(' ', '+')}&sort=latest&page={page}"
-        # Use cloudscraper synchronously (it handles Cloudflare automatically)
-        response = self.scraper.get(url)
-        if response.status_code == 200:
-            return response.text
-        return None
+        return await self.fetch(url)
 
     def parse_article_links(self, response_text):
         soup = BeautifulSoup(response_text, "html.parser")
@@ -35,12 +28,7 @@ class JawaposScraper(BaseScraper):
         return filtered_hrefs
 
     async def get_article(self, link, keyword):
-        # Use cloudscraper for article pages
-        response = self.scraper.get(link)
-        if response.status_code != 200:
-            logging.warning(f"No response for {link}")
-            return
-        response_text = response.text
+        response_text = await self.fetch(link)
         if not response_text:
             logging.warning(f"No response for {link}")
             return

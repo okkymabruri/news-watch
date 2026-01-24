@@ -69,6 +69,12 @@ newswatch --keywords ekonomi --start_date 2024-01-01 --output_format xlsx
 
 Some sites block server/cloud IPs more aggressively.
 
+Some sources (e.g., Tirto) may require browser automation. Ensure Playwright is installed:
+
+```bash
+playwright install chromium
+```
+
 Try:
 ```bash
 newswatch --keywords berita --start_date 2025-01-01

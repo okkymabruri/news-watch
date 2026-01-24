@@ -60,7 +60,7 @@ Test that everything works:
 newswatch --list_scrapers
 
 # Should show something like:
-# Available scrapers: antaranews, bisnis, bloombergtechnoz, cnbcindonesia, detik, ...
+# Available scrapers: antaranews, bisnis, bloombergtechnoz, cnbcindonesia, cnnindonesia, detik, idntimes, kompas, kumparan, liputan6, merdeka, metrotvnews, okezone, republika, suara, tempo, tirto, tribunnews, viva, mediaindonesia, katadata, jawapos, kontan
 ```
 
 ## Your First Scraping Session

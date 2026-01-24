@@ -89,6 +89,7 @@ class CNBCScraper(BaseScraper):
             logging.warning(f"No response for {link}")
             return
         soup = BeautifulSoup(response_text, "html.parser")
+
         try:
             category = soup.select_one("a.text-xs.font-semibold[href='#']").get_text(
                 strip=True

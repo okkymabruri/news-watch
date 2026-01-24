@@ -139,11 +139,19 @@ async def _async_scrape_to_list(
     # get available scrapers and validate selection
     scraper_classes, linux_excluded_scrapers = get_available_scrapers()
     if scrapers not in ["auto", "all"] and scrapers:
+        import platform
+
         scraper_list = [name.strip().lower() for name in scrapers.split(",")]
-        invalid_scrapers = [s for s in scraper_list if s not in scraper_classes]
+
+        allowed_scrapers = dict(scraper_classes)
+        if platform.system().lower() == "linux":
+            # Allow explicit selection of Linux-excluded scrapers.
+            allowed_scrapers.update(linux_excluded_scrapers)
+
+        invalid_scrapers = [s for s in scraper_list if s not in allowed_scrapers]
         if invalid_scrapers:
             raise ValidationError(
-                f"Invalid scrapers: {invalid_scrapers}. Available: {list(scraper_classes.keys())}"
+                f"Invalid scrapers: {invalid_scrapers}. Available: {list(allowed_scrapers.keys())}"
             )
 
     # create queue for collecting results and event for coordination
@@ -171,6 +179,24 @@ async def _async_scrape_to_list(
         scrapers_to_run = list(scraper_classes.keys())
     else:
         scrapers_to_run = [name.strip().lower() for name in scrapers.split(",")]
+
+    # If the caller explicitly requested Linux-excluded scrapers, enable them.
+    import platform
+
+    if platform.system().lower() == "linux":
+        requested_excluded = [
+            s
+            for s in scrapers_to_run
+            if s in linux_excluded_scrapers and s not in scraper_classes
+        ]
+        if requested_excluded:
+            scraper_classes.update(
+                {name: linux_excluded_scrapers[name] for name in requested_excluded}
+            )
+            logging.warning(
+                "Using Linux-excluded scrapers (may fail due to WAF/Cloudflare/anti-bot): %s",
+                ", ".join(requested_excluded),
+            )
 
     # instantiate scrapers
     scraper_instances = []
