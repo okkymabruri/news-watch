@@ -1,5 +1,6 @@
 import logging
 import re
+from urllib.parse import quote_plus, urljoin
 
 from bs4 import BeautifulSoup
 
@@ -12,11 +13,19 @@ class MetrotvnewsScraper(BaseScraper):
         self.base_url = "https://www.metrotvnews.com"
         self.start_date = start_date
         self.continue_scraping = True
+        self.max_pages = 10
+
+        self._headers = {
+            "User-Agent": "Mozilla/5.0",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        }
 
     async def build_search_url(self, keyword, page):
         # https://www.metrotvnews.com/search?query=ekonomi&page=1
         return await self.fetch(
-            f"https://www.metrotvnews.com/search?query={keyword.replace(' ', '%20')}&page={page}"
+            f"{self.base_url}/search?query={quote_plus(keyword)}&page={page}",
+            headers=self._headers,
+            timeout=30,
         )
 
     def parse_article_links(self, response_text):
@@ -26,11 +35,42 @@ class MetrotvnewsScraper(BaseScraper):
         if not articles:
             return None
 
-        filtered_hrefs = {f"{a.get('href')}" for a in articles if a.get("href")}
-        return filtered_hrefs
+        links = set()
+        for a in articles:
+            href = a.get("href")
+            if not href:
+                continue
+            links.add(urljoin(self.base_url, href))
+
+        links = {link for link in links if link.startswith("http")}
+        return links or None
+
+    async def fetch_search_results(self, keyword):
+        page = 1
+        seen_links: set[str] = set()
+
+        while self.continue_scraping and page <= self.max_pages:
+            response_text = await self.build_search_url(keyword, page)
+            if not response_text:
+                break
+
+            filtered_hrefs = self.parse_article_links(response_text)
+            if not filtered_hrefs:
+                break
+
+            new_links = set(filtered_hrefs) - seen_links
+            if not new_links:
+                break
+            seen_links.update(new_links)
+
+            continue_scraping = await self.process_page(new_links, keyword)
+            if not continue_scraping:
+                return
+
+            page += 1
 
     async def get_article(self, link, keyword):
-        response_text = await self.fetch(link)
+        response_text = await self.fetch(link, headers=self._headers, timeout=30)
         if not response_text:
             logging.warning(f"No response for {link}")
             return
@@ -44,6 +84,8 @@ class MetrotvnewsScraper(BaseScraper):
             author = author_date_str.split("•")[0].strip()
 
             content_div = soup.select_one(".news-text")
+            if not content_div:
+                return
 
             unwanted_phrases = [
                 r"Baca juga: ",
@@ -57,6 +99,8 @@ class MetrotvnewsScraper(BaseScraper):
                     tag.extract()
 
             content = content_div.get_text(separator=" ", strip=True)
+            if not content:
+                return
 
             publish_date = self.parse_date(publish_date_str)
             if not publish_date:

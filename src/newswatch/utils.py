@@ -1,8 +1,22 @@
 import asyncio
 import logging
-import platform
-
 import aiohttp
+
+
+async def _rnet_get(url: str, headers: dict | None, timeout: int) -> str | None:
+    try:
+        from rnet import Client
+
+        client = Client()
+        resp = await client.get(url, headers=headers, timeout=timeout)
+        if resp.status != 200:
+            return None
+        return await resp.text()
+    except asyncio.CancelledError:
+        raise
+    except Exception as e:
+        logging.debug("rnet fallback failed for %s: %s", url, e)
+        return None
 
 
 async def _playwright_get(url: str, headers: dict | None, timeout: int) -> str | None:
@@ -40,6 +54,9 @@ async def _playwright_get(url: str, headers: dict | None, timeout: int) -> str |
                     await context.close()
             finally:
                 await browser.close()
+    except asyncio.CancelledError:
+        # Let cancellations propagate cleanly to avoid leaving the event loop in a bad state.
+        raise
     except Exception as e:
         logging.debug("playwright fallback failed for %s: %s", url, e)
         return None
@@ -107,14 +124,14 @@ class AsyncScraper:
                         response.raise_for_status()
                         text = await response.text()
 
-                        if (
-                            platform.system().lower() == "linux"
-                            and text
-                            and _looks_blocked(text)
-                        ):
+                        if text and _looks_blocked(text):
                             merged_headers = dict(self.session.headers)
                             if headers:
                                 merged_headers.update(headers)
+                            rnet_text = await _rnet_get(url, merged_headers, timeout)
+                            if rnet_text and not _looks_blocked(rnet_text):
+                                return rnet_text
+
                             pw_text = await _playwright_get(
                                 url, merged_headers, timeout
                             )
@@ -130,14 +147,14 @@ class AsyncScraper:
                         return await response.text()
             except aiohttp.ClientResponseError as e:
                 status = getattr(e, "status", None)
-                if (
-                    method == "GET"
-                    and platform.system().lower() == "linux"
-                    and status in (401, 403, 406, 418)
-                ):
+                if method == "GET" and status in (401, 403, 406, 418):
                     merged_headers = dict(self.session.headers)
                     if headers:
                         merged_headers.update(headers)
+                    rnet_text = await _rnet_get(url, merged_headers, timeout)
+                    if rnet_text and not _looks_blocked(rnet_text):
+                        return rnet_text
+
                     text = await _playwright_get(url, merged_headers, timeout)
                     if text:
                         return text
@@ -159,10 +176,14 @@ class AsyncScraper:
                 logging.error(f"Error {status} fetching {url}: {e}")
                 return None
             except aiohttp.ClientError as e:
-                if method == "GET" and platform.system().lower() == "linux":
+                if method == "GET":
                     merged_headers = dict(self.session.headers)
                     if headers:
                         merged_headers.update(headers)
+                    rnet_text = await _rnet_get(url, merged_headers, timeout)
+                    if rnet_text and not _looks_blocked(rnet_text):
+                        return rnet_text
+
                     text = await _playwright_get(url, merged_headers, timeout)
                     if text:
                         return text

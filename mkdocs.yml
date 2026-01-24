@@ -34,6 +34,7 @@ markdown_extensions:
       permalink: true
 
 extra:
+  homepage: https://okky.dev
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/okkymabruri/news-watch
