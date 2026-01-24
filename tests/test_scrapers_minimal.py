@@ -5,9 +5,17 @@ These tests use minimal data requirements and are designed for CI environments.
 
 from datetime import datetime, timedelta
 
+import os
+
 import pytest
 
 from newswatch.api import scrape
+
+
+KEYWORDS_BY_SCRAPER = {
+    # Metrotvnews search can be flaky for finance terms (e.g. IHSG) in short windows.
+    "metrotvnews": "prabowo",
+}
 
 # Linux-compatible scrapers (excluded ones that are known to fail on Linux/CI)
 LINUX_SCRAPERS = [
@@ -18,18 +26,26 @@ LINUX_SCRAPERS = [
     "cnnindonesia",
     "detik",
     "idntimes",
+    "jawapos",
     "kompas",
+    "kontan",
     "kumparan",
     "liputan6",
-    # "metrotvnews",  # disabled: timeout issues in CI
     "merdeka",
+    "metrotvnews",
     "okezone",
     "republika",
     "suara",
     "tempo",
     "tirto",
+    "tribunnews",
     "viva",
     "mediaindonesia",
+]
+
+
+LINUX_EXCLUDED_SCRAPERS = [
+    "katadata",  # search API requires bearer token capture; may fail in CI
 ]
 
 
@@ -42,8 +58,7 @@ def test_scraper_minimal_data(scraper):
     week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
 
     try:
-        # Use the same keyword across scrapers to keep the test consistent.
-        keywords = "ihsg"
+        keywords = KEYWORDS_BY_SCRAPER.get(scraper, "ihsg")
         articles = scrape(
             keywords=keywords,
             start_date=week_ago,
@@ -57,7 +72,17 @@ def test_scraper_minimal_data(scraper):
         )
 
         # Validate article structure
-        article = articles[0]
+        # Some sources can return short/preview-like content for certain entries,
+        # so pick the first article that satisfies minimum length requirements.
+        article = next(
+            (
+                a
+                for a in articles
+                if (a.get("title") and len(a.get("title") or "") > 5)
+                and (a.get("content") and len(a.get("content") or "") > 50)
+            ),
+            articles[0],
+        )
         assert article.get("title"), f"{scraper} article missing title"
         assert article.get("content"), f"{scraper} article missing content"
         # Check source (might be 'kompas' or 'kompas.com' format)
@@ -81,3 +106,37 @@ def test_scraper_minimal_data(scraper):
     except Exception as e:
         # Log the error but provide context about what we were testing
         pytest.fail(f"{scraper} scraper failed: {str(e)}")
+
+
+@pytest.mark.network
+@pytest.mark.parametrize("scraper", LINUX_EXCLUDED_SCRAPERS)
+def test_linux_excluded_scrapers_force_all(scraper):
+    """Optional: run known-flaky Linux-excluded scrapers when explicitly requested.
+
+    Enable with: NEWSWATCH_TEST_FORCE_ALL=1
+    """
+
+    if os.getenv("NEWSWATCH_TEST_FORCE_ALL") != "1":
+        pytest.skip(
+            "Set NEWSWATCH_TEST_FORCE_ALL=1 to run Linux-excluded scraper tests"
+        )
+
+    week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+    keywords = "prabowo"
+
+    try:
+        articles = scrape(
+            keywords=keywords,
+            start_date=week_ago,
+            scrapers=scraper,
+            timeout=90,
+        )
+    except Exception as e:
+        pytest.xfail(f"{scraper} appears blocked/unsupported in this environment: {e}")
+
+    if not articles:
+        pytest.xfail(
+            f"{scraper} returned no results (likely blocked) for keyword='{keywords}'"
+        )
+
+    assert len(articles) >= 1

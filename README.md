@@ -140,10 +140,9 @@ The output file contains the following columns:
 
 
 > **Note:** 
-> - On Linux platforms: [Kontan](https://www.kontan.co.id/), [Jawapos](https://www.jawapos.com/), 
->    [Katadata](https://katadata.co.id/), [Tirto](https://tirto.id) are automatically excluded due to 
->    Cloudflare/Anti Scraper issues. Use `-s all` to force (may cause errors)
-> - Limitation: Kontan scraper maximum 50 pages
+> - On Linux platforms / cloud: [Katadata](https://katadata.co.id/) relies on bearer-token capture (Playwright) and may fail in restricted environments, so it is automatically excluded in `auto` mode on Linux.
+> - Use `-s all` to force-run all scrapers (may cause errors/timeouts).
+> - Limitation: Kontan scraper maximum 50 pages.
 
 ## Contributing
 
