@@ -5,6 +5,24 @@ All notable changes to news-watch will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-01-24
+
+### Added
+- New scrapers: IDN Times, Kumparan, Merdeka, Republika, Suara, Tirto
+- CSV output hardening: write to a temporary file and rename to final output
+- Regression test for CSV quoting/newline handling
+
+### Changed
+- HTTP fetching now uses a global fallback chain: aiohttp  rnet  Playwright
+- Scraper network tests refactored for Linux/CI stability (explicit exclusions + reduced flakiness)
+
+### Fixed
+- Improved cancellation/shutdown behavior to avoid lingering processes in long runs
+- Multiple scraper reliability fixes and parsing hardening across the new sources
+
+### Documentation
+- Updated docs/README to reflect the expanded scraper coverage and troubleshooting guidance
+
 ## [0.4.0] - 2026-01-16
 
 ### Added

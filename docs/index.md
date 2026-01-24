@@ -11,9 +11,9 @@ news-watch scrapes structured news data from Indonesia's top news websites with 
 ```bash
 pip install news-watch
 playwright install chromium
+```
 
 Development setup: https://okky.dev/news-watch/getting-started/
-```
 
 ## Quick Start
 
@@ -46,15 +46,21 @@ print(len(df))
 | CNBC Indonesia | www.cnbcindonesia.com |
 | CNN Indonesia | www.cnnindonesia.com |
 | Detik | detik.com |
+| IDN Times | idntimes.com |
 | Jawa Pos | jawapos.com |
 | Katadata | katadata.co.id |
 | Kompas | kompas.com |
 | Kontan | kontan.co.id |
+| Kumparan | kumparan.com |
 | Liputan6 | www.liputan6.com |
 | Media Indonesia | mediaindonesia.com |
+| Merdeka | merdeka.com |
 | Metro TV News | metrotvnews.com |
 | Okezone | okezone.com |
+| Republika | republika.co.id |
+| Suara | suara.com |
 | Tempo | tempo.co |
+| Tirto | tirto.id |
 | Tribunnews | www.tribunnews.com |
 | Viva | viva.co.id |
 
