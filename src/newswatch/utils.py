@@ -132,7 +132,9 @@ class AsyncScraper:
                             if rnet_text and not _looks_blocked(rnet_text):
                                 return rnet_text
 
-                            pw_text = await _playwright_get(url, merged_headers, timeout)
+                            pw_text = await _playwright_get(
+                                url, merged_headers, timeout
+                            )
                             if pw_text:
                                 return pw_text
 
@@ -145,10 +147,7 @@ class AsyncScraper:
                         return await response.text()
             except aiohttp.ClientResponseError as e:
                 status = getattr(e, "status", None)
-                if (
-                    method == "GET"
-                    and status in (401, 403, 406, 418)
-                ):
+                if method == "GET" and status in (401, 403, 406, 418):
                     merged_headers = dict(self.session.headers)
                     if headers:
                         merged_headers.update(headers)

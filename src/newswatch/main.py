@@ -199,6 +199,8 @@ def get_available_scrapers():
         "cnnindonesia": {"class": CNNIndonesiaScraper, "params": {"concurrency": 5}},
         "detik": {"class": DetikScraper, "params": {"concurrency": 5}},
         "idntimes": {"class": IDNTimesScraper, "params": {"concurrency": 7}},
+        "jawapos": {"class": JawaposScraper, "params": {"concurrency": 5}},
+        "kontan": {"class": KontanScraper, "params": {}},
         "kompas": {"class": KompasScraper, "params": {"concurrency": 7}},
         "kumparan": {"class": KumparanScraper, "params": {"concurrency": 5}},
         "liputan6": {"class": Liputan6Scraper, "params": {"concurrency": 5}},
@@ -216,13 +218,9 @@ def get_available_scrapers():
         # FIX ME: add english website reuters, CNBC
     }
 
-    # Exclude 'kontan' scraper if running on a Linux platform
-    # Currently results in an error when run on the cloud due to Cloudflare ban
-    # Limitation: can scrape a maximum of 50 pages
+    # Excluded on Linux/cloud by default (often requires browser token capture).
     linux_excluded_scrapers = {
         "katadata": {"class": KatadataScraper, "params": {}},
-        "jawapos": {"class": JawaposScraper, "params": {"concurrency": 5}},
-        "kontan": {"class": KontanScraper, "params": {}},
     }
 
     if platform.system().lower() != "linux":

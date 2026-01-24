@@ -38,9 +38,7 @@ class RepublikaScraper(BaseScraper):
                 links.add(url)
 
         links = {
-            link
-            for link in links
-            if link.startswith("http") and "republika" in link
+            link for link in links if link.startswith("http") and "republika" in link
         }
         return links or None
 
