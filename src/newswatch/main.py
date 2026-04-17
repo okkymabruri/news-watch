@@ -18,7 +18,6 @@ from .scrapers.cnbcindonesia import CNBCScraper
 from .scrapers.cnnindonesia import CNNIndonesiaScraper
 from .scrapers.detik import DetikScraper
 from .scrapers.idntimes import IDNTimesScraper
-from .scrapers.investor import InvestorScraper
 from .scrapers.jakartapost import JakartaPostScraper
 from .scrapers.jawapos import JawaposScraper
 from .scrapers.katadata import KatadataScraper
@@ -222,7 +221,6 @@ def get_available_scrapers():
         "jakartapost": {"class": JakartaPostScraper, "params": {"concurrency": 5}},
         "sindonews": {"class": SindonewsScraper, "params": {"concurrency": 5}},
         "tvone": {"class": TVOneScraper, "params": {"concurrency": 5}},
-        "investor": {"class": InvestorScraper, "params": {"concurrency": 5}},
         # FIX ME: add more scrapers here
         # FIX ME: add english website reuters, CNBC
     }

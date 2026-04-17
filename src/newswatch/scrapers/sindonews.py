@@ -12,8 +12,11 @@ class SindonewsScraper(BaseScraper):
     SINDOnews scraper implementation.
 
     Uses real search endpoint /search/go with type=artikel
-    and pagination via p parameter.
+    and pagination via p parameter. Stops when a page yields
+    no new links or max pages is reached.
     """
+
+    MAX_PAGES = 10
 
     def __init__(self, keywords, concurrency=5, start_date=None, queue_=None):
         super().__init__(keywords, concurrency, queue_)
@@ -23,9 +26,13 @@ class SindonewsScraper(BaseScraper):
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         }
+        self._seen_links = set()
 
     async def build_search_url(self, keyword, page):
         # https://www.sindonews.com/search/go?q=ihsg&type=artikel&p=2
+        if page > self.MAX_PAGES:
+            self.continue_scraping = False
+            return None
         query_params = {"q": keyword, "type": "artikel", "p": page}
         url = f"https://www.{self.base_url}/search/go?{urlencode(query_params)}"
         return await self.fetch(url, headers=self.headers, timeout=30)
@@ -43,7 +50,12 @@ class SindonewsScraper(BaseScraper):
             if pattern.search(href):
                 if not href.startswith("http"):
                     href = f"https://www.{self.base_url}{href}"
-                filtered_hrefs.add(href)
+                if href not in self._seen_links:
+                    self._seen_links.add(href)
+                    filtered_hrefs.add(href)
+
+        if not filtered_hrefs:
+            self.continue_scraping = False
 
         return filtered_hrefs if filtered_hrefs else None
 

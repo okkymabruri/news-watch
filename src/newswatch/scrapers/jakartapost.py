@@ -1,3 +1,5 @@
+import asyncio
+import json
 import logging
 import re
 
@@ -10,9 +12,12 @@ class JakartaPostScraper(BaseScraper):
     """
     The Jakarta Post scraper implementation.
 
-    Uses section index pages (/latest, /business, etc.) with
-    keyword filtering since native search requires JavaScript.
+    Uses Playwright to render the search page, extract a fresh
+    Google CSE token, then queries CSE API with date sorting
+    for true keyword search capability.
     """
+
+    CX = "007685728690098461931:2lpamdk7yne"
 
     def __init__(self, keywords, concurrency=5, start_date=None, queue_=None):
         super().__init__(keywords, concurrency, queue_)
@@ -22,35 +27,102 @@ class JakartaPostScraper(BaseScraper):
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         }
+        self._token = None
+
+    async def _get_cse_token(self):
+        if self._token:
+            return self._token
+
+        try:
+            from playwright.async_api import async_playwright
+        except ImportError:
+            logging.error(
+                "Playwright not installed; install with: playwright install chromium"
+            )
+            return None
+
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            context = await browser.new_context()
+            page = await context.new_page()
+
+            token_future = asyncio.Future()
+
+            async def handle_request(request):
+                if "cse.google.com/cse/element/v1" in request.url:
+                    from urllib.parse import parse_qs, urlparse
+
+                    parsed = urlparse(request.url)
+                    qs = parse_qs(parsed.query)
+                    if "cse_tok" in qs:
+                        if not token_future.done():
+                            token_future.set_result(qs["cse_tok"][0])
+
+            page.on("request", handle_request)
+
+            try:
+                await page.goto(
+                    "https://www.thejakartapost.com/search?q=test", timeout=15000
+                )
+                try:
+                    self._token = await asyncio.wait_for(token_future, timeout=10)
+                except asyncio.TimeoutError:
+                    logging.warning("Failed to capture CSE token from Jakarta Post")
+                    self._token = None
+            except Exception as e:
+                logging.warning(f"Jakarta Post Playwright navigation failed: {e}")
+                self._token = None
+            finally:
+                page.remove_listener("request", handle_request)
+                await browser.close()
+
+        return self._token
 
     async def build_search_url(self, keyword, page):
-        sections = [
-            "latest",
-            "business",
-            "opinion",
-            "indonesia",
-            "world",
-        ]
-        if page > len(sections):
-            self.continue_scraping = False
+        token = await self._get_cse_token()
+        if not token:
             return None
-        section = sections[page - 1]
-        url = f"https://www.{self.base_url}/{section}"
-        return await self.fetch(url, headers=self.headers, timeout=30)
+
+        cse_url = (
+            f"https://cse.google.com/cse/element/v1?"
+            f"rsz=filtered_cse&num=10&hl=en&source=gcsc"
+            f"&cselibv=dc329f57de078f5d"
+            f"&cx={self.CX}"
+            f"&q={keyword}"
+            f"&safe=off"
+            f"&cse_tok={token}"
+            f"&sort=date"
+            f"&filter=0"
+            f"&start={(page - 1) * 10}"
+            f"&as_sitesearch={self.base_url}"
+            f"&callback=google.search.cse.api{page}"
+        )
+        return await self.fetch(cse_url, headers=self.headers, timeout=15)
 
     def parse_article_links(self, response_text):
         if not response_text:
             return None
 
-        soup = BeautifulSoup(response_text, "html.parser")
-        filtered_hrefs = set()
+        match = re.search(
+            r"google\.search\.cse\.api\d+\((.*)\)", response_text, re.DOTALL
+        )
+        if not match:
+            return None
 
-        for a in soup.find_all("a", href=True):
-            href = a["href"]
-            if not href.startswith("http"):
-                href = f"https://www.{self.base_url}{href}"
-            if re.search(r"thejakartapost\.com/.*\.html$", href):
-                filtered_hrefs.add(href)
+        try:
+            data = json.loads(match.group(1))
+        except json.JSONDecodeError:
+            return None
+
+        results = data.get("results", [])
+        if not results:
+            return None
+
+        filtered_hrefs = set()
+        for r in results:
+            url = r.get("url", "")
+            if url and self.base_url in url:
+                filtered_hrefs.add(url)
 
         return filtered_hrefs if filtered_hrefs else None
 
@@ -63,11 +135,6 @@ class JakartaPostScraper(BaseScraper):
 
         try:
             category = ""
-            channel_link = soup.select_one(".channel-footer a, .breadcrumb a")
-            if channel_link:
-                category = channel_link.get_text(strip=True)
-
-            # Use og:title as fallback since h1 has multiple instances
             meta_title = soup.find("meta", {"property": "og:title"})
             if meta_title and meta_title.get("content"):
                 title = meta_title["content"].split(" - ")[0].strip()

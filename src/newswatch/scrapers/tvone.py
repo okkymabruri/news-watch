@@ -39,7 +39,7 @@ class TVOneScraper(BaseScraper):
 
         soup = BeautifulSoup(response_text, "html.parser")
         pattern = re.compile(
-            r"tvonenews\.com/(ekonomi|nasional|internasional|daerah|sport|lifestyle|opini|investigasi)/"
+            r"tvonenews\.com/(ekonomi|nasional|internasional|daerah|sport|lifestyle|opini|investigasi|channel/news)/\d+-"
         )
         filtered_hrefs = set()
 
