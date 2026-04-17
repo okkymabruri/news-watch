@@ -121,26 +121,28 @@ The output file contains the following columns:
 - [CNN Indonesia](https://www.cnnindonesia.com/)
 - [Detik.com](https://www.detik.com/)
 - [IDN Times](https://www.idntimes.com/)
+- [Investor.id](https://investor.id/)
 - [Jawapos.com](https://www.jawapos.com/)
 - [Katadata.co.id](https://katadata.co.id/)
 - [Kompas.com](https://www.kompas.com/)
 - [Kontan.co.id](https://www.kontan.co.id/)
-- [Liputan6.com](https://www.liputan6.com/)
+- [Kumparan](https://kumparan.com/)
 - [Media Indonesia](https://mediaindonesia.com/)
+- [Merdeka](https://www.merdeka.com/)
 - [Metrotvnews.com](https://metrotvnews.com/)
 - [Okezone.com](https://www.okezone.com/)
-- [Kumparan](https://kumparan.com/)
-- [Merdeka](https://www.merdeka.com/)
 - [Republika](https://www.republika.co.id/)
+- [SINDOnews](https://www.sindonews.com/)
 - [Suara](https://www.suara.com/)
 - [Tempo.co](https://www.tempo.co/)
+- [The Jakarta Post](https://www.thejakartapost.com/)
 - [Tirto](https://tirto.id/)
 - [Tribunnews.com](https://www.tribunnews.com/)
+- [TVOne](https://www.tvonenews.com/)
 - [Viva.co.id](https://www.viva.co.id/)
 
 
 > **Note:** 
-> - On Linux platforms / cloud: [Katadata](https://katadata.co.id/) relies on bearer-token capture (Playwright) and may fail in restricted environments, so it is automatically excluded in `auto` mode on Linux.
 > - Use `-s all` to force-run all scrapers (may cause errors/timeouts).
 > - Limitation: Kontan scraper maximum 50 pages.
 
