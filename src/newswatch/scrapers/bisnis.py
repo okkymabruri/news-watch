@@ -37,12 +37,11 @@ class BisnisScraper(BaseScraper):
             return None
 
         soup = BeautifulSoup(response_text, "html.parser")
-        articles = soup.find_all("a", class_="artLink artLinkImg")
-        if not articles:
-            return None
-
         filtered_hrefs = set()
-        for a in articles:
+
+        # primary selector: links with both classes
+        primary = soup.find_all("a", class_="artLink artLinkImg")
+        for a in primary:
             href = a.get("href")
             if not href:
                 continue
@@ -53,7 +52,7 @@ class BisnisScraper(BaseScraper):
             if self._is_supported_article_url(url):
                 filtered_hrefs.add(url)
 
-        # also capture direct /read/ links from other artLink elements
+        # fallback: capture direct /read/ links from generic artLink elements
         for a in soup.find_all("a", class_="artLink"):
             href = a.get("href", "")
             if self._is_supported_article_url(href):

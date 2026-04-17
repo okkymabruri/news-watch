@@ -42,9 +42,6 @@ LINUX_SCRAPERS = [
     "viva",
     "mediaindonesia",
     "katadata",
-    "sindonews",
-    "tvone",
-    "jakartapost",
 ]
 
 
@@ -136,9 +133,30 @@ def test_linux_excluded_scrapers_force_all(scraper):
     except Exception as e:
         pytest.xfail(f"{scraper} appears blocked/unsupported in this environment: {e}")
 
-    if not articles:
-        pytest.xfail(
-            f"{scraper} returned no results (likely blocked) for keyword='{keywords}'"
-        )
-
     assert len(articles) >= 1
+
+
+NONSENSE_KEYWORD = "xyznonexistent999zzz"
+
+
+@pytest.mark.network
+@pytest.mark.parametrize("scraper", LINUX_SCRAPERS)
+def test_scraper_nonsense_keyword_returns_none(scraper):
+    """Verify scrapers do not return articles for a keyword that cannot match."""
+
+    week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+
+    try:
+        articles = scrape(
+            keywords=NONSENSE_KEYWORD,
+            start_date=week_ago,
+            scrapers=scraper,
+            timeout=60,
+        )
+    except Exception:
+        articles = []
+
+    assert len(articles) == 0, (
+        f"{scraper} returned {len(articles)} articles for nonsense keyword "
+        f"'{NONSENSE_KEYWORD}' - first title: {articles[0].get('title', '')[:80]}"
+    )

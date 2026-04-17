@@ -106,6 +106,15 @@ class TVOneScraper(BaseScraper):
             if not content:
                 return
 
+            # keyword relevance check: skip if keyword not in title, url, or content
+            kw_lower = keyword.lower()
+            if (
+                kw_lower not in title.lower()
+                and kw_lower not in link.lower()
+                and kw_lower not in content.lower()
+            ):
+                return
+
             publish_date = self.parse_date(publish_date_str, locales=["id"])
             if not publish_date:
                 logging.error(
