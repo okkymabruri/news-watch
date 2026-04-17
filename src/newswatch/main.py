@@ -214,17 +214,12 @@ def get_available_scrapers():
         "tribunnews": {"class": TribunnewsScraper, "params": {"concurrency": 5}},
         "viva": {"class": VivaScraper, "params": {"concurrency": 7}},
         "mediaindonesia": {"class": MediaIndonesiaScraper, "params": {}},
+        "katadata": {"class": KatadataScraper, "params": {}},
         # FIX ME: add more scrapers here
         # FIX ME: add english website reuters, CNBC
     }
 
-    # Excluded on Linux/cloud by default (often requires browser token capture).
-    linux_excluded_scrapers = {
-        "katadata": {"class": KatadataScraper, "params": {}},
-    }
-
-    if platform.system().lower() != "linux":
-        scraper_classes.update(linux_excluded_scrapers)
+    linux_excluded_scrapers = {}
 
     return scraper_classes, linux_excluded_scrapers
 

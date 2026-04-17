@@ -41,12 +41,11 @@ LINUX_SCRAPERS = [
     "tribunnews",
     "viva",
     "mediaindonesia",
+    "katadata",
 ]
 
 
-LINUX_EXCLUDED_SCRAPERS = [
-    "katadata",  # search API requires bearer token capture; may fail in CI
-]
+LINUX_EXCLUDED_SCRAPERS = []
 
 
 @pytest.mark.network
