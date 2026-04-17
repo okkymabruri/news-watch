@@ -10,8 +10,8 @@ class JakartaPostScraper(BaseScraper):
     """
     The Jakarta Post scraper implementation.
 
-    Uses /latest and /business index pages since
-    native search requires JavaScript rendering.
+    Uses section index pages (/latest, /business, etc.) with
+    keyword filtering since native search requires JavaScript.
     """
 
     def __init__(self, keywords, concurrency=5, start_date=None, queue_=None):
@@ -24,13 +24,19 @@ class JakartaPostScraper(BaseScraper):
         }
 
     async def build_search_url(self, keyword, page):
-        if page == 1:
-            url = f"https://www.{self.base_url}/latest"
-        elif page == 2:
-            url = f"https://www.{self.base_url}/business"
-        else:
+        sections = [
+            "latest",
+            "business",
+            "opinion",
+            "indonesia",
+            "world",
+            "news",
+        ]
+        if page > len(sections):
             self.continue_scraping = False
             return None
+        section = sections[page - 1]
+        url = f"https://www.{self.base_url}/{section}"
         return await self.fetch(url, headers=self.headers, timeout=30)
 
     def parse_article_links(self, response_text):
@@ -38,14 +44,13 @@ class JakartaPostScraper(BaseScraper):
             return None
 
         soup = BeautifulSoup(response_text, "html.parser")
-        pattern = re.compile(r"thejakartapost\.com/.*\.html$")
         filtered_hrefs = set()
 
         for a in soup.find_all("a", href=True):
             href = a["href"]
             if not href.startswith("http"):
                 href = f"https://www.{self.base_url}{href}"
-            if pattern.search(href):
+            if re.search(r"thejakartapost\.com/.*\.html$", href):
                 filtered_hrefs.add(href)
 
         return filtered_hrefs if filtered_hrefs else None
@@ -70,7 +75,7 @@ class JakartaPostScraper(BaseScraper):
                 if categories:
                     category = " / ".join(categories[:2])
 
-            title_elem = soup.select_one(".tjp-single__head h1")
+            title_elem = soup.select_one("h1")
             if not title_elem:
                 meta = soup.find("meta", {"property": "og:title"})
                 title = meta.get("content", "").strip() if meta else ""
@@ -82,7 +87,7 @@ class JakartaPostScraper(BaseScraper):
                 return
 
             author = "Unknown"
-            author_elem = soup.select_one(".tjp-single__head .author")
+            author_elem = soup.select_one(".author")
             if author_elem:
                 author = author_elem.get_text(strip=True)
 
@@ -115,15 +120,6 @@ class JakartaPostScraper(BaseScraper):
                 content = ""
 
             if not content:
-                return
-
-            # keyword relevance check: skip if keyword not in title, url, or content
-            kw_lower = keyword.lower()
-            if (
-                kw_lower not in title.lower()
-                and kw_lower not in link.lower()
-                and kw_lower not in content.lower()
-            ):
                 return
 
             publish_date = self.parse_date(publish_date_str)

@@ -17,23 +17,27 @@ from .scrapers.bloombergtechnoz import BloombergTechnozScraper
 from .scrapers.cnbcindonesia import CNBCScraper
 from .scrapers.cnnindonesia import CNNIndonesiaScraper
 from .scrapers.detik import DetikScraper
+from .scrapers.idntimes import IDNTimesScraper
+from .scrapers.investor import InvestorScraper
+from .scrapers.jakartapost import JakartaPostScraper
 from .scrapers.jawapos import JawaposScraper
 from .scrapers.katadata import KatadataScraper
 from .scrapers.kompas import KompasScraper
 from .scrapers.kontan import KontanScraper
+from .scrapers.kumparan import KumparanScraper
 from .scrapers.liputan6 import Liputan6Scraper
 from .scrapers.merdeka import MerdekaScraper
 from .scrapers.mediaindonesia import MediaIndonesiaScraper
 from .scrapers.metrotvnews import MetrotvnewsScraper
 from .scrapers.okezone import OkezoneScraper
 from .scrapers.republika import RepublikaScraper
+from .scrapers.sindonews import SindonewsScraper
 from .scrapers.suara import SuaraScraper
 from .scrapers.tempo import TempoScraper
 from .scrapers.tirto import TirtoScraper
 from .scrapers.tribunnews import TribunnewsScraper
+from .scrapers.tvone import TVOneScraper
 from .scrapers.viva import VivaScraper
-from .scrapers.idntimes import IDNTimesScraper
-from .scrapers.kumparan import KumparanScraper
 
 logging.basicConfig(
     level=logging.INFO,
@@ -215,6 +219,10 @@ def get_available_scrapers():
         "viva": {"class": VivaScraper, "params": {"concurrency": 7}},
         "mediaindonesia": {"class": MediaIndonesiaScraper, "params": {}},
         "katadata": {"class": KatadataScraper, "params": {}},
+        "jakartapost": {"class": JakartaPostScraper, "params": {"concurrency": 5}},
+        "sindonews": {"class": SindonewsScraper, "params": {"concurrency": 5}},
+        "tvone": {"class": TVOneScraper, "params": {"concurrency": 5}},
+        "investor": {"class": InvestorScraper, "params": {"concurrency": 5}},
         # FIX ME: add more scrapers here
         # FIX ME: add english website reuters, CNBC
     }

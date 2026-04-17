@@ -1,23 +1,22 @@
 import logging
 import re
-from urllib.parse import urlencode
+from urllib.parse import quote
 
 from bs4 import BeautifulSoup
 
 from .basescraper import BaseScraper
 
 
-class SindonewsScraper(BaseScraper):
+class InvestorScraper(BaseScraper):
     """
-    SINDOnews scraper implementation.
+    Investor.id scraper implementation.
 
-    Uses real search endpoint /search/go with type=artikel
-    and pagination via p parameter.
+    Uses /tag/{keyword} endpoint for keyword search.
     """
 
     def __init__(self, keywords, concurrency=5, start_date=None, queue_=None):
         super().__init__(keywords, concurrency, queue_)
-        self.base_url = "sindonews.com"
+        self.base_url = "investor.id"
         self.start_date = start_date
         self.continue_scraping = True
         self.headers = {
@@ -25,9 +24,12 @@ class SindonewsScraper(BaseScraper):
         }
 
     async def build_search_url(self, keyword, page):
-        # https://www.sindonews.com/search/go?q=ihsg&type=artikel&p=2
-        query_params = {"q": keyword, "type": "artikel", "p": page}
-        url = f"https://www.{self.base_url}/search/go?{urlencode(query_params)}"
+        # https://investor.id/tag/ihsg (page 1)
+        # https://investor.id/tag/ihsg/2 (page 2)
+        if page == 1:
+            url = f"https://www.{self.base_url}/tag/{quote(keyword.lower())}"
+        else:
+            url = f"https://www.{self.base_url}/tag/{quote(keyword.lower())}/{page}"
         return await self.fetch(url, headers=self.headers, timeout=30)
 
     def parse_article_links(self, response_text):
@@ -35,7 +37,9 @@ class SindonewsScraper(BaseScraper):
             return None
 
         soup = BeautifulSoup(response_text, "html.parser")
-        pattern = re.compile(r"sindonews\.com/read/")
+        pattern = re.compile(
+            r"investor\.id/(market|berita|ekonomi|nasional|sosial|teknologi)/\d+/"
+        )
         filtered_hrefs = set()
 
         for a in soup.find_all("a", href=True):
@@ -70,30 +74,27 @@ class SindonewsScraper(BaseScraper):
                 title = title_elem.get_text(strip=True)
 
             if not title:
-                logging.error(f"Sindonews title not found for article {link}")
+                logging.error(f"Investor title not found for article {link}")
                 return
 
             author = "Unknown"
-            author_elem = soup.select_one(".warp-nama-redaksi")
+            author_elem = soup.select_one(".author")
             if author_elem:
-                full_text = author_elem.get_text(strip=True)
-                author = full_text.split("Jum")[0].split("Sab")[0].strip()
+                author = author_elem.get_text(strip=True)
 
             publish_date_str = ""
-            date_elem = soup.select_one(".detail-date-artikel")
+            date_elem = soup.select_one(".date")
             if date_elem:
-                publish_date_str = date_elem.get_text(strip=True).replace("'", "")
+                publish_date_str = date_elem.get_text(strip=True)
 
-            content_div = soup.select_one(".detail-desc")
-            if not content_div:
-                content_div = soup.select_one("article")
-
+            content_div = soup.select_one(".content-article") or soup.select_one(
+                "article"
+            )
             if content_div:
                 for tag in content_div.find_all("div"):
                     classes = tag.get("class", [])
                     if tag and any(
                         cls.startswith("baca-juga")
-                        or cls.startswith("lihat-juga")
                         or cls.startswith("related")
                         or "ads" in cls.lower()
                         for cls in classes
@@ -106,10 +107,10 @@ class SindonewsScraper(BaseScraper):
             if not content:
                 return
 
-            publish_date = self.parse_date(publish_date_str, locales=["id"])
+            publish_date = self.parse_date(publish_date_str)
             if not publish_date:
                 logging.error(
-                    f"Sindonews date parse failed | url: {link} | date: {repr(publish_date_str[:50])}"
+                    f"Investor date parse failed | url: {link} | date: {repr(publish_date_str[:50])}"
                 )
                 return
             if self.start_date and publish_date < self.start_date:

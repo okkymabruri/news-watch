@@ -10,30 +10,37 @@ class TVOneScraper(BaseScraper):
     """
     TVOne scraper implementation.
 
-    Uses indeks (article index) pages with keyword filtering
-    since native search returns 404.
+    Uses /request/load_search_article API endpoint
+    for true keyword search capability.
     """
 
     def __init__(self, keywords, concurrency=5, start_date=None, queue_=None):
         super().__init__(keywords, concurrency, queue_)
         self.base_url = "tvonenews.com"
+        self.api_url = "https://www.tvonenews.com/request/load_search_article"
         self.start_date = start_date
         self.continue_scraping = True
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-Requested-With": "XMLHttpRequest",
+            "Referer": "https://www.tvonenews.com/",
         }
 
     async def build_search_url(self, keyword, page):
-        # https://www.tvonenews.com/indeks/1
-        url = f"https://www.{self.base_url}/indeks/{page}"
-        return await self.fetch(url, headers=self.headers, timeout=30)
+        data = f"keyword={keyword}&ctype=art&page={page}&record_count=10"
+        return await self.fetch(
+            self.api_url, method="POST", data=data, headers=self.headers, timeout=30
+        )
 
     def parse_article_links(self, response_text):
         if not response_text:
             return None
 
         soup = BeautifulSoup(response_text, "html.parser")
-        pattern = re.compile(r"tvonenews\.com/channel/|tvonenews\.com/berita/")
+        pattern = re.compile(
+            r"tvonenews\.com/(ekonomi|nasional|internasional|daerah|sport|lifestyle|opini|investigasi)/"
+        )
         filtered_hrefs = set()
 
         for a in soup.find_all("a", href=True):
@@ -104,15 +111,6 @@ class TVOneScraper(BaseScraper):
                 content = ""
 
             if not content:
-                return
-
-            # keyword relevance check: skip if keyword not in title, url, or content
-            kw_lower = keyword.lower()
-            if (
-                kw_lower not in title.lower()
-                and kw_lower not in link.lower()
-                and kw_lower not in content.lower()
-            ):
                 return
 
             publish_date = self.parse_date(publish_date_str, locales=["id"])
