@@ -4,6 +4,7 @@ from .cnbcindonesia import CNBCScraper as CNBCScraper
 from .cnnindonesia import CNNIndonesiaScraper as CNNIndonesiaScraper
 from .detik import DetikScraper as DetikScraper
 from .idntimes import IDNTimesScraper as IDNTimesScraper
+from .jakartapost import JakartaPostScraper as JakartaPostScraper
 from .jawapos import JawaposScraper as JawaposScraper
 from .katadata import KatadataScraper as KatadataScraper
 from .kompas import KompasScraper as KompasScraper
@@ -30,6 +31,7 @@ __all__ = [
     "CNNIndonesiaScraper",
     "DetikScraper",
     "IDNTimesScraper",
+    "JakartaPostScraper",
     "JawaposScraper",
     "KatadataScraper",
     "KompasScraper",

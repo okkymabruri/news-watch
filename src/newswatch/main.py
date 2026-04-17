@@ -35,6 +35,7 @@ from .scrapers.tribunnews import TribunnewsScraper
 from .scrapers.tvone import TVOneScraper
 from .scrapers.viva import VivaScraper
 from .scrapers.idntimes import IDNTimesScraper
+from .scrapers.jakartapost import JakartaPostScraper
 from .scrapers.kumparan import KumparanScraper
 
 logging.basicConfig(
@@ -219,6 +220,7 @@ def get_available_scrapers():
         "katadata": {"class": KatadataScraper, "params": {}},
         "sindonews": {"class": SindonewsScraper, "params": {"concurrency": 5}},
         "tvone": {"class": TVOneScraper, "params": {"concurrency": 5}},
+        "jakartapost": {"class": JakartaPostScraper, "params": {"concurrency": 5}},
         # FIX ME: add more scrapers here
         # FIX ME: add english website reuters, CNBC
     }
