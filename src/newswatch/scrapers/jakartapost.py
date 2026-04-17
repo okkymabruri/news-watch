@@ -30,7 +30,6 @@ class JakartaPostScraper(BaseScraper):
             "opinion",
             "indonesia",
             "world",
-            "news",
         ]
         if page > len(sections):
             self.continue_scraping = False
@@ -64,23 +63,28 @@ class JakartaPostScraper(BaseScraper):
 
         try:
             category = ""
-            breadcrumb = soup.select_one(".tjp-single__head")
-            if breadcrumb:
-                items = breadcrumb.find_all("a")
-                categories = [
-                    item.get_text(strip=True)
-                    for item in items
-                    if item.get_text(strip=True)
-                ]
-                if categories:
-                    category = " / ".join(categories[:2])
+            channel_link = soup.select_one(".channel-footer a, .breadcrumb a")
+            if channel_link:
+                category = channel_link.get_text(strip=True)
 
-            title_elem = soup.select_one("h1")
-            if not title_elem:
-                meta = soup.find("meta", {"property": "og:title"})
-                title = meta.get("content", "").strip() if meta else ""
+            # Use og:title as fallback since h1 has multiple instances
+            meta_title = soup.find("meta", {"property": "og:title"})
+            if meta_title and meta_title.get("content"):
+                title = meta_title["content"].split(" - ")[0].strip()
             else:
-                title = title_elem.get_text(strip=True)
+                title_elem = soup.select_one("h1.tjp-title--single")
+                if title_elem:
+                    title = title_elem.get_text(strip=True)
+                else:
+                    h1_elems = soup.find_all("h1")
+                    for h in h1_elems:
+                        text = h.get_text(strip=True)
+                        if text and text != "TheJakartaPost" and len(text) > 10:
+                            title = text
+                            break
+                    else:
+                        logging.error(f"JakartaPost title not found for article {link}")
+                        return
 
             if not title:
                 logging.error(f"JakartaPost title not found for article {link}")
@@ -103,7 +107,9 @@ class JakartaPostScraper(BaseScraper):
                     if match:
                         publish_date_str = match.group(1)
 
-            content_div = soup.select_one(".tjp-single__content")
+            content_div = soup.select_one(".tjp-single__content") or soup.select_one(
+                "article"
+            )
             if content_div:
                 for tag in content_div.find_all(["div", "script", "style"]):
                     classes = tag.get("class", [])
