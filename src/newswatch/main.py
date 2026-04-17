@@ -28,9 +28,11 @@ from .scrapers.metrotvnews import MetrotvnewsScraper
 from .scrapers.okezone import OkezoneScraper
 from .scrapers.republika import RepublikaScraper
 from .scrapers.suara import SuaraScraper
+from .scrapers.sindonews import SindonewsScraper
 from .scrapers.tempo import TempoScraper
 from .scrapers.tirto import TirtoScraper
 from .scrapers.tribunnews import TribunnewsScraper
+from .scrapers.tvone import TVOneScraper
 from .scrapers.viva import VivaScraper
 from .scrapers.idntimes import IDNTimesScraper
 from .scrapers.kumparan import KumparanScraper
@@ -215,6 +217,8 @@ def get_available_scrapers():
         "viva": {"class": VivaScraper, "params": {"concurrency": 7}},
         "mediaindonesia": {"class": MediaIndonesiaScraper, "params": {}},
         "katadata": {"class": KatadataScraper, "params": {}},
+        "sindonews": {"class": SindonewsScraper, "params": {"concurrency": 5}},
+        "tvone": {"class": TVOneScraper, "params": {"concurrency": 5}},
         # FIX ME: add more scrapers here
         # FIX ME: add english website reuters, CNBC
     }
