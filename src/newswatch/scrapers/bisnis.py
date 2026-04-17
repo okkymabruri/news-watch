@@ -181,6 +181,15 @@ class BisnisScraper(BaseScraper):
                 self.continue_scraping = False
                 return
 
+            # keyword relevance check: skip if keyword not in title, url, or content
+            kw_lower = keyword.lower()
+            if (
+                kw_lower not in title.lower()
+                and kw_lower not in link.lower()
+                and kw_lower not in content.lower()
+            ):
+                return
+
             item = {
                 "title": title,
                 "publish_date": publish_date,
