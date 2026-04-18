@@ -114,35 +114,49 @@ The output file contains the following columns:
 
 ## Supported Websites
 
-- [Antaranews.com](https://www.antaranews.com/)
-- [Bisnis.com](https://www.bisnis.com/)
-- [Bloomberg Technoz](https://www.bloombergtechnoz.com/)
-- [CNBC Indonesia](https://www.cnbcindonesia.com/)
-- [CNN Indonesia](https://www.cnnindonesia.com/)
-- [Detik.com](https://www.detik.com/)
-- [IDN Times](https://www.idntimes.com/)
-- [iNews.id](https://www.inews.id/)
-- [Jawapos.com](https://www.jawapos.com/)
-- [Katadata.co.id](https://katadata.co.id/)
-- [Kompas.com](https://www.kompas.com/)
-- [Kontan.co.id](https://www.kontan.co.id/)
-- [Kumparan](https://kumparan.com/)
-- [Liputan6.com](https://www.liputan6.com/)
-- [Media Indonesia](https://mediaindonesia.com/)
-- [Merdeka](https://www.merdeka.com/)
-- [Metrotvnews.com](https://metrotvnews.com/)
-- [Okezone.com](https://www.okezone.com/)
-- [Republika](https://www.republika.co.id/)
-- [SINDOnews](https://www.sindonews.com/)
-- [Suara](https://www.suara.com/)
-- [Tempo.co](https://www.tempo.co/)
-- [Tirto](https://tirto.id/)
-- [Tribunnews.com](https://www.tribunnews.com/)
-- [TVOne](https://www.tvonenews.com/)
-- [Viva.co.id](https://www.viva.co.id/)
+### Stable (strict keyword search validated)
 
+| Source | Domain |
+|--------|--------|
+| Antara News | antaranews.com |
+| BBC News | bbc.com |
+| Bisnis.com | bisnis.com |
+| Bloomberg Technoz | bloombergtechnoz.com |
+| CNBC Indonesia | cnbcindonesia.com |
+| iNews | inews.id |
+| Jawapos | jawapos.com |
+| Katadata | katadata.co.id |
+| Kompas | kompas.com |
+| Kontan | kontan.co.id |
+| Media Indonesia | mediaindonesia.com |
+| Metro TV News | metrotvnews.com |
+| SINDOnews | sindonews.com |
+| Tempo | tempo.co |
+| TVOne | tvonenews.com |
+| Viva | viva.co.id |
 
-> **Note:**
+### Quarantined (known issues — no true keyword search or blocked)
+
+| Source | Reason |
+|--------|--------|
+| CNN Indonesia | RSS general feed — no true keyword search |
+| Detik | RSS general feed — no true keyword search |
+| IDN Times | returns general articles when no match |
+| Investor.id | search returns general results regardless of keyword |
+| Jakarta Post | CSE token capture broken |
+| Kumparan | sitemap-based — no true keyword search |
+| Liputan6 | returns general articles regardless of keyword |
+| Merdeka | RSS general feed — no true keyword search |
+| Okezone | RSS general feed — no true keyword search |
+| Republika | RSS general feed — no true keyword search |
+| Suara | Google CSE requires browser token capture |
+| Tirto | returns same results regardless of keyword |
+| Tribunnews | search/tag pages return 403 |
+| TVRI News | keyword search not validated |
+
+> **Notes:**
+> - 16 stable scrapers with strict arbitrary-keyword search.
+> - Quarantined sources are excluded from runtime and tests but remain as research tracks.
 > - Use `-s all` to force-run all scrapers (may cause errors/timeouts).
 > - Limitation: Kontan scraper maximum 50 pages.
 

@@ -50,7 +50,7 @@ Each article contains these fields:
 | `content` | Full article text |
 | `keyword` | Which search term matched |
 | `category` | News section (Ekonomi, Politik, etc.) |
-| `source` | Website name (detik, kompas, etc.) |
+| `source` | Website name (kompas, tempo, etc.) |
 | `link` | Original URL |
 
 ## Basic Usage
@@ -114,7 +114,7 @@ nw.scrape_to_file(
     start_date="2025-01-10", 
     output_path="tech_news.json",
     output_format="json",
-    scrapers="detik"
+    scrapers="tempo"
 )
 
 print("Tech news saved to tech_news.json")
@@ -129,7 +129,7 @@ For data analysis, you'll usually want a pandas DataFrame:
 df = nw.scrape_to_dataframe(
     keywords="ekonomi,inflasi,bank",
     start_date="2025-01-01",
-    scrapers="detik,kompas,cnbcindonesia"
+    scrapers="tempo,kompas,cnbcindonesia"
 )
 
 # Quick overview
@@ -148,7 +148,7 @@ import pandas as pd
 df = nw.scrape_to_dataframe(
     keywords="teknologi",
     start_date="2025-01-15", 
-    scrapers="detik,kompas"
+    scrapers="tempo,kompas"
 )
 
 print(f"Retrieved {len(df)} technology articles")
@@ -180,7 +180,7 @@ financial_df = nw.scrape_to_dataframe(
 political_df = nw.scrape_to_dataframe(
     keywords="politik,pemilu,presiden",
     start_date="2025-01-01",
-    scrapers="tempo,kompas,detik"  # mainstream media
+    scrapers="tempo,kompas"  # mainstream media
 )
 
 # Tech news - cast a wider net
@@ -193,7 +193,7 @@ tech_df = nw.scrape_to_dataframe(
 
 The `auto` setting picks reliable scrapers based on your platform. Use `all` only if you need maximum coverage and don't mind potential errors.
 
-The stable release currently exposes 26 supported query-backed scrapers. Experimental or quarantined sources are intentionally excluded from the runtime scraper list.
+The stable release currently exposes 16 supported query-backed scrapers. Experimental or quarantined sources are intentionally excluded from the runtime scraper list.
 
 ## Building Your First Analysis
 
@@ -206,7 +206,7 @@ economic_keywords = "ekonomi,inflasi,suku bunga,rupiah,ihsg"
 df = nw.scrape_to_dataframe(
     keywords=economic_keywords,
     start_date="2025-01-01",
-    scrapers="cnbcindonesia,detik,kompas,bisnis",
+    scrapers="cnbcindonesia,tempo,kompas,bisnis",
     verbose=True  # see progress
 )
 
@@ -393,7 +393,7 @@ def multi_keyword_analysis(keyword_groups, days_back=7):
             df = nw.scrape_to_dataframe(
                 keywords=keywords,
                 start_date=start_date,
-                scrapers="kompas,detik"  # Use reliable sources
+                scrapers="kompas,tempo"  # Use reliable sources
             )
             
             if not df.empty:
@@ -565,7 +565,7 @@ def compare_source_coverage(keywords, sources, start_date="2025-01-15"):
 # Compare coverage of education topics across sources  
 education_coverage = compare_source_coverage(
     keywords="pendidikan,sekolah,universitas",
-    sources=["kompas", "detik", "tempo", "antaranews"]
+    sources=["kompas", "tempo", "antaranews", "bbc"]
 )
 
 print("Education Coverage Comparison:")
@@ -596,7 +596,7 @@ nw.scrape_to_file(
     start_date="2025-01-01",
     output_path="daily_news_report.xlsx",
     output_format="xlsx",
-    scrapers="kompas,detik,tempo"
+    scrapers="kompas,tempo,sindonews"
 )
 
 # For API integration - use JSON
@@ -633,7 +633,7 @@ import pandas as pd
 politics = nw.scrape_to_dataframe(
     "politik,pemerintah,dpr", 
     "2025-01-01",
-    scrapers="kompas,tempo,detik,cnbcindonesia"
+    scrapers="kompas,tempo,cnbcindonesia"
 )
 
 # Coverage matrix
@@ -719,9 +719,9 @@ def robust_news_scraping(keywords, start_date, max_retries=2):
     # Try multiple scraper combinations
     scraper_groups = [
         ["kompas"],
-        ["detik"],
+        ["tempo"],
         ["tempo", "antaranews"],
-        ["kompas", "detik"]
+        ["kompas", "tempo"]
     ]
     
     for attempt, scrapers in enumerate(scraper_groups, 1):
@@ -902,7 +902,7 @@ def collect_news_data(topics, date_range_days=7):
             df = nw.scrape_to_dataframe(
                 keywords=topic,
                 start_date=start_date,
-                scrapers="kompas,detik,tempo"
+                scrapers="kompas,tempo,sindonews"
             )
             
             if not df.empty:

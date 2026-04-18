@@ -6,7 +6,7 @@
 
 news-watch scrapes structured news data from Indonesia's top news websites with keyword and date filtering.
 
-The current stable release supports 26 query-backed Indonesian news scrapers.
+The current stable release supports 16 query-backed Indonesian news scrapers. Quarantined sources with known keyword-search issues are excluded from runtime.
 
 ## Installation
 
@@ -45,34 +45,45 @@ print(len(df))
 
 ## Supported News Sources
 
+### Stable (strict keyword search)
+
 | Source | Domain |
 |--------|--------|
 | Antara News | antaranews.com |
+| BBC News | bbc.com |
 | Bisnis.com | bisnis.com |
-| Bloomberg Technoz | www.bloombergtechnoz.com |
-| CNBC Indonesia | www.cnbcindonesia.com |
-| CNN Indonesia | www.cnnindonesia.com |
-| Detik | detik.com |
-| IDN Times | idntimes.com |
+| Bloomberg Technoz | bloombergtechnoz.com |
+| CNBC Indonesia | cnbcindonesia.com |
 | iNews | inews.id |
-| Jawa Pos | jawapos.com |
+| Jawapos | jawapos.com |
 | Katadata | katadata.co.id |
 | Kompas | kompas.com |
 | Kontan | kontan.co.id |
-| Kumparan | kumparan.com |
-| Liputan6 | www.liputan6.com |
 | Media Indonesia | mediaindonesia.com |
-| Merdeka | merdeka.com |
 | Metro TV News | metrotvnews.com |
-| Okezone | okezone.com |
-| Republika | republika.co.id |
 | SINDOnews | sindonews.com |
-| Suara | suara.com |
 | Tempo | tempo.co |
-| Tirto | tirto.id |
-| Tribunnews | www.tribunnews.com |
-| TVOne | www.tvonenews.com |
+| TVOne | tvonenews.com |
 | Viva | viva.co.id |
+
+### Quarantined (excluded from runtime)
+
+| Source | Reason |
+|--------|--------|
+| CNN Indonesia | RSS general feed |
+| Detik | RSS general feed |
+| IDN Times | no-result leakage |
+| Investor.id | no true keyword filtering |
+| Jakarta Post | CSE token capture broken |
+| Kumparan | sitemap-based |
+| Liputan6 | no-result leakage |
+| Merdeka | RSS general feed |
+| Okezone | RSS general feed |
+| Republika | RSS general feed |
+| Suara | browser token required |
+| Tirto | no-result leakage |
+| Tribunnews | 403 on search pages |
+| TVRI News | not validated |
 
 ## Important Considerations
 

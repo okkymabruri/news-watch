@@ -63,12 +63,10 @@ Test that everything works:
 # Check available scrapers
 newswatch --list_scrapers
 
-# Should show 26 stable scrapers, including:
-# antaranews, bisnis, bloombergtechnoz, cnbcindonesia, cnnindonesia,
-# detik, idntimes, inews, jawapos, katadata, kompas, kontan,
-# kumparan, liputan6, mediaindonesia, merdeka, metrotvnews,
-# okezone, republika, sindonews, suara, tempo, tirto,
-# tribunnews, tvone, viva
+# Should show 16 stable scrapers, including:
+# antaranews, bbc, bisnis, bloombergtechnoz, cnbcindonesia,
+# inews, jawapos, katadata, kompas, kontan, mediaindonesia,
+# metrotvnews, sindonews, tempo, tvone, viva
 ```
 
 ## Your First Scraping Session
@@ -92,11 +90,11 @@ Add more keywords and options:
 ```bash
 # Multiple keywords, specific sources, with verbose output
 newswatch --keywords "bank,kredit,pinjaman" --start_date "2025-01-01" \
-          --scrapers "kompas,bisnis,detik" --output_format "csv" --verbose
+          --scrapers "kompas,bisnis,tempo" --output_format "csv" --verbose
 
 # Save as JSON for API integration
 newswatch --keywords "teknologi,startup" --start_date "2025-01-01" \
-          --scrapers "detik,kompas" --output_format "json" --verbose
+          --scrapers "kompas,tempo" --output_format "json" --verbose
 ```
 
 ### Python API
@@ -164,7 +162,7 @@ politics = nw.quick_scrape("politik,pemerintah,dpr", days_back=1)
 election_news = nw.scrape_to_dataframe(
     "pemilu,pilkada,kpu", 
     "2025-01-01",
-    scrapers="kompas,tempo,detik"
+    scrapers="kompas,tempo"
 )
 ```
 
@@ -179,7 +177,7 @@ import newswatch as nw
 tech_news = nw.scrape_to_dataframe(
     "startup,fintech,gojek,tokopedia", 
     "2025-01-01",
-    scrapers="teknologi.bisnis.com,detik"
+    scrapers="kompas,bisnis"
 )
 
 # Quick daily tech roundup
@@ -220,7 +218,7 @@ print(f"\nRecent articles (>= Jan 15): {len(recent)}")
 |--------|-------------|---------|
 | `-k, --keywords` | Comma-separated search terms | `"bank,kredit,fintech"` |
 | `-sd, --start_date` | Start date (YYYY-MM-DD) | `"2025-01-01"` |
-| `-s, --scrapers` | Specific scrapers or "auto"/"all" | `"kompas,detik"` |
+| `-s, --scrapers` | Specific scrapers or "auto"/"all" | `"kompas,tempo"` |
 | `-of, --output_format` | Output format: csv, xlsx, or json | `"csv"` |
 | `-o, --output_path` | Custom output file path | `"news-watch-output.csv"` |
 | `-v, --verbose` | Show detailed progress | (flag only) |

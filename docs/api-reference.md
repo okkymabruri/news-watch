@@ -33,7 +33,7 @@ def scrape(keywords, start_date, scrapers="auto", verbose=False, timeout=300, **
 - `scrapers` (str, optional): Which sites to scrape:
   - `"auto"` (default) - Let news-watch pick based on your platform
   - `"all"` - Try every scraper (might fail on some systems)
-  - `"kompas,detik"` - Pick specific sites by name
+  - `"kompas,tempo"` - Pick specific sites by name
 - `verbose` (bool, optional): Show progress details (default: False)
 - `timeout` (int, optional): Max seconds to wait (default: 300)
 
@@ -148,7 +148,7 @@ nw.scrape_to_file(
     start_date="2025-01-01",
     output_path="/path/to/startup_news.csv",
     output_format="csv",
-    scrapers="detik,kompas",
+    scrapers="tempo,kompas",
     verbose=True
 )
 
@@ -158,7 +158,7 @@ nw.scrape_to_file(
     start_date="2025-01-01",
     output_path="tech_articles.json",
     output_format="json",
-    scrapers="detik,kompas",
+    scrapers="tempo,kompas",
     verbose=True
 )
 ```
@@ -183,7 +183,7 @@ import newswatch as nw
 
 available = nw.list_scrapers()
 print("Available news sources:", available)
-# Output: ['antaranews', 'bisnis', 'bloombergtechnoz', 'cnbcindonesia', 'cnnindonesia', ...]
+# Output: ['antaranews', 'bbc', 'bisnis', 'bloombergtechnoz', 'cnbcindonesia', ...]
 
 # Use specific ones for financial news
 financial_sources = ["bisnis", "kontan", "cnbcindonesia"]
@@ -221,7 +221,7 @@ tech_week = nw.quick_scrape("teknologi,startup", days_back=7)
 banking = nw.quick_scrape(
     "bank,kredit", 
     days_back=3, 
-    scrapers="bisnis,detik"
+    scrapers="bisnis,tempo"
 )
 
 print(f"Found {len(banking)} banking articles in last 3 days")
@@ -286,7 +286,7 @@ The comprehensive guide covers:
 
 - Prefer `scrapers="auto"` unless you know which sites you need.
 - Cloud/server environments are more likely to be blocked.
-- Stable support currently covers 26 query-backed scrapers.
+- Stable support currently covers 16 query-backed scrapers.
 - Quarantined sources such as `jakartapost`, `investor`, and `tvrinews` are intentionally excluded from `list_scrapers()`.
 
 **Empty results**: Check if your keywords are in Indonesian or try broader terms

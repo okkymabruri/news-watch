@@ -54,7 +54,7 @@ Common causes:
 
 Try:
 ```bash
-newswatch --keywords politik --start_date 2025-01-01 --scrapers "kompas,detik"
+newswatch --keywords politik --start_date 2025-01-01 --scrapers "kompas,tempo"
 ```
 
 ### Memory
@@ -97,7 +97,7 @@ Check with verbose + single scraper:
 ```bash
 newswatch --keywords ekonomi --start_date 2025-01-01 -v
 newswatch --keywords ekonomi --start_date 2025-01-01 --scrapers kompas -v
-newswatch --keywords ekonomi --start_date 2025-01-01 --scrapers detik -v
+newswatch --keywords ekonomi --start_date 2025-01-01 --scrapers tempo -v
 ```
 
 ### Duplicates
