@@ -184,7 +184,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         concurrency=5,
         status="stable",
         strict_search=True,
-        smoke_keyword="ihsg",
+        smoke_keyword="ekonomi",
         note="promoted to stable; rebuilt with RSS keyword filtering; 2026-04-18",
     ),
     "metrotvnews": ScraperEntry(
@@ -216,7 +216,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         status="stable",
         strict_search=True,
         browser_required=True,
-        smoke_keyword="ihsg",
+        smoke_keyword="ekonomi",
         note="promoted to stable; rebuilt with Playwright tag page + keyword URL filter; 2026-04-18",
     ),
     "sindonews": ScraperEntry(
@@ -233,7 +233,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         module="suara",
         class_name="SuaraScraper",
         concurrency=12,
-        smoke_keyword="ihsg",
+        smoke_keyword="prabowo",
         browser_required=True,
     ),
     "tempo": ScraperEntry(
@@ -292,7 +292,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         status="stable",
         strict_search=True,
         browser_required=True,
-        smoke_keyword="prabowo",
+        smoke_keyword="indonesia",
         note="rebuilt with Playwright CSE bootstrap; 2026-04-18",
     ),
     "investor": ScraperEntry(
