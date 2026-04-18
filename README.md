@@ -143,7 +143,7 @@ The output file contains the following columns:
 
 
 > **Note:**
-> - [The Jakarta Post] requires `playwright install chromium` for true keyword search.
+> - The Jakarta Post requires `playwright install chromium` for true keyword search (local-only).
 > - Use `-s all` to force-run all scrapers (may cause errors/timeouts).
 > - Limitation: Kontan scraper maximum 50 pages.
 
