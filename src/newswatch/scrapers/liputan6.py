@@ -1,8 +1,15 @@
+"""
+Liputan6 scraper — uses Playwright to render /tag/{keyword} pages.
+
+The tag page requires JS rendering. Results are filtered by keyword
+presence in the URL to eliminate fallback/leakage articles.
+"""
+
 import logging
 import re
-from urllib.parse import urlencode
 
-from bs4 import BeautifulSoup
+import aiohttp
+from playwright.async_api import async_playwright
 
 from .basescraper import BaseScraper
 
@@ -13,81 +20,72 @@ class Liputan6Scraper(BaseScraper):
         self.base_url = "https://www.liputan6.com"
         self.start_date = start_date
         self.continue_scraping = True
-        self.max_pages = 10
+        self.max_pages = 5
         self._article_href = re.compile(r"^https?://www\.liputan6\.com/.+/read/\d+/?.*")
 
-        self.headers = {
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
-        }
+    async def fetch_search_results(self, keyword):
+        """Use Playwright to render tag page, filter by keyword in URL."""
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            try:
+                context = await browser.new_context(
+                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+                )
+                page = await context.new_page()
 
+                tag_url = f"{self.base_url}/tag/{keyword.lower()}"
+
+                await page.goto(tag_url, wait_until="domcontentloaded", timeout=20000)
+                await page.wait_for_timeout(5000)
+
+                raw_links = await page.evaluate("""() => {
+                    return [...new Set(
+                        [...document.querySelectorAll('a[href]')]
+                            .filter(a => a.href.includes('/read/'))
+                            .map(a => a.href)
+                    )]
+                }""")
+
+                # Filter: only keep links where keyword appears in URL
+                kw_lower = keyword.lower()
+                article_links = [l for l in raw_links if self._article_href.match(l) and kw_lower in l.lower() and "/photo/" not in l]
+
+                if article_links:
+                    await self.process_page(article_links, keyword)
+                else:
+                    logging.info(f"No news found on {self.base_url} for keyword: '{keyword}'")
+
+            finally:
+                await browser.close()
+
+    # Fallbacks to satisfy BaseScraper abstract methods
     async def build_search_url(self, keyword, page):
-        # Liputan6 `/search` results are not paginated via `page=` in HTML (page 1 == page 2).
-        # Use tag pages for paging when keyword is a single token; otherwise fall back to search.
-        if " " not in keyword.strip():
-            query = urlencode({"page": page})
-            url = f"{self.base_url}/tag/{keyword.strip().lower()}?{query}"
-        else:
-            query = urlencode({"q": keyword})
-            url = f"{self.base_url}/search?{query}"
-        return await self.fetch(url, headers=self.headers, timeout=30)
+        return None
 
     def parse_article_links(self, response_text):
-        if not response_text:
-            return None
-
-        soup = BeautifulSoup(response_text, "html.parser")
-
-        links = set()
-        for a in soup.select("a[href]"):
-            href = a.get("href")
-            if not href:
-                continue
-            if href.startswith("/"):
-                href = f"{self.base_url}{href}"
-
-            href = href.split("#")[0]
-            if not self._article_href.search(href):
-                continue
-
-            # Skip photo pages (usually low text density)
-            if "/photo/" in href:
-                continue
-
-            links.add(href)
-
-        return links if links else None
-
-    async def fetch_search_results(self, keyword):
-        page = 1
-        found_articles = False
-
-        while self.continue_scraping and page <= self.max_pages:
-            response_text = await self.build_search_url(keyword, page)
-            if not response_text:
-                break
-
-            filtered_hrefs = self.parse_article_links(response_text)
-            if not filtered_hrefs:
-                break
-
-            found_articles = True
-            continue_scraping = await self.process_page(filtered_hrefs, keyword)
-            if not continue_scraping:
-                break
-
-            page += 1
-
-        if not found_articles:
-            logging.info(f"No news found on {self.base_url} for keyword: '{keyword}'")
+        return None
 
     async def get_article(self, link, keyword):
-        response_text = await self.fetch(link, headers=self.headers, timeout=30)
-        if not response_text:
-            logging.warning(f"No response for {link}")
+        try:
+            timeout = aiohttp.ClientTimeout(total=30)
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9",
+            }
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.get(link, headers=headers) as resp:
+                    if resp.status != 200:
+                        return
+                    response_text = await resp.text()
+        except Exception as e:
+            logging.error("Error fetching article %s: %s", link, e)
             return
 
-        soup = BeautifulSoup(response_text, "html.parser")
+        if not response_text:
+            return
+
+        soup = self._get_soup(response_text)
         try:
             title_el = soup.select_one("h1")
             title = title_el.get_text(strip=True) if title_el else ""
@@ -120,21 +118,17 @@ class Liputan6Scraper(BaseScraper):
             for tag in content_root.find_all(["script", "style"]):
                 tag.extract()
 
-            # Prefer paragraph text to avoid unrelated UI text
-            paragraphs = [
-                p.get_text(" ", strip=True) for p in content_root.find_all("p")
-            ]
+            paragraphs = [p.get_text(" ", strip=True) for p in content_root.find_all("p")]
             paragraphs = [p for p in paragraphs if p]
             content = "\n".join(paragraphs).strip() if paragraphs else ""
             if not content:
                 content = content_root.get_text(separator="\n", strip=True)
-
             if not content:
                 return
 
             publish_date = self.parse_date(publish_date_str)
             if not publish_date:
-                logging.error(
+                logging.debug(
                     "Liputan6 date parse failed | url: %s | date: %r",
                     link,
                     publish_date_str[:50],
@@ -142,6 +136,7 @@ class Liputan6Scraper(BaseScraper):
                 return
 
             if self.start_date and publish_date < self.start_date:
+                self.continue_scraping = False
                 return
 
             item = {
@@ -156,4 +151,8 @@ class Liputan6Scraper(BaseScraper):
             }
             await self.queue_.put(item)
         except Exception as e:
-            logging.error(f"Error parsing article {link}: {e}")
+            logging.error("Error parsing article %s: %s", link, e)
+
+    def _get_soup(self, text):
+        from bs4 import BeautifulSoup
+        return BeautifulSoup(text, "html.parser")
