@@ -36,7 +36,6 @@ from .scrapers.suara import SuaraScraper
 from .scrapers.tempo import TempoScraper
 from .scrapers.tirto import TirtoScraper
 from .scrapers.tribunnews import TribunnewsScraper
-from .scrapers.tvrinews import TVRINewsScraper
 from .scrapers.tvone import TVOneScraper
 from .scrapers.viva import VivaScraper
 
@@ -223,7 +222,6 @@ def get_available_scrapers():
         "jakartapost": {"class": JakartaPostScraper, "params": {"concurrency": 5}},
         "sindonews": {"class": SindonewsScraper, "params": {"concurrency": 5}},
         "tvone": {"class": TVOneScraper, "params": {"concurrency": 5}},
-        "tvrinews": {"class": TVRINewsScraper, "params": {"concurrency": 5}},
         "inews": {"class": INewsScraper, "params": {"concurrency": 5}},
         # FIX ME: add more scrapers here
         # FIX ME: add english website reuters, CNBC

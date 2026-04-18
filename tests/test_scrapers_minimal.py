@@ -45,7 +45,6 @@ LINUX_SCRAPERS = [
     "jakartapost",
     "sindonews",
     "tvone",
-    "tvrinews",
     "inews",
 ]
 

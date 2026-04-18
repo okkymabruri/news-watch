@@ -22,7 +22,6 @@ from .suara import SuaraScraper as SuaraScraper
 from .tempo import TempoScraper as TempoScraper
 from .tirto import TirtoScraper as TirtoScraper
 from .tribunnews import TribunnewsScraper as TribunnewsScraper
-from .tvrinews import TVRINewsScraper as TVRINewsScraper
 from .tvone import TVOneScraper as TVOneScraper
 from .viva import VivaScraper as VivaScraper
 
@@ -51,7 +50,6 @@ __all__ = [
     "TempoScraper",
     "TirtoScraper",
     "TribunnewsScraper",
-    "TVRINewsScraper",
     "TVOneScraper",
     "VivaScraper",
 ]
