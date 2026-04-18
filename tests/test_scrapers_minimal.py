@@ -42,9 +42,6 @@ LINUX_SCRAPERS = [
     "viva",
     "mediaindonesia",
     "katadata",
-    "jakartapost",
-    "sindonews",
-    "tvone",
     "inews",
 ]
 

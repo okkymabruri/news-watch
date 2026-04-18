@@ -19,7 +19,6 @@ from .scrapers.cnnindonesia import CNNIndonesiaScraper
 from .scrapers.detik import DetikScraper
 from .scrapers.idntimes import IDNTimesScraper
 from .scrapers.inews import INewsScraper
-from .scrapers.jakartapost import JakartaPostScraper
 from .scrapers.jawapos import JawaposScraper
 from .scrapers.katadata import KatadataScraper
 from .scrapers.kompas import KompasScraper
@@ -219,7 +218,6 @@ def get_available_scrapers():
         "viva": {"class": VivaScraper, "params": {"concurrency": 7}},
         "mediaindonesia": {"class": MediaIndonesiaScraper, "params": {}},
         "katadata": {"class": KatadataScraper, "params": {}},
-        "jakartapost": {"class": JakartaPostScraper, "params": {"concurrency": 5}},
         "sindonews": {"class": SindonewsScraper, "params": {"concurrency": 5}},
         "tvone": {"class": TVOneScraper, "params": {"concurrency": 5}},
         "inews": {"class": INewsScraper, "params": {"concurrency": 5}},

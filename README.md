@@ -136,7 +136,6 @@ The output file contains the following columns:
 - [SINDOnews](https://www.sindonews.com/)
 - [Suara](https://www.suara.com/)
 - [Tempo.co](https://www.tempo.co/)
-- [The Jakarta Post](https://www.thejakartapost.com/)
 - [Tirto](https://tirto.id/)
 - [Tribunnews.com](https://www.tribunnews.com/)
 - [TVOne](https://www.tvonenews.com/)
@@ -144,7 +143,6 @@ The output file contains the following columns:
 
 
 > **Note:**
-> - The Jakarta Post requires `playwright install chromium` for true keyword search (local-only).
 > - Use `-s all` to force-run all scrapers (may cause errors/timeouts).
 > - Limitation: Kontan scraper maximum 50 pages.
 
