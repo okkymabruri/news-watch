@@ -11,32 +11,9 @@ import platform
 from datetime import datetime
 from pathlib import Path
 
-from .scrapers.antaranews import AntaranewsScraper
-from .scrapers.bisnis import BisnisScraper
-from .scrapers.bloombergtechnoz import BloombergTechnozScraper
-from .scrapers.cnbcindonesia import CNBCScraper
-from .scrapers.cnnindonesia import CNNIndonesiaScraper
-from .scrapers.detik import DetikScraper
-from .scrapers.idntimes import IDNTimesScraper
-from .scrapers.inews import INewsScraper
-from .scrapers.jawapos import JawaposScraper
-from .scrapers.katadata import KatadataScraper
-from .scrapers.kompas import KompasScraper
-from .scrapers.kontan import KontanScraper
-from .scrapers.kumparan import KumparanScraper
-from .scrapers.liputan6 import Liputan6Scraper
-from .scrapers.merdeka import MerdekaScraper
-from .scrapers.mediaindonesia import MediaIndonesiaScraper
-from .scrapers.metrotvnews import MetrotvnewsScraper
-from .scrapers.okezone import OkezoneScraper
-from .scrapers.republika import RepublikaScraper
-from .scrapers.sindonews import SindonewsScraper
-from .scrapers.suara import SuaraScraper
-from .scrapers.tempo import TempoScraper
-from .scrapers.tirto import TirtoScraper
-from .scrapers.tribunnews import TribunnewsScraper
-from .scrapers.tvone import TVOneScraper
-from .scrapers.viva import VivaScraper
+import importlib
+
+from .registry import get_available_scrapers_from_registry
 
 logging.basicConfig(
     level=logging.INFO,
@@ -192,42 +169,8 @@ async def write_xlsx(queue, keywords, filename=None):
 
 
 def get_available_scrapers():
-    """Get list of available scrapers based on platform"""
-    # mapping of scraper names to their corresponding classes and additional parameters
-    scraper_classes = {
-        "antaranews": {"class": AntaranewsScraper, "params": {"concurrency": 7}},
-        "bisnis": {"class": BisnisScraper, "params": {"concurrency": 5}},
-        "bloombergtechnoz": {"class": BloombergTechnozScraper, "params": {}},
-        "cnbcindonesia": {"class": CNBCScraper, "params": {"concurrency": 5}},
-        "cnnindonesia": {"class": CNNIndonesiaScraper, "params": {"concurrency": 5}},
-        "detik": {"class": DetikScraper, "params": {"concurrency": 5}},
-        "idntimes": {"class": IDNTimesScraper, "params": {"concurrency": 7}},
-        "jawapos": {"class": JawaposScraper, "params": {"concurrency": 5}},
-        "kontan": {"class": KontanScraper, "params": {}},
-        "kompas": {"class": KompasScraper, "params": {"concurrency": 7}},
-        "kumparan": {"class": KumparanScraper, "params": {"concurrency": 5}},
-        "liputan6": {"class": Liputan6Scraper, "params": {"concurrency": 5}},
-        "merdeka": {"class": MerdekaScraper, "params": {"concurrency": 7}},
-        "metrotvnews": {"class": MetrotvnewsScraper, "params": {"concurrency": 2}},
-        "okezone": {"class": OkezoneScraper, "params": {"concurrency": 7}},
-        "republika": {"class": RepublikaScraper, "params": {"concurrency": 7}},
-        "suara": {"class": SuaraScraper, "params": {"concurrency": 12}},
-        "tempo": {"class": TempoScraper, "params": {"concurrency": 1}},
-        "tirto": {"class": TirtoScraper, "params": {"concurrency": 5}},
-        "tribunnews": {"class": TribunnewsScraper, "params": {"concurrency": 5}},
-        "viva": {"class": VivaScraper, "params": {"concurrency": 7}},
-        "mediaindonesia": {"class": MediaIndonesiaScraper, "params": {}},
-        "katadata": {"class": KatadataScraper, "params": {}},
-        "sindonews": {"class": SindonewsScraper, "params": {"concurrency": 5}},
-        "tvone": {"class": TVOneScraper, "params": {"concurrency": 5}},
-        "inews": {"class": INewsScraper, "params": {"concurrency": 5}},
-        # FIX ME: add more scrapers here
-        # FIX ME: add english website reuters, CNBC
-    }
-
-    linux_excluded_scrapers = {}
-
-    return scraper_classes, linux_excluded_scrapers
+    """Get list of available scrapers from the central registry."""
+    return get_available_scrapers_from_registry()
 
 
 async def main(args):

@@ -7,10 +7,20 @@ from .api import scrape as scrape
 from .api import scrape_to_dataframe as scrape_to_dataframe
 from .api import scrape_to_file as scrape_to_file
 
+# registry access
+from .registry import SCRAPERS as SCRAPERS
+from .registry import get_scraper_by_slug as get_scraper_by_slug
+from .registry import get_stable_slugs as get_stable_slugs
+from .registry import get_stable_scrapers as get_stable_scrapers
+
 __all__ = [
     "list_scrapers",
     "quick_scrape",
     "scrape",
     "scrape_to_dataframe",
     "scrape_to_file",
+    "SCRAPERS",
+    "get_scraper_by_slug",
+    "get_stable_scrapers",
+    "get_stable_slugs",
 ]

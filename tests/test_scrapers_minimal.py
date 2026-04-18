@@ -10,42 +10,19 @@ import os
 import pytest
 
 from newswatch.api import scrape
+from newswatch.registry import get_stable_slugs, SCRAPERS
 
+# Derive test matrix from the central registry
+LINUX_SCRAPERS = sorted(get_stable_slugs())
 
+# Per-scraper keyword overrides (use registry smoke_keyword if set, else "ihsg")
 KEYWORDS_BY_SCRAPER = {
-    # Metrotvnews search can be flaky for finance terms (e.g. IHSG) in short windows.
-    "metrotvnews": "prabowo",
+    slug: SCRAPERS[slug].smoke_keyword
+    for slug in LINUX_SCRAPERS
+    if SCRAPERS.get(slug) and SCRAPERS[slug].smoke_keyword != "ihsg"
 }
 
-# Linux-compatible scrapers (excluded ones that are known to fail on Linux/CI)
-LINUX_SCRAPERS = [
-    "antaranews",
-    "bisnis",
-    "bloombergtechnoz",
-    "cnbcindonesia",
-    "cnnindonesia",
-    "detik",
-    "idntimes",
-    "jawapos",
-    "kompas",
-    "kontan",
-    "kumparan",
-    "liputan6",
-    "merdeka",
-    "metrotvnews",
-    "okezone",
-    "republika",
-    "suara",
-    "tempo",
-    "tirto",
-    "tribunnews",
-    "viva",
-    "mediaindonesia",
-    "katadata",
-    "inews",
-]
-
-
+# Linux-excluded scrapers (empty — no platform-specific exclusions currently)
 LINUX_EXCLUDED_SCRAPERS = []
 
 
