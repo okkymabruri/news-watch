@@ -1,3 +1,10 @@
+"""
+Okezone scraper — uses /tag/{keyword} endpoint for keyword search.
+
+The search.okezone.com endpoint is unreliable; tag pages return
+query-specific articles with a detectable no-result state.
+"""
+
 import logging
 import re
 
@@ -7,65 +14,53 @@ from .basescraper import BaseScraper
 
 
 class OkezoneScraper(BaseScraper):
-    def __init__(self, keywords, concurrency=12, start_date=None, queue_=None):
+    def __init__(self, keywords, concurrency=5, start_date=None, queue_=None):
         super().__init__(keywords, concurrency, queue_)
         self.base_url = "https://www.okezone.com"
         self.start_date = start_date
         self.continue_scraping = True
+        self.max_pages = 10
+        self.headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+        }
 
     async def build_search_url(self, keyword, page):
-        # https://search.okezone.com/loaddata/article/ekonomi/1
-        url = f"https://search.okezone.com/loaddata/article/{keyword}/{page}"
-
-        return await self.fetch(
-            url,
-            headers={"user-agent": "Mozilla/5.0"},
-        )
-
-    async def _fetch_rss_links(self, keyword):
-        # Reliable fallback in environments where the search endpoint gets blocked.
-        rss_text = await self.fetch(
-            f"{self.base_url}/rss",
-            headers={"Accept": "application/xml,*/*", "User-Agent": "Mozilla/5.0"},
-            timeout=30,
-        )
-        if not rss_text:
-            return None
-
-        soup = BeautifulSoup(rss_text, "xml")
-        links = {
-            (item.link.get_text(strip=True) if item.link else "")
-            for item in soup.select("item")
-        }
-        links = {link for link in links if link.startswith("http")}
-        if not links:
-            return None
-
-        # Keep links that mention the keyword (case-insensitive) and look like articles.
-        # If RSS doesn't contain the keyword (common), fall back to all article links.
-        kw = keyword.lower().strip()
-        filtered = {link for link in links if kw in link.lower() and "/read/" in link}
-        links = filtered or {link for link in links if "/read/" in link}
-        return links or None
+        url = f"{self.base_url}/tag/{keyword.lower()}"
+        if page > 1:
+            url += f"/{page}"
+        return await self.fetch(url, headers=self.headers, timeout=30)
 
     def parse_article_links(self, response_text):
-        soup = BeautifulSoup(response_text, "html.parser")
-        articles = soup.select("a[href*='/read/']")
-        if not articles:
+        if not response_text:
             return None
 
-        filtered_hrefs = {
-            a.get("href")
-            for a in articles
-            if a.get("href") and a.get("href").startswith("http")
-        }
-        return filtered_hrefs
+        soup = BeautifulSoup(response_text, "html.parser")
+
+        # Detect no-result page: title is generic homepage title
+        title_el = soup.find("title")
+        if title_el:
+            title = title_el.get_text(strip=True)
+            if "Berita Terkini dan Informasi Terbaru" in title:
+                self.continue_scraping = False
+                return None
+
+        pattern = re.compile(r"https?://[\w.-]*okezone\.com/read/\d+/\d+/\d+/\d+/")
+        links = set()
+        for a in soup.find_all("a", href=True):
+            href = a["href"]
+            if not href.startswith("http"):
+                href = f"{self.base_url}{href}"
+            if pattern.match(href):
+                links.add(href)
+
+        return links if links else None
 
     async def fetch_search_results(self, keyword):
+        """Fetch search results with pagination limit."""
         page = 1
         found_articles = False
 
-        while self.continue_scraping:
+        while self.continue_scraping and page <= self.max_pages:
             response_text = await self.build_search_url(keyword, page)
             if not response_text:
                 break
@@ -77,31 +72,27 @@ class OkezoneScraper(BaseScraper):
             found_articles = True
             continue_scraping = await self.process_page(filtered_hrefs, keyword)
             if not continue_scraping:
-                return
+                break
 
             page += 1
 
-        if found_articles:
-            return
-
-        rss_links = await self._fetch_rss_links(keyword)
-        if not rss_links:
+        if not found_articles:
             logging.info(f"No news found on {self.base_url} for keyword: '{keyword}'")
-            return
-
-        await self.process_page(rss_links, keyword)
 
     async def get_article(self, link, keyword):
-        response_text = await self.fetch(link)
+        response_text = await self.fetch(link, headers=self.headers, timeout=30)
         if not response_text:
             logging.warning(f"No response for {link}")
             return
+
         soup = BeautifulSoup(response_text, "html.parser")
         try:
             breadcrumb = soup.select(".breadcrumb a")
             category = breadcrumb[-1].get_text(strip=True) if breadcrumb else "Unknown"
 
             title_elem = soup.select_one(".title-article h1")
+            if not title_elem:
+                title_elem = soup.select_one("h1")
             if not title_elem:
                 return
             title = title_elem.get_text(strip=True)
@@ -122,9 +113,10 @@ class OkezoneScraper(BaseScraper):
 
             content_div = soup.select_one(".c-detail.read")
             if not content_div:
+                content_div = soup.select_one("article")
+            if not content_div:
                 return
 
-            # remove unwanted elements
             for tag in content_div.find_all(["div", "span"]):
                 if tag and any(
                     cls.startswith("inject-") or cls.startswith("banner")
@@ -132,14 +124,8 @@ class OkezoneScraper(BaseScraper):
                 ):
                     tag.extract()
 
-            # remove unwanted text patterns
-            unwanted_phrases = [
-                r"Baca juga:",
-                r"Follow.*WhatsApp Channel",
-                r"Telusuri berita.*lainnya",
-            ]
+            unwanted_phrases = [r"Baca juga:", r"Follow.*WhatsApp Channel", r"Telusuri berita.*lainnya"]
             unwanted_pattern = re.compile("|".join(unwanted_phrases), re.IGNORECASE)
-
             for tag in content_div.find_all(["p", "div"]):
                 tag_text = tag.get_text()
                 if unwanted_pattern.search(tag_text):
@@ -173,5 +159,5 @@ class OkezoneScraper(BaseScraper):
                 "link": link,
             }
             await self.queue_.put(item)
-        except Exception:
-            pass
+        except Exception as e:
+            logging.error(f"Error parsing article {link}: {e}")
