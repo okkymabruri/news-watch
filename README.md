@@ -142,7 +142,8 @@ The output file contains the following columns:
 - [Viva.co.id](https://www.viva.co.id/)
 
 
-> **Note:** 
+> **Note:**
+> - [The Jakarta Post] requires `playwright install chromium` for true keyword search.
 > - Use `-s all` to force-run all scrapers (may cause errors/timeouts).
 > - Limitation: Kontan scraper maximum 50 pages.
 

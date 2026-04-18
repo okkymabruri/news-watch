@@ -13,10 +13,8 @@ class SindonewsScraper(BaseScraper):
 
     Uses real search endpoint /search/go with type=artikel
     and pagination via p parameter. Stops when a page yields
-    no new links or max pages is reached.
+    no new links.
     """
-
-    MAX_PAGES = 10
 
     def __init__(self, keywords, concurrency=5, start_date=None, queue_=None):
         super().__init__(keywords, concurrency, queue_)
@@ -30,9 +28,6 @@ class SindonewsScraper(BaseScraper):
 
     async def build_search_url(self, keyword, page):
         # https://www.sindonews.com/search/go?q=ihsg&type=artikel&p=2
-        if page > self.MAX_PAGES:
-            self.continue_scraping = False
-            return None
         query_params = {"q": keyword, "type": "artikel", "p": page}
         url = f"https://www.{self.base_url}/search/go?{urlencode(query_params)}"
         return await self.fetch(url, headers=self.headers, timeout=30)

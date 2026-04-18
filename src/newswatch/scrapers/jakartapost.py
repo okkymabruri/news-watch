@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import re
+from urllib.parse import quote
 
 from bs4 import BeautifulSoup
 
@@ -88,7 +89,7 @@ class JakartaPostScraper(BaseScraper):
             f"rsz=filtered_cse&num=10&hl=en&source=gcsc"
             f"&cselibv=dc329f57de078f5d"
             f"&cx={self.CX}"
-            f"&q={keyword}"
+            f"&q={quote(keyword)}"
             f"&safe=off"
             f"&cse_tok={token}"
             f"&sort=date"

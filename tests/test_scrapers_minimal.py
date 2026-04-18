@@ -145,21 +145,85 @@ NONSENSE_KEYWORD = "xyznonexistent999zzz"
 @pytest.mark.network
 @pytest.mark.parametrize("scraper", LINUX_SCRAPERS)
 def test_scraper_nonsense_keyword_returns_none(scraper):
-    """Verify scrapers do not return articles for a keyword that cannot match."""
+    """Verify scrapers do not return articles for a keyword that cannot match.
+
+    Exceptions are NOT swallowed: a scraper that fails to query must fail
+    this test rather than silently pass with zero results.
+    """
 
     week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
 
-    try:
-        articles = scrape(
-            keywords=NONSENSE_KEYWORD,
-            start_date=week_ago,
-            scrapers=scraper,
-            timeout=60,
-        )
-    except Exception:
-        articles = []
+    articles = scrape(
+        keywords=NONSENSE_KEYWORD,
+        start_date=week_ago,
+        scrapers=scraper,
+        timeout=60,
+    )
 
     assert len(articles) == 0, (
         f"{scraper} returned {len(articles)} articles for nonsense keyword "
         f"'{NONSENSE_KEYWORD}' - first title: {articles[0].get('title', '')[:80]}"
+    )
+
+
+@pytest.mark.network
+@pytest.mark.parametrize("scraper", LINUX_SCRAPERS)
+def test_scraper_positive_relevance(scraper):
+    """Verify scrapers return articles that actually contain the queried keyword."""
+
+    week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+    keywords = KEYWORDS_BY_SCRAPER.get(scraper, "ihsg")
+    kw_lower = keywords.lower()
+
+    articles = scrape(
+        keywords=keywords,
+        start_date=week_ago,
+        scrapers=scraper,
+        timeout=60,
+    )
+
+    assert len(articles) >= 1, (
+        f"{scraper} returned no articles for '{keywords}' in last 7 days"
+    )
+
+    match = next(
+        (
+            a
+            for a in articles
+            if (
+                kw_lower in (a.get("title") or "").lower()
+                or kw_lower in (a.get("link") or "").lower()
+                or kw_lower in (a.get("content") or "").lower()
+            )
+        ),
+        None,
+    )
+
+    assert match is not None, (
+        f"{scraper} returned {len(articles)} articles but none contain "
+        f"keyword '{keywords}' in title, link, or content. "
+        f"First title: '{(articles[0].get('title') or '')[:80]}'"
+    )
+
+
+@pytest.mark.network
+def test_scraper_sindonews_no_duplicates():
+    """Verify sindonews does not return duplicate articles across pagination."""
+
+    week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+
+    articles = scrape(
+        keywords="ihsg",
+        start_date=week_ago,
+        scrapers="sindonews",
+        timeout=120,
+    )
+
+    assert len(articles) >= 1, "sindonews returned no articles"
+
+    links = [a.get("link") for a in articles if a.get("link")]
+    unique_links = set(links)
+    assert len(links) == len(unique_links), (
+        f"sindonews returned {len(links)} articles but only "
+        f"{len(unique_links)} unique links — duplicates detected"
     )
