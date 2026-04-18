@@ -1,173 +1,115 @@
+"""
+TVRI News scraper — uses sitemap scanning with keyword filtering.
+
+The API requires authentication, but sitemaps provide article URLs
+that can be filtered by keyword presence.
+"""
+
 import logging
-import json
 import re
 
+import aiohttp
 from bs4 import BeautifulSoup
 
 from .basescraper import BaseScraper
 
 
 class TVRINewsScraper(BaseScraper):
-    """
-    TVRI News scraper implementation.
-
-    Uses Playwright to extract API credentials from rendered page,
-    then queries prod-api.tvrinews.com for true keyword search.
-    """
-
     def __init__(self, keywords, concurrency=5, start_date=None, queue_=None):
         super().__init__(keywords, concurrency, queue_)
-        self.base_url = "tvrinews.com"
-        self.api_base = "https://prod-api.tvrinews.com/v1/news"
+        self.base_url = "https://tvrinews.com"
         self.start_date = start_date
         self.continue_scraping = True
-        self._client_id = None
-        self._client_secret = None
-
-    async def _get_credentials(self):
-        if self._client_id and self._client_secret:
-            return self._client_id, self._client_secret
-
-        try:
-            from playwright.async_api import async_playwright
-        except ImportError:
-            logging.error(
-                "Playwright not installed; install with: playwright install chromium"
-            )
-            return None, None
-
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            context = await browser.new_context()
-            page = await context.new_page()
-
-            creds = {"client_id": None, "client_secret": None}
-
-            def handle_request(request):
-                if "prod-api.tvrinews.com" in request.url:
-                    headers = request.headers
-                    cid = headers.get("client-id")
-                    csec = headers.get("client-secret")
-                    if cid and csec:
-                        creds["client_id"] = cid
-                        creds["client_secret"] = csec
-
-            page.on("request", handle_request)
-
-            try:
-                await page.goto("https://www.tvrinews.com/", timeout=15000)
-                await page.wait_for_timeout(2000)
-            except Exception as e:
-                logging.warning(f"TVRI News Playwright navigation failed: {e}")
-
-            page.remove_listener("request", handle_request)
-            await browser.close()
-
-        self._client_id = creds.get("client_id")
-        self._client_secret = creds.get("client_secret")
-        return self._client_id, self._client_secret
-
-    async def build_search_url(self, keyword, page):
-        client_id, client_secret = await self._get_credentials()
-        if not client_id or not client_secret:
-            return None
-
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "client-id": client_id,
-            "client-secret": client_secret,
-            "referer": "https://www.tvrinews.com/",
+        self.sitemap_urls = [
+            "https://ekonomi.tvrinews.com/sitemap/news.xml",
+            "https://ekonomi.tvrinews.com/sitemap/web.xml",
+            "https://nasional.tvrinews.com/sitemap/news.xml",
+            "https://daerah.tvrinews.com/sitemap/news.xml",
+        ]
+        self.headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
         }
 
-        # Use main news endpoint with keyword filter
-        url = f"{self.api_base}/main?lang=id&q={keyword}&page={page}&limit=20"
-        return await self.fetch(url, headers=headers, timeout=30)
+    async def fetch_search_results(self, keyword):
+        """Scan sitemaps and filter by keyword in URL."""
+        kw_lower = keyword.lower()
+        all_links = set()
 
-    def parse_article_links(self, response_text):
-        if not response_text:
-            return None
+        for sm_url in self.sitemap_urls:
+            try:
+                response_text = await self.fetch(sm_url, headers=self.headers, timeout=30)
+                if not response_text:
+                    continue
+                soup = BeautifulSoup(response_text, "xml")
+                for loc in soup.find_all("loc"):
+                    url = loc.text.strip()
+                    if url and kw_lower in url.lower():
+                        all_links.add(url)
+            except Exception as e:
+                logging.debug(f"TVRI sitemap fetch failed for {sm_url}: {e}")
 
+        if all_links:
+            for link in list(all_links)[:20]:
+                await self._process_article(link, keyword)
+        else:
+            logging.info(f"No news found on {self.base_url} for keyword: '{keyword}'")
+
+    async def _process_article(self, link, keyword):
         try:
-            data = json.loads(response_text)
-        except json.JSONDecodeError:
-            return None
-
-        items = data.get("data", []) or data.get("items", []) or []
-        if not items:
-            return None
-
-        filtered_hrefs = set()
-        for item in items:
-            slug = item.get("slug", "")
-            if slug:
-                url = f"https://www.{self.base_url}/read/{slug}"
-                filtered_hrefs.add(url)
-
-        return filtered_hrefs if filtered_hrefs else None
-
-    async def get_article(self, link, keyword):
-        response_text = await self.fetch(link, timeout=30)
-        if not response_text:
-            logging.warning(f"No response for {link}")
-            return
-        soup = BeautifulSoup(response_text, "html.parser")
-
-        try:
-            category = ""
-            breadcrumb = soup.select_one(".breadcrumb")
-            if breadcrumb:
-                items = breadcrumb.find_all("a")
-                if len(items) > 1:
-                    category = items[-1].get_text(strip=True)
-
-            title_elem = soup.select_one("h1") or soup.select_one("title")
-            if title_elem:
-                title = title_elem.get_text(strip=True)
-            else:
-                meta = soup.find("meta", {"property": "og:title"})
-                title = meta.get("content", "").strip() if meta else ""
-
-            if not title:
-                logging.error(f"TVRINews title not found for article {link}")
+            response_text = await self.fetch(link, headers=self.headers, timeout=30)
+            if not response_text:
                 return
 
-            author = "Unknown"
-            author_elem = soup.select_one(".author")
-            if author_elem:
-                author = author_elem.get_text(strip=True)
+            soup = BeautifulSoup(response_text, "html.parser")
 
+            meta_title = soup.find("meta", {"property": "og:title"})
+            title = meta_title.get("content", "").strip() if meta_title else ""
+            if not title:
+                return
+
+            # Date from various sources
             publish_date_str = ""
-            date_elem = soup.select_one(".date") or soup.select_one("time")
-            if date_elem:
-                publish_date_str = date_elem.get_text(strip=True)
-
-            content_div = soup.select_one(".content") or soup.select_one("article")
-            if content_div:
-                for tag in content_div.find_all("div"):
-                    classes = tag.get("class", [])
-                    if tag and any(
-                        "related" in cls.lower()
-                        or "share" in cls.lower()
-                        or "ads" in cls.lower()
-                        for cls in classes
-                    ):
-                        tag.extract()
-                content = content_div.get_text(separator=" ", strip=True)
+            meta_date = soup.find("meta", {"property": "article:published_time"})
+            if meta_date and meta_date.get("content"):
+                publish_date_str = meta_date.get("content")
             else:
-                content = ""
+                # Try to find date in page text
+                for el in soup.find_all(string=True):
+                    text = el.strip()
+                    if re.search(r"\d{1,2}\s+[A-Z][a-z]+\s+\d{4}", text):
+                        date_match = re.search(r"(\d{1,2}\s+[A-Z][a-z]+\s+\d{4})", text)
+                        if date_match:
+                            publish_date_str = date_match.group(1)
+                            break
 
+            content_div = soup.select_one("div.blog-content") or soup.select_one("article")
+            if not content_div:
+                return
+            paragraphs = [p.get_text(" ", strip=True) for p in content_div.find_all("p")]
+            paragraphs = [p for p in paragraphs if len(p) > 30]
+            content = " ".join(paragraphs)
+            if not content:
+                content = content_div.get_text(" ", strip=True)
             if not content:
                 return
 
-            publish_date = self.parse_date(publish_date_str, locales=["id"])
+            meta_author = soup.find("meta", {"name": "author"})
+            author = meta_author.get("content", "Unknown") if meta_author else "Unknown"
+
+            publish_date = self.parse_date(publish_date_str)
             if not publish_date:
-                logging.error(
-                    f"TVRINews date parse failed | url: {link} | date: {repr(publish_date_str[:50])}"
-                )
+                logging.debug("TVRI date parse failed | url: %s | date: %r", link, publish_date_str[:50])
                 return
+
             if self.start_date and publish_date < self.start_date:
                 self.continue_scraping = False
                 return
+
+            category = "Unknown"
+            path = link.replace(self.base_url, "").strip("/")
+            parts = path.split("/")
+            if parts:
+                category = parts[0]
 
             item = {
                 "title": title,
@@ -176,9 +118,18 @@ class TVRINewsScraper(BaseScraper):
                 "content": content,
                 "keyword": keyword,
                 "category": category,
-                "source": self.base_url,
+                "source": "tvrinews.com",
                 "link": link,
             }
             await self.queue_.put(item)
         except Exception as e:
-            logging.error(f"Error parsing article {link}: {e}")
+            logging.error("Error parsing article %s: %s", link, e)
+
+    async def build_search_url(self, keyword, page):
+        return None
+
+    def parse_article_links(self, response_text):
+        return None
+
+    async def get_article(self, link, keyword):
+        pass
