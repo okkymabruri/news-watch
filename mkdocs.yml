@@ -17,6 +17,7 @@ theme:
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
+  - Architecture: architecture.md
   - Comprehensive Guide: comprehensive-guide.md
   - API Reference: api-reference.md
   - Troubleshooting: troubleshooting.md

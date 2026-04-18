@@ -298,10 +298,10 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         module="investor",
         class_name="InvestorScraper",
         concurrency=5,
-        status="quarantined",
-        strict_search=False,
+        status="stable",
+        strict_search=True,
         smoke_keyword="ihsg",
-        note="search returns general articles regardless of keyword — no true keyword filtering",
+        note="promoted to stable; no-result gate added 2026-04-18",
     ),
     "tvrinews": ScraperEntry(
         slug="tvrinews",

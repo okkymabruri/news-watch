@@ -41,6 +41,13 @@ class InvestorScraper(BaseScraper):
             return None
 
         soup = BeautifulSoup(response_text, "html.parser")
+
+        # Detect no-result page: Investor shows "Halaman yang Anda tuju tidak ditemukan"
+        # when the search keyword has no matching articles, but still renders sidebar/trending links.
+        if "halaman yang anda tuju tidak ditemukan" in response_text.lower():
+            self.continue_scraping = False
+            return None
+
         pattern = re.compile(
             r"^/(market|berita|ekonomi|nasional|sosial|teknologi)/\d+/"
         )
