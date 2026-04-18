@@ -289,7 +289,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         status="stable",
         strict_search=True,
         browser_required=True,
-        smoke_keyword="election",
+        smoke_keyword="prabowo",
         note="rebuilt with Playwright CSE bootstrap; 2026-04-18",
     ),
     "investor": ScraperEntry(
