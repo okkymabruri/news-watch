@@ -231,6 +231,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         class_name="SuaraScraper",
         concurrency=12,
         smoke_keyword="ihsg",
+        browser_required=True,
     ),
     "tempo": ScraperEntry(
         slug="tempo",
@@ -284,10 +285,12 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         name="The Jakarta Post",
         module="jakartapost",
         class_name="JakartaPostScraper",
-        status="quarantined",
-        strict_search=False,
+        concurrency=5,
+        status="stable",
+        strict_search=True,
         browser_required=True,
-        note="CSE token capture broken",
+        smoke_keyword="election",
+        note="rebuilt with Playwright CSE bootstrap; 2026-04-18",
     ),
     "investor": ScraperEntry(
         slug="investor",

@@ -27,7 +27,7 @@ class SuaraScraper(BaseScraper):
         )
 
     async def fetch_search_results(self, keyword):
-        """Use Playwright to capture Google CSE search results."""
+        """Use Playwright to capture Google CSE search results with pagination."""
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             try:
@@ -36,12 +36,14 @@ class SuaraScraper(BaseScraper):
                 )
                 page = await context.new_page()
 
+                search_url = f"{self.base_url}/search?q={keyword}"
+
                 for pg in range(1, self.max_pages + 1):
                     if not self.continue_scraping:
                         break
 
-                    # Use route interception to capture CSE response
                     cse_body = []
+                    seen_urls = set()
 
                     async def handle_route(route):
                         response = await route.fetch()
@@ -52,11 +54,7 @@ class SuaraScraper(BaseScraper):
                     await page.route("**/cse.google.com/**", handle_route)
 
                     try:
-                        await page.goto(
-                            f"{self.base_url}/search?q={keyword}",
-                            wait_until="load",
-                            timeout=20000,
-                        )
+                        await page.goto(search_url, wait_until="load", timeout=20000)
                         await page.wait_for_timeout(3000)
                     except Exception as e:
                         logging.debug("Suara page load failed for '%s': %s", keyword, e)
@@ -66,11 +64,18 @@ class SuaraScraper(BaseScraper):
                     if not cse_body:
                         break
 
-                    article_links = self._extract_links(cse_body)
-                    if not article_links:
+                    article_links, next_url = self._extract_links_and_next(cse_body, keyword)
+                    new_links = article_links - seen_urls if article_links else set()
+                    if not new_links:
                         break
 
-                    await self.process_page(article_links, keyword)
+                    await self.process_page(list(new_links), keyword)
+                    seen_urls.update(new_links)
+
+                    if next_url:
+                        search_url = next_url
+                    else:
+                        break
 
             finally:
                 await browser.close()
@@ -81,9 +86,31 @@ class SuaraScraper(BaseScraper):
             return None
         try:
             data = json.loads(match.group(1))
-            return data.get("results", [])
+            return data
         except json.JSONDecodeError:
             return None
+
+    def _extract_links_and_next(self, cse_bodies, keyword):
+        links = set()
+        next_url = None
+        for body in cse_bodies:
+            parsed = self._parse_cse_body(body)
+            if not parsed:
+                continue
+            for r in parsed.get("results", []):
+                url = r.get("url", "")
+                if self._article_href.match(url):
+                    links.add(url)
+
+            queries = parsed.get("queries", {})
+            next_page = queries.get("nextPage", [])
+            if next_page and not next_url:
+                params = next_page[0]
+                start = params.get("startIndex", 1)
+                search_qs = f"q={keyword}&start={start}"
+                next_url = f"{self.base_url}/search?{search_qs}"
+
+        return links, next_url
 
     def _extract_links(self, cse_bodies):
         links = set()
