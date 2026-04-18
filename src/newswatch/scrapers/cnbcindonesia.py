@@ -25,7 +25,14 @@ class CNBCScraper(BaseScraper):
         return await self.fetch(url)
 
     async def _fetch_rss_links(self, keyword):
-        # Reliable fallback in environments where HTML search gets blocked.
+        """Legacy — returns only links (used by existing code paths)."""
+        items = await self._fetch_rss_items(keyword)
+        if not items:
+            return None
+        return {link for link, _ in items}
+
+    async def _fetch_rss_items(self, keyword):
+        """Fetch RSS and return (link, title) pairs for keyword filtering."""
         rss_url = f"{self.base_url}/rss?{urlencode({'tag': keyword})}"
         rss_text = await self.fetch(
             rss_url,
@@ -36,18 +43,24 @@ class CNBCScraper(BaseScraper):
             return None
 
         soup = BeautifulSoup(rss_text, "xml")
-        links = {
-            (item.link.get_text(strip=True) if item.link else "")
-            for item in soup.select("item")
-        }
-        links = {link for link in links if link.startswith("http")}
+        items = []
+        for item in soup.select("item"):
+            link_el = item.find("link")
+            title_el = item.find("title")
+            if not link_el or not title_el:
+                continue
+            link = link_el.get_text(strip=True)
+            title = title_el.get_text(strip=True)
+            if not link.startswith("http"):
+                continue
+            # Filter non-article URLs (e.g. homepage, video pages)
+            article_href = re.compile(
+                r"^https?://www\.cnbcindonesia\.com/.+?/\d+-\d+-\d+/"
+            )
+            if article_href.search(link):
+                items.append((link, title))
 
-        # CNBC RSS sometimes includes non-searchable content (e.g. video pages).
-        article_href = re.compile(
-            r"^https?://www\.cnbcindonesia\.com/.+?/\d{8}-\d+-\d+/"
-        )
-        links = {link for link in links if article_href.search(link)}
-        return links or None
+        return items or None
 
     def parse_article_links(self, response_text):
         soup = BeautifulSoup(response_text, "html.parser")
@@ -81,7 +94,24 @@ class CNBCScraper(BaseScraper):
             logging.info(f"No news found on {self.base_url} for keyword: '{keyword}'")
             return
 
-        await self.process_page(rss_links, keyword)
+        # RSS returns general feed — enforce strict-search: filter
+        # articles whose title or URL contains the keyword.
+        # Extract (link, title) pairs from RSS for efficient pre-filtering.
+        kw = keyword.lower().strip()
+        rss_items = await self._fetch_rss_items(keyword)
+        if not rss_items:
+            logging.info(f"No news found on {self.base_url} for keyword: '{keyword}'")
+            return
+
+        # Pre-filter by keyword in URL or title
+        filtered = {
+            link for link, title in rss_items
+            if kw in link.lower() or kw in title.lower()
+        }
+        if not filtered:
+            return
+
+        await self.process_page(filtered, keyword)
 
     async def get_article(self, link, keyword):
         response_text = await self.fetch(link)
