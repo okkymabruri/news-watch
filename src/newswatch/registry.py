@@ -230,10 +230,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         module="suara",
         class_name="SuaraScraper",
         concurrency=12,
-        status="quarantined",
-        strict_search=False,
         smoke_keyword="ihsg",
-        note="Google CSE requires browser token capture — blocked without Playwright",
     ),
     "tempo": ScraperEntry(
         slug="tempo",
