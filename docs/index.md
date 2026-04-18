@@ -66,24 +66,9 @@ print(len(df))
 | TVOne | tvonenews.com |
 | Viva | viva.co.id |
 
-### Quarantined (excluded from runtime)
+### Quarantined (work in progress)
 
-| Source | Reason |
-|--------|--------|
-| CNN Indonesia | RSS general feed |
-| Detik | RSS general feed |
-| IDN Times | no-result leakage |
-| Investor.id | no true keyword filtering |
-| Jakarta Post | CSE token capture broken |
-| Kumparan | sitemap-based |
-| Liputan6 | no-result leakage |
-| Merdeka | RSS general feed |
-| Okezone | RSS general feed |
-| Republika | RSS general feed |
-| Suara | browser token required |
-| Tirto | no-result leakage |
-| Tribunnews | 403 on search pages |
-| TVRI News | not validated |
+CNN Indonesia, Detik, IDN Times, Investor.id, Jakarta Post, Kumparan, Liputan6, Merdeka, Okezone, Republika, Suara, Tirto, Tribunnews, TVRI News.
 
 ## Important Considerations
 

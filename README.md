@@ -56,7 +56,7 @@ newswatch -k <keywords> -sd <start_date> -s [<scrapers>] -of <output_format> -v
 newswatch --keywords ihsg --start_date 2025-01-01
 
 # Multiple keywords with specific scraper
-newswatch -k "ihsg,bank" -s "detik" --output_format xlsx -v
+newswatch -k "ihsg,bank" -s "tempo" --output_format xlsx -v
 
 # List available scrapers
 newswatch --list_scrapers
@@ -114,8 +114,6 @@ The output file contains the following columns:
 
 ## Supported Websites
 
-### Stable (strict keyword search validated)
-
 | Source | Domain |
 |--------|--------|
 | Antara News | antaranews.com |
@@ -135,28 +133,13 @@ The output file contains the following columns:
 | TVOne | tvonenews.com |
 | Viva | viva.co.id |
 
-### Quarantined (known issues — no true keyword search or blocked)
+### Quarantined (work in progress)
 
-| Source | Reason |
-|--------|--------|
-| CNN Indonesia | RSS general feed — no true keyword search |
-| Detik | RSS general feed — no true keyword search |
-| IDN Times | returns general articles when no match |
-| Investor.id | search returns general results regardless of keyword |
-| Jakarta Post | CSE token capture broken |
-| Kumparan | sitemap-based — no true keyword search |
-| Liputan6 | returns general articles regardless of keyword |
-| Merdeka | RSS general feed — no true keyword search |
-| Okezone | RSS general feed — no true keyword search |
-| Republika | RSS general feed — no true keyword search |
-| Suara | Google CSE requires browser token capture |
-| Tirto | returns same results regardless of keyword |
-| Tribunnews | search/tag pages return 403 |
-| TVRI News | keyword search not validated |
+CNN Indonesia, Detik, IDN Times, Investor.id, Jakarta Post, Kumparan, Liputan6, Merdeka, Okezone, Republika, Suara, Tirto, Tribunnews, TVRI News.
+
+See `dev/portal-inventory.md` for recovery status.
 
 > **Notes:**
-> - 16 stable scrapers with strict arbitrary-keyword search.
-> - Quarantined sources are excluded from runtime and tests but remain as research tracks.
 > - Use `-s all` to force-run all scrapers (may cause errors/timeouts).
 > - Limitation: Kontan scraper maximum 50 pages.
 
