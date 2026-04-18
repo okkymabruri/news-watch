@@ -193,6 +193,8 @@ tech_df = nw.scrape_to_dataframe(
 
 The `auto` setting picks reliable scrapers based on your platform. Use `all` only if you need maximum coverage and don't mind potential errors.
 
+The stable release currently exposes 26 supported query-backed scrapers. Experimental or quarantined sources are intentionally excluded from the runtime scraper list.
+
 ## Building Your First Analysis
 
 Let's analyze Indonesian economic sentiment around key events:

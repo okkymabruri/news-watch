@@ -48,6 +48,7 @@ Common causes:
 - keywords too specific → try `ekonomi,bisnis,indonesia`
 - date too old → try a recent date first
 - blocked in cloud/Linux → try fewer scrapers or run locally
+- some supported scrapers may legitimately return zero results for a given keyword/date window
 
 ### Timeout
 
@@ -74,6 +75,8 @@ Some sources (e.g., Tirto) may require browser automation. Ensure Playwright is 
 ```bash
 playwright install chromium
 ```
+
+Experimental or quarantined browser-backed sources are intentionally excluded from the stable supported scraper list.
 
 Try:
 ```bash

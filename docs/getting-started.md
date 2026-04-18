@@ -6,10 +6,15 @@ This guide will get you up and running with news-watch in just a few minutes. We
 
 ### Basic Installation
 
-news-watch requires Python 3.10+ and uses Playwright for browser automation. Install both:
+news-watch requires Python 3.10+.
 
 ```bash
 pip install news-watch
+```
+
+Optional, only for local browser-backed experiments:
+
+```bash
 playwright install chromium
 ```
 
@@ -24,7 +29,6 @@ cd news-watch
 
 # Install dependencies (recommended)
 uv sync --all-extras
-uv run playwright install chromium
 
 # Run commands/tests via uv
 uv run newswatch --list_scrapers
@@ -59,8 +63,12 @@ Test that everything works:
 # Check available scrapers
 newswatch --list_scrapers
 
-# Should show something like:
-# Available scrapers: antaranews, bisnis, bloombergtechnoz, cnbcindonesia, cnnindonesia, detik, idntimes, kompas, kumparan, liputan6, merdeka, metrotvnews, okezone, republika, suara, tempo, tirto, tribunnews, viva, mediaindonesia, katadata, jawapos, kontan
+# Should show 26 stable scrapers, including:
+# antaranews, bisnis, bloombergtechnoz, cnbcindonesia, cnnindonesia,
+# detik, idntimes, inews, jawapos, katadata, kompas, kontan,
+# kumparan, liputan6, mediaindonesia, merdeka, metrotvnews,
+# okezone, republika, sindonews, suara, tempo, tirto,
+# tribunnews, tvone, viva
 ```
 
 ## Your First Scraping Session

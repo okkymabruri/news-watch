@@ -5,6 +5,28 @@ All notable changes to news-watch will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-04-18
+
+### Added
+- New supported scrapers: SINDOnews, TVOne, iNews
+- Negative nonsense-keyword tests to verify strict keyword-search behavior
+- Positive relevance and duplicate-link validation for scraper quality checks
+
+### Changed
+- Katadata now uses a public search API and no longer depends on Playwright/browser token capture
+- Development dependencies updated to `pytest 9.0.3` and `pytest-asyncio 1.3.0`
+- Scraper acceptance policy now requires strict true keyword search for supported sources
+
+### Fixed
+- Bisnis fallback logic and keyword relevance handling
+- SINDOnews duplicate pagination handling
+- TVOne result URL filtering
+- README and scraper list consistency across runtime and docs
+
+### Documentation
+- Updated docs and notebooks to reflect the 26 supported scrapers and current caveats
+- Added release notes for quarantined sources (`jakartapost`, `investor`, `tvrinews`, `rri`)
+
 ## [0.5.0] - 2026-01-24
 
 ### Added

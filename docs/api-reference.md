@@ -183,7 +183,7 @@ import newswatch as nw
 
 available = nw.list_scrapers()
 print("Available news sources:", available)
-# Output: ['antaranews', 'bisnis', 'bloombergtechnoz', 'cnbcindonesia', 'detik', ...]
+# Output: ['antaranews', 'bisnis', 'bloombergtechnoz', 'cnbcindonesia', 'cnnindonesia', ...]
 
 # Use specific ones for financial news
 financial_sources = ["bisnis", "kontan", "cnbcindonesia"]
@@ -286,6 +286,8 @@ The comprehensive guide covers:
 
 - Prefer `scrapers="auto"` unless you know which sites you need.
 - Cloud/server environments are more likely to be blocked.
+- Stable support currently covers 26 query-backed scrapers.
+- Quarantined sources such as `jakartapost`, `investor`, and `tvrinews` are intentionally excluded from `list_scrapers()`.
 
 **Empty results**: Check if your keywords are in Indonesian or try broader terms
 ```python
