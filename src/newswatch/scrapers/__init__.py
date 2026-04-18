@@ -1,10 +1,12 @@
 from .antaranews import AntaranewsScraper as AntaranewsScraper
+from .bbc import BBCNewsScraper as BBCNewsScraper
 from .bloombergtechnoz import BloombergTechnozScraper as BloombergTechnozScraper
 from .cnbcindonesia import CNBCScraper as CNBCScraper
 from .cnnindonesia import CNNIndonesiaScraper as CNNIndonesiaScraper
 from .detik import DetikScraper as DetikScraper
 from .idntimes import IDNTimesScraper as IDNTimesScraper
 from .inews import INewsScraper as INewsScraper
+from .investor import InvestorScraper as InvestorScraper
 from .jawapos import JawaposScraper as JawaposScraper
 from .katadata import KatadataScraper as KatadataScraper
 from .kompas import KompasScraper as KompasScraper
@@ -26,12 +28,14 @@ from .viva import VivaScraper as VivaScraper
 
 __all__ = [
     "AntaranewsScraper",
+    "BBCNewsScraper",
     "BloombergTechnozScraper",
     "CNBCScraper",
     "CNNIndonesiaScraper",
     "DetikScraper",
     "IDNTimesScraper",
     "INewsScraper",
+    "InvestorScraper",
     "JawaposScraper",
     "KatadataScraper",
     "KompasScraper",

@@ -31,7 +31,7 @@ class TestListScrapers:
     def test_list_scrapers_includes_known_scrapers(self):
         """Test that known scrapers are in the list."""
         scrapers = list_scrapers()
-        expected_scrapers = ["detik", "kompas", "tempo"]
+        expected_scrapers = ["kompas", "tempo", "bbc"]
         for scraper in expected_scrapers:
             assert scraper in scrapers
 
