@@ -1,3 +1,7 @@
+"""
+Investor.id scraper — uses /search/{keyword} endpoint for true keyword search.
+"""
+
 import logging
 import re
 from urllib.parse import quote
@@ -11,7 +15,8 @@ class InvestorScraper(BaseScraper):
     """
     Investor.id scraper implementation.
 
-    Uses /tag/{keyword} endpoint for keyword search.
+    Uses /search/{keyword} endpoint for keyword search.
+    Pagination: /search/{keyword}/2, /search/{keyword}/3, ...
     """
 
     def __init__(self, keywords, concurrency=5, start_date=None, queue_=None):
@@ -19,17 +24,16 @@ class InvestorScraper(BaseScraper):
         self.base_url = "investor.id"
         self.start_date = start_date
         self.continue_scraping = True
+        self.max_pages = 10
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         }
 
     async def build_search_url(self, keyword, page):
-        # https://investor.id/tag/ihsg (page 1)
-        # https://investor.id/tag/ihsg/2 (page 2)
         if page == 1:
-            url = f"https://www.{self.base_url}/tag/{quote(keyword.lower())}"
+            url = f"https://www.{self.base_url}/search/{quote(keyword.lower())}"
         else:
-            url = f"https://www.{self.base_url}/tag/{quote(keyword.lower())}/{page}"
+            url = f"https://www.{self.base_url}/search/{quote(keyword.lower())}/{page}"
         return await self.fetch(url, headers=self.headers, timeout=30)
 
     def parse_article_links(self, response_text):
@@ -38,7 +42,7 @@ class InvestorScraper(BaseScraper):
 
         soup = BeautifulSoup(response_text, "html.parser")
         pattern = re.compile(
-            r"investor\.id/(market|berita|ekonomi|nasional|sosial|teknologi)/\d+/"
+            r"^/(market|berita|ekonomi|nasional|sosial|teknologi)/\d+/"
         )
         filtered_hrefs = set()
 
@@ -78,31 +82,35 @@ class InvestorScraper(BaseScraper):
                 return
 
             author = "Unknown"
-            author_elem = soup.select_one(".author")
-            if author_elem:
-                author = author_elem.get_text(strip=True)
+            author_line = soup.select_one(".col.small.pt-1")
+            if author_line:
+                text = author_line.get_text(strip=True)
+                if "Penulis" in text:
+                    author = text.split("Penulis")[-1].strip().lstrip(":").strip()
 
             publish_date_str = ""
-            date_elem = soup.select_one(".date")
-            if date_elem:
-                publish_date_str = date_elem.get_text(strip=True)
+            date_span = soup.select_one("span.text-muted")
+            if date_span:
+                publish_date_str = date_span.get_text(strip=True)
 
-            content_div = soup.select_one(".content-article") or soup.select_one(
-                "article"
-            )
-            if content_div:
-                for tag in content_div.find_all("div"):
-                    classes = tag.get("class", [])
-                    if tag and any(
-                        cls.startswith("baca-juga")
-                        or cls.startswith("related")
-                        or "ads" in cls.lower()
-                        for cls in classes
-                    ):
-                        tag.extract()
-                content = content_div.get_text(separator=" ", strip=True)
-            else:
-                content = ""
+            content_div = soup.select_one(".body-content")
+            if not content_div:
+                content_div = soup.select_one("article")
+            if not content_div:
+                return
+
+            for tag in content_div.find_all("div"):
+                classes = tag.get("class", [])
+                if tag and any(
+                    cls.startswith("id-group")
+                    or cls.startswith("baca-juga")
+                    or cls.startswith("related")
+                    or "ads" in cls.lower()
+                    or "outstream" in cls.lower()
+                    for cls in classes
+                ):
+                    tag.extract()
+            content = content_div.get_text(separator=" ", strip=True)
 
             if not content:
                 return
