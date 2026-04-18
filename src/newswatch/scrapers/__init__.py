@@ -7,6 +7,7 @@ from .detik import DetikScraper as DetikScraper
 from .idntimes import IDNTimesScraper as IDNTimesScraper
 from .inews import INewsScraper as INewsScraper
 from .investor import InvestorScraper as InvestorScraper
+from .jakartapost import JakartaPostScraper as JakartaPostScraper
 from .jawapos import JawaposScraper as JawaposScraper
 from .katadata import KatadataScraper as KatadataScraper
 from .kompas import KompasScraper as KompasScraper
@@ -18,6 +19,7 @@ from .merdeka import MerdekaScraper as MerdekaScraper
 from .metrotvnews import MetrotvnewsScraper as MetrotvnewsScraper
 from .okezone import OkezoneScraper as OkezoneScraper
 from .republika import RepublikaScraper as RepublikaScraper
+from .rri import RRIScraper as RRIScraper
 from .sindonews import SindonewsScraper as SindonewsScraper
 from .suara import SuaraScraper as SuaraScraper
 from .tempo import TempoScraper as TempoScraper
@@ -36,6 +38,7 @@ __all__ = [
     "IDNTimesScraper",
     "INewsScraper",
     "InvestorScraper",
+    "JakartaPostScraper",
     "JawaposScraper",
     "KatadataScraper",
     "KompasScraper",
@@ -47,6 +50,7 @@ __all__ = [
     "MetrotvnewsScraper",
     "OkezoneScraper",
     "RepublikaScraper",
+    "RRIScraper",
     "SindonewsScraper",
     "SuaraScraper",
     "TempoScraper",

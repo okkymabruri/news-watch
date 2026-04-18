@@ -347,9 +347,11 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         name="RRI (RRI.co.id)",
         module="rri",
         class_name="RRIScraper",
-        status="investigating",
-        strict_search=False,
-        note="no search API found yet",
+        concurrency=5,
+        status="stable",
+        strict_search=True,
+        smoke_keyword="ekonomi",
+        note="promoted to stable; /search?q= endpoint with plain HTTP; 2026-04-18",
     ),
 }
 
