@@ -19,8 +19,8 @@ class SuaraMerdekaScraper(BaseScraper):
         self.base_url = "https://www.suaramerdeka.com"
         self.start_date = start_date
         self.continue_scraping = True
-        self.max_pages = 20
-        self._article_re = re.compile(r"https?://www\.suaramerdeka\.com/\w+/[0-9]{10}/")
+        self.max_pages = 5
+        self._article_re = re.compile(r"https?://www\.suaramerdeka\.com/\w+/\d{10}/")
 
     async def build_search_url(self, keyword, page):
         params = {"q": keyword}
@@ -55,7 +55,7 @@ class SuaraMerdekaScraper(BaseScraper):
         author_elem = soup.select_one('meta[name="author"]') or soup.select_one(".author")
         author = (author_elem.get("content", "") or author_elem.get_text(strip="")) if author_elem else "Unknown"
 
-        date_elem = soup.select_one('meta[property="article:published_time"]')
+        date_elem = soup.select_one('meta[name="content_PublishedDate"]') or soup.select_one('meta[property="article:published_time"]')
         publish_date_str = ""
         if date_elem:
             publish_date_str = date_elem.get("content", "")

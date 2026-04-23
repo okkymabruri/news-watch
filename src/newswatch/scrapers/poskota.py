@@ -6,6 +6,7 @@ https://www.poskota.co.id/tag/KEYWORD
 
 import logging
 import re
+from datetime import datetime
 from urllib.parse import quote
 
 from bs4 import BeautifulSoup
@@ -19,8 +20,9 @@ class PoskotaScraper(BaseScraper):
         self.base_url = "https://www.poskota.co.id"
         self.start_date = start_date
         self.continue_scraping = True
-        self.max_pages = 20
-        self._article_re = re.compile(r"https?://www\.poskota\.co\.id/\d{4}/\d{2}/\d{2}/")
+        self.max_pages = 10
+        self._article_re = re.compile(r"https?://www\.poskota\.co\.id/(\d{4})/(\d{2})/(\d{2})/")
+        self._date_re = re.compile(r"(\d{1,2})\s+([A-Z][a-z]+)\s+(\d{4})")
 
     async def build_search_url(self, keyword, page):
         if page == 1:
@@ -35,7 +37,14 @@ class PoskotaScraper(BaseScraper):
 
         for a in soup.select("a[href]"):
             href = a.get("href", "")
-            if self._article_re.match(href):
+            m = self._article_re.match(href)
+            if m:
+                # Pre-filter: skip articles older than start_date by URL date
+                year, month, day = int(m.group(1)), int(m.group(2)), int(m.group(3))
+                if self.start_date:
+                    url_date = datetime(year, month, day)
+                    if url_date < self.start_date:
+                        continue
                 links.add(href)
 
         return links or None
@@ -55,14 +64,18 @@ class PoskotaScraper(BaseScraper):
         author_elem = soup.select_one('meta[name="author"]') or soup.select_one(".author")
         author = (author_elem.get("content", "") or author_elem.get_text(strip="")) if author_elem else "Unknown"
 
-        date_elem = soup.select_one('meta[property="article:published_time"]')
+        # Date: first <span> with date pattern, or URL fallback
         publish_date_str = ""
-        if date_elem:
-            publish_date_str = date_elem.get("content", "")
+        first_date_span = soup.select_one("span")
+        if first_date_span:
+            txt = first_date_span.get_text(strip=True)
+            dm = self._date_re.search(txt)
+            if dm:
+                publish_date_str = txt
         if not publish_date_str:
-            date_text = soup.select_one("time")
-            if date_text:
-                publish_date_str = date_text.get_text(strip=True)
+            m = self._article_re.match(link)
+            if m:
+                publish_date_str = f"{m.group(3)} {m.group(2)} {m.group(1)}"
 
         content_div = soup.select_one('div[itemprop="articleBody"]') or soup.select_one(".article-content") or soup.select_one("article")
         if not content_div:
