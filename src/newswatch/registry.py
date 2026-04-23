@@ -358,10 +358,10 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         module="rmid",
         class_name="RmidScraper",
         concurrency=5,
-        status="investigating",
-        strict_search=False,
+        status="stable",
+        strict_search=True,
         smoke_keyword="ekonomi",
-        note="new source; /?s= search + title filtering; needs validation",
+        note="promoted to stable; /?s= search + title filtering + div.content-berita; 2026-04-23",
     ),
     "suaramerdeka": ScraperEntry(
         slug="suaramerdeka",

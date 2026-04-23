@@ -19,24 +19,29 @@ class RmidScraper(BaseScraper):
         self.base_url = "https://rm.id"
         self.start_date = start_date
         self.continue_scraping = True
-        self.max_pages = 10
+        self.max_pages = 5
         self._article_re = re.compile(r"https?://rm\.id/baca-berita/")
 
     async def build_search_url(self, keyword, page):
         if page == 1:
-            return f"{self.base_url}/?s={quote(keyword, safe='')}"
+            return await self.fetch(f"{self.base_url}/?s={quote(keyword, safe='')}", timeout=30)
         else:
-            return f"{self.base_url}/page/{page}/?s={quote(keyword, safe='')}"
+            return await self.fetch(f"{self.base_url}/page/{page}/?s={quote(keyword, safe='')}", timeout=30)
 
     def parse_article_links(self, response_text):
         soup = BeautifulSoup(response_text, "html.parser")
         links = set()
 
+        # RM.ID search returns general articles regardless of query;
+        # filter strictly by keyword presence in the visible title.
         for a in soup.select("a[href]"):
             href = a.get("href", "")
             if self._article_re.match(href):
                 title = a.get_text(strip=True)
-                if title:
+                # Use self.keywords from the parent class (set in fetch_search_results caller)
+                # For now, use the first keyword from the scraper's keywords list
+                kw = self.keywords[0].lower() if self.keywords else ""
+                if title and kw and kw in title.lower():
                     links.add(href)
 
         return links or None
@@ -60,12 +65,19 @@ class RmidScraper(BaseScraper):
         author_elem = soup.select_one('meta[name="author"]') or soup.select_one(".author")
         author = (author_elem.get("content", "") or author_elem.get_text(strip="")) if author_elem else "Unknown"
 
-        date_elem = soup.select_one('meta[property="article:published_time"]')
+        # Date: span with ISO-ish date pattern
         publish_date_str = ""
-        if date_elem:
-            publish_date_str = date_elem.get("content", "")
+        for span in soup.select("span"):
+            txt = span.get_text(strip=True)
+            if re.match(r"\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}", txt):
+                publish_date_str = txt.split("||")[0].strip()
+                break
+        if not publish_date_str:
+            date_meta = soup.select_one('meta[property="article:published_time"]')
+            if date_meta:
+                publish_date_str = date_meta.get("content", "")
 
-        content_div = soup.select_one('div[itemprop="articleBody"]') or soup.select_one(".article-content") or soup.select_one("article")
+        content_div = soup.select_one("div.content-berita") or soup.select_one('div[itemprop="articleBody"]') or soup.select_one(".article-content") or soup.select_one("article")
         if not content_div:
             return
 
