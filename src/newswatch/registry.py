@@ -339,7 +339,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         status="investigating",
         strict_search=False,
         smoke_keyword="ekonomi",
-        note="blocked: search page returns no article links as of 2026-04-23; needs alternative approach",
+        note="blocked: Cloudflare 1015 rate limiting bans automated requests; needs Playwright or rnet bypass",
     ),
     "poskota": ScraperEntry(
         slug="poskota",
