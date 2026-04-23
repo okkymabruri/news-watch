@@ -328,7 +328,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         status="investigating",
         strict_search=False,
         smoke_keyword="ekonomi",
-        note="new source; index page + keyword-in-title filtering; needs validation",
+        note="blocked: search returns same articles regardless of keyword; no pagination on index; needs Playwright or alternative endpoint",
     ),
     "pikiranrakyat": ScraperEntry(
         slug="pikiranrakyat",

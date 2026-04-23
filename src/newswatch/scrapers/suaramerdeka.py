@@ -90,7 +90,7 @@ class SuaraMerdekaScraper(BaseScraper):
             "content": content,
             "keyword": keyword,
             "category": category,
-            "source": "suaramerdeka.com",
+            "source": "suaramerdeka",
             "link": link,
         }
         await self.queue_.put(item)

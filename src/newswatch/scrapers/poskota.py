@@ -107,7 +107,7 @@ class PoskotaScraper(BaseScraper):
             "content": content,
             "keyword": keyword,
             "category": category,
-            "source": "poskota.co.id",
+            "source": "poskota",
             "link": link,
         }
         await self.queue_.put(item)

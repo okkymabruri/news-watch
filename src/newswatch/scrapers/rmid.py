@@ -107,7 +107,7 @@ class RmidScraper(BaseScraper):
             "content": content,
             "keyword": keyword,
             "category": category,
-            "source": "rm.id",
+            "source": "rmid",
             "link": link,
         }
         await self.queue_.put(item)
