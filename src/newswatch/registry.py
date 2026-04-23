@@ -319,17 +319,6 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         note="promoted to stable; rebuilt with sitemap keyword filtering; 2026-04-18",
     ),
     # ── Investigating / new targets ──────────────────────────────────────────
-    "kbrid": ScraperEntry(
-        slug="kbrid",
-        name="KBR (Kantor Berita Radio)",
-        module="kbrid",
-        class_name="KbrScraper",
-        concurrency=5,
-        status="investigating",
-        strict_search=False,
-        smoke_keyword="ekonomi",
-        note="blocked: search returns same articles regardless of keyword; no pagination on index; needs Playwright or alternative endpoint",
-    ),
     "pikiranrakyat": ScraperEntry(
         slug="pikiranrakyat",
         name="Pikiran Rakyat",
