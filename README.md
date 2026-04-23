@@ -114,6 +114,8 @@ The output file contains the following columns:
 
 ## Supported Websites
 
+All 32 stable scrapers support strict keyword search.
+
 | Source | Domain |
 |--------|--------|
 | Antara News | antaranews.com |
@@ -121,23 +123,36 @@ The output file contains the following columns:
 | Bisnis.com | bisnis.com |
 | Bloomberg Technoz | bloombergtechnoz.com |
 | CNBC Indonesia | cnbcindonesia.com |
+| CNN Indonesia | cnnindonesia.com |
+| Detik | detik.com |
 | iNews | inews.id |
+| Investor Daily | investor.id |
 | Jawapos | jawapos.com |
+| Jakarta Post | thejakartapost.com |
 | Katadata | katadata.co.id |
 | Kompas | kompas.com |
 | Kontan | kontan.co.id |
+| Kumparan | kumparan.com |
+| Liputan6 | liputan6.com |
 | Media Indonesia | mediaindonesia.com |
+| Merdeka | merdeka.com |
 | Metro TV News | metrotvnews.com |
+| Mongabay Indonesia | mongabay.co.id |
+| Okezone | okezone.com |
+| Republika | republika.co.id |
+| RRI | rri.co.id |
 | SINDOnews | sindonews.com |
+| Suara | suara.com |
 | Tempo | tempo.co |
+| Tirto | tirto.id |
+| Tribunnews | tribunnews.com |
 | TVOne | tvonenews.com |
+| TVRI News | tvrinews.id |
 | Viva | viva.co.id |
 
-### Quarantined (work in progress)
+### Under Investigation (5)
 
-CNN Indonesia, Detik, IDN Times, Investor.id, Jakarta Post, Kumparan, Liputan6, Merdeka, Okezone, Republika, Suara, Tirto, Tribunnews, TVRI News.
-
-See `dev/portal-inventory.md` for recovery status.
+KBR (kbr.id), Pikiran Rakyat (pikiran-rakyat.com), Poskota (poskota.co.id), RM.ID (rm.id), Suara Merdeka (suaramerdeka.com).
 
 > **Notes:**
 > - Use `-s all` to force-run all scrapers (may cause errors/timeouts).

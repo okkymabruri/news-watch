@@ -63,10 +63,7 @@ Test that everything works:
 # Check available scrapers
 newswatch --list_scrapers
 
-# Should show 16 stable scrapers, including:
-# antaranews, bbc, bisnis, bloombergtechnoz, cnbcindonesia,
-# inews, jawapos, katadata, kompas, kontan, mediaindonesia,
-# metrotvnews, sindonews, tempo, tvone, viva
+# Should show 32 stable scrapers
 ```
 
 ## Your First Scraping Session

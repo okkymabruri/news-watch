@@ -286,8 +286,8 @@ The comprehensive guide covers:
 
 - Prefer `scrapers="auto"` unless you know which sites you need.
 - Cloud/server environments are more likely to be blocked.
-- Stable support currently covers 16 query-backed scrapers.
-- Quarantined sources such as `jakartapost`, `investor`, and `tvrinews` are intentionally excluded from `list_scrapers()`.
+- Stable support currently covers 32 query-backed scrapers.
+- Investigating sources such as `kbrid`, `pikiranrakyat`, `poskota`, `rmid`, and `suaramerdeka` are intentionally excluded from `list_scrapers()`.
 
 **Empty results**: Check if your keywords are in Indonesian or try broader terms
 ```python

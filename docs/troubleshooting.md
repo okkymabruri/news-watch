@@ -76,7 +76,7 @@ Some sources (e.g., Tirto) may require browser automation. Ensure Playwright is 
 playwright install chromium
 ```
 
-Experimental or quarantined browser-backed sources are intentionally excluded from the stable supported scraper list.
+Investigating browser-backed sources are intentionally excluded from the stable supported scraper list.
 
 Try:
 ```bash

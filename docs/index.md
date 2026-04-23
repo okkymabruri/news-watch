@@ -6,7 +6,7 @@
 
 news-watch scrapes structured news data from Indonesia's top news websites with keyword and date filtering.
 
-The current stable release supports 16 query-backed Indonesian news scrapers. Quarantined sources with known keyword-search issues are excluded from runtime.
+The current stable release supports 32 query-backed Indonesian news scrapers, with 5 additional sources under investigation.
 
 ## Installation
 
@@ -54,21 +54,36 @@ print(len(df))
 | Bisnis.com | bisnis.com |
 | Bloomberg Technoz | bloombergtechnoz.com |
 | CNBC Indonesia | cnbcindonesia.com |
+| CNN Indonesia | cnnindonesia.com |
+| Detik | detik.com |
 | iNews | inews.id |
+| Investor Daily | investor.id |
 | Jawapos | jawapos.com |
+| Jakarta Post | thejakartapost.com |
 | Katadata | katadata.co.id |
 | Kompas | kompas.com |
 | Kontan | kontan.co.id |
+| Kumparan | kumparan.com |
+| Liputan6 | liputan6.com |
 | Media Indonesia | mediaindonesia.com |
+| Merdeka | merdeka.com |
 | Metro TV News | metrotvnews.com |
+| Mongabay Indonesia | mongabay.co.id |
+| Okezone | okezone.com |
+| Republika | republika.co.id |
+| RRI | rri.co.id |
 | SINDOnews | sindonews.com |
+| Suara | suara.com |
 | Tempo | tempo.co |
+| Tirto | tirto.id |
+| Tribunnews | tribunnews.com |
 | TVOne | tvonenews.com |
+| TVRI News | tvrinews.id |
 | Viva | viva.co.id |
 
-### Quarantined (work in progress)
+### Under Investigation
 
-CNN Indonesia, Detik, IDN Times, Investor.id, Jakarta Post, Kumparan, Liputan6, Merdeka, Okezone, Republika, Suara, Tirto, Tribunnews, TVRI News.
+KBR (kbr.id), Pikiran Rakyat (pikiran-rakyat.com), Poskota (poskota.co.id), RM.ID (rm.id), Suara Merdeka (suaramerdeka.com).
 
 ## Important Considerations
 
@@ -76,4 +91,4 @@ CNN Indonesia, Detik, IDN Times, Investor.id, Jakarta Post, Kumparan, Liputan6, 
 
 **Performance**: Works best in local environments. Cloud platforms may experience reduced performance due to anti-bot measures.
 
-**Strict search policy**: Only scrapers with query-backed discovery are listed as supported. Experimental or quarantined sources are intentionally excluded.
+**Strict search policy**: Only scrapers with query-backed discovery are listed as supported. Experimental or investigating sources are intentionally excluded.

@@ -44,10 +44,10 @@ A source moves to **stable** only if:
 3. unrelated keywords yield different links
 4. URLs are canonical article pages
 
-## Current State (2026-04-18)
+## Current State (2026-04-23)
 
 | State | Count |
 |---|---|
-| stable | 19 |
-| quarantined | 12 |
-| investigating | 2 |
+| stable | 32 |
+| quarantined | 0 |
+| investigating | 6 |
