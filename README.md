@@ -112,7 +112,7 @@ The output file contains the following columns:
 - `source`
 - `link`
 
-## Supported Websites (39)
+## Supported Websites (40)
 
 [Antara News](https://antaranews.com),
 [BBC News](https://bbc.com),
@@ -122,6 +122,7 @@ The output file contains the following columns:
 [CNBC Indonesia](https://cnbcindonesia.com),
 [CNN Indonesia](https://cnnindonesia.com),
 [Detik](https://detik.com),
+[Galamedia](https://galamedia.pikiran-rakyat.com),
 [IDN Times](https://idntimes.com),
 [iNews](https://inews.id),
 [Investor Daily](https://investor.id),

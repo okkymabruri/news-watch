@@ -400,10 +400,10 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         module="galamedia",
         class_name="GalamediaScraper",
         concurrency=5,
-        status="investigating",
-        strict_search=False,
+        status="stable",
+        strict_search=True,
         smoke_keyword="ekonomi",
-        note="search page works with keyword-in-title filtering; tag page stale; needs freshness validation",
+        note="promoted to stable; /search?q= endpoint + div.latest__item + keyword-in-title filtering; 2026-04-24",
     ),
     "jpnn": ScraperEntry(
         slug="jpnn",

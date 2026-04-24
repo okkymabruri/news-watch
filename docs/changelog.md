@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- New stable scrapers: Pikiran Rakyat, Poskota, RM.ID, Suara Merdeka, JPNN, Surabaya Pagi
+- New stable scrapers: Pikiran Rakyat, Poskota, RM.ID, Suara Merdeka, JPNN, Surabaya Pagi, Galamedia
 - BeritaJatim promoted to stable
 
 ### Changed

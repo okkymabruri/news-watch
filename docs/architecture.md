@@ -48,6 +48,6 @@ A source moves to **stable** only if:
 
 | State | Count |
 |---|---|
-| stable | 39 |
+| stable | 40 |
 | quarantined | 0 |
-| investigating | 1 |
+| investigating | 0 |
