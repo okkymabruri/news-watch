@@ -1,7 +1,9 @@
 """
-Galamedia scraper — uses tag page with keyword filtering.
+Galamedia scraper — uses search page with keyword filtering.
 
-https://galamedia.pikiran-rakyat.com/tag/{keyword}
+https://galamedia.pikiran-rakyat.com/search?q={keyword}
+
+Note: tag/{keyword} endpoint has stale content; search page returns fresher results.
 """
 
 import logging
@@ -21,22 +23,27 @@ class GalamediaScraper(BaseScraper):
         self.continue_scraping = True
         self.max_pages = 10
         self._article_re = re.compile(r"https?://galamedia\.pikiran-rakyat\.com/\w+/pr-\d+/")
+        self._date_re = re.compile(r"(\d{1,2})\s+(Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agu|Sep|Okt|Nov|Des)\w*\s+(\d{4})")
 
     async def build_search_url(self, keyword, page):
         if page == 1:
-            url = f"{self.base_url}/tag/{quote(keyword, safe='')}"
+            url = f"{self.base_url}/search?q={quote(keyword, safe='')}"
         else:
-            url = f"{self.base_url}/tag/{quote(keyword, safe='')}?page={page}"
+            url = f"{self.base_url}/search?q={quote(keyword, safe='')}&page={page}"
         return await self.fetch(url, timeout=30)
 
     def parse_article_links(self, response_text):
         soup = BeautifulSoup(response_text, "html.parser")
         links = set()
 
-        for h in soup.select("h2 a[href], h3 a[href]"):
-            href = h.get("href", "")
-            if self._article_re.match(href):
-                links.add(href if href.startswith("http") else f"{self.base_url}{href}")
+        for item in soup.select("div.latest__item"):
+            for a in item.select("a[href]"):
+                href = a.get("href", "")
+                if self._article_re.match(href):
+                    title = a.get_text(strip=True)
+                    kw = self.keywords[0].lower() if self.keywords else ""
+                    if title and kw and kw in title.lower():
+                        links.add(href if href.startswith("http") else f"{self.base_url}{href}")
 
         return links or None
 
@@ -56,11 +63,10 @@ class GalamediaScraper(BaseScraper):
         author = (author_elem.get("content", "") or author_elem.get_text(strip="")) if author_elem else "Unknown"
 
         # Date: span with Indonesian date pattern inside article
-        date_re = re.compile(r"(\d{1,2})\s+(Jan|Feb|Mar|Apr|Mei|Jun|Jul|Agu|Sep|Okt|Nov|Des)\w*\s+(\d{4})")
         publish_date_str = ""
         for span in soup.select("span"):
             txt = span.get_text(strip=True)
-            m = date_re.search(txt)
+            m = self._date_re.search(txt)
             if m:
                 publish_date_str = m.group(0)
                 break
@@ -77,7 +83,7 @@ class GalamediaScraper(BaseScraper):
         if not content:
             return
 
-        publish_date = self.parse_date(publish_date_str)
+        publish_date = self.parse_date(publish_date_str, locales=["id"])
         if not publish_date:
             logging.debug("Galamedia date parse failed | url: %s | date: %r", link, publish_date_str[:50])
             return

@@ -14,7 +14,7 @@ from .basescraper import BaseScraper
 
 
 class SurabayaPagiScraper(BaseScraper):
-    def __init__(self, keywords, concurrency=5, start_date=None, queue_=None):
+    def __init__(self, keywords, concurrency=3, start_date=None, queue_=None):
         super().__init__(keywords, concurrency, queue_)
         self.base_url = "https://surabayapagi.com"
         self.start_date = start_date
@@ -33,8 +33,8 @@ class SurabayaPagiScraper(BaseScraper):
         soup = BeautifulSoup(response_text, "html.parser")
         links = set()
 
-        for h in soup.select("h2 a[href], h3 a[href]"):
-            href = h.get("href", "")
+        for a in soup.select("a[href]"):
+            href = a.get("href", "")
             if self._article_re.match(href):
                 links.add(href if href.startswith("http") else f"{self.base_url}{href}")
 
@@ -55,12 +55,13 @@ class SurabayaPagiScraper(BaseScraper):
         author_elem = soup.select_one('meta[name="author"]') or soup.select_one(".author")
         author = (author_elem.get("content", "") or author_elem.get_text(strip="")) if author_elem else "Unknown"
 
-        date_elem = soup.select_one('meta[property="article:published_time"]')
-        publish_date_str = ""
-        if date_elem:
-            publish_date_str = date_elem.get("content", "")
+        # Date from article:published_time meta tag
+        date_meta = soup.select_one('meta[property="article:published_time"]')
+        publish_date_str = date_meta.get("content", "") if date_meta else ""
+        if not publish_date_str:
+            return
 
-        content_div = soup.select_one('div[itemprop="articleBody"]') or soup.select_one("div.article-content") or soup.select_one("article")
+        content_div = soup.select_one("article") or soup.select_one('div[itemprop="articleBody"]') or soup.select_one(".article-content")
         if not content_div:
             return
 

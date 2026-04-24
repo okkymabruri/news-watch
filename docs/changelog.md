@@ -8,10 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- New stable scrapers: Pikiran Rakyat, Poskota, RM.ID, Suara Merdeka
+- New stable scrapers: Pikiran Rakyat, Poskota, RM.ID, Suara Merdeka, JPNN, Surabaya Pagi
+- BeritaJatim promoted to stable
 
 ### Changed
-- All 36 scrapers now pass strict keyword validation; no investigating or quarantined entries remain
+- JPNN scraper rewritten: date extraction from meta[name=jpnncom_news_pubdate] (Indonesian format)
+- SurabayaPagi scraper rewritten: article content from `article` element, concurrency reduced to 3 for rate limiting
+- Galamedia scraper updated: switched from stale tag page to /search?q= endpoint with keyword-in-title filtering
+- JPNN article link regex simplified to /news/ only (removed /foto/ gallery pages)
+- All scrapers aligned with SCRAPER_TEMPLATE.md patterns: consistent import ordering, logging format, and item field structure
 
 ### Fixed
 - Pikiran Rakyat recovered via Playwright CSE after Cloudflare 1015 blocks

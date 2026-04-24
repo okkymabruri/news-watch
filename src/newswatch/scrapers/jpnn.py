@@ -20,7 +20,7 @@ class JpnnScraper(BaseScraper):
         self.start_date = start_date
         self.continue_scraping = True
         self.max_pages = 10
-        self._article_re = re.compile(r"https?://www\.jpnn\.com/(news|foto)/")
+        self._article_re = re.compile(r"https?://www\.jpnn\.com/news/")
 
     async def build_search_url(self, keyword, page):
         if page == 1:
@@ -33,8 +33,8 @@ class JpnnScraper(BaseScraper):
         soup = BeautifulSoup(response_text, "html.parser")
         links = set()
 
-        for h in soup.select("h2 a[href], h3 a[href]"):
-            href = h.get("href", "")
+        for a in soup.select("a[href]"):
+            href = a.get("href", "")
             if self._article_re.match(href):
                 links.add(href if href.startswith("http") else f"{self.base_url}{href}")
 
@@ -47,18 +47,22 @@ class JpnnScraper(BaseScraper):
 
         soup = BeautifulSoup(response_text, "html.parser")
 
-        title_elem = soup.select_one("h1") or soup.select_one('meta[property="og:title"]')
+        title_elem = soup.select_one("h1.judul") or soup.select_one('meta[property="og:title"]')
         title = (title_elem.get("content", "") or title_elem.get_text(strip="")) if title_elem else ""
         if not title:
             return
 
-        author_elem = soup.select_one('meta[name="author"]') or soup.select_one(".author")
+        author_elem = soup.select_one('meta[name="jpnncom_news_author"]') or soup.select_one('meta[name="author"]') or soup.select_one(".author")
         author = (author_elem.get("content", "") or author_elem.get_text(strip="")) if author_elem else "Unknown"
 
-        date_elem = soup.select_one('meta[property="article:published_time"]')
-        publish_date_str = ""
-        if date_elem:
-            publish_date_str = date_elem.get("content", "")
+        # JPNN uses meta[name="jpnncom_news_pubdate"] with Indonesian format:
+        # "24 April 2026 20:05"
+        date_meta = soup.select_one('meta[name="jpnncom_news_pubdate"]')
+        if date_meta:
+            publish_date_str = date_meta.get("content", "")
+        else:
+            date_span = soup.select_one("span.date-publish")
+            publish_date_str = date_span.get_text(strip="") if date_span else ""
 
         content_div = soup.select_one('div[itemprop="articleBody"]') or soup.select_one("div.article-content") or soup.select_one("article")
         if not content_div:
@@ -70,7 +74,7 @@ class JpnnScraper(BaseScraper):
         if not content:
             return
 
-        publish_date = self.parse_date(publish_date_str)
+        publish_date = self.parse_date(publish_date_str, locales=["id"])
         if not publish_date:
             logging.debug("JPNN date parse failed | url: %s | date: %r", link, publish_date_str[:50])
             return

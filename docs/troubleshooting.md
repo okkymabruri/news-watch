@@ -76,7 +76,7 @@ Some sources (e.g., Tirto) may require browser automation. Ensure Playwright is 
 playwright install chromium
 ```
 
-All 36 scrapers are stable and included in the runtime. No investigating or quarantined sources remain.
+All 39 scrapers are stable. Galamedia remains under investigation (search endpoint works but freshness needs validation).
 
 Try:
 ```bash

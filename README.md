@@ -112,10 +112,11 @@ The output file contains the following columns:
 - `source`
 - `link`
 
-## Supported Websites (36)
+## Supported Websites (39)
 
 [Antara News](https://antaranews.com),
 [BBC News](https://bbc.com),
+[Berita Jatim](https://beritajatim.com),
 [Bisnis.com](https://bisnis.com),
 [Bloomberg Technoz](https://bloombergtechnoz.com),
 [CNBC Indonesia](https://cnbcindonesia.com),
@@ -126,6 +127,7 @@ The output file contains the following columns:
 [Investor Daily](https://investor.id),
 [Jawapos](https://jawapos.com),
 [Jakarta Post](https://thejakartapost.com),
+[JPNN](https://jpnn.com),
 [Katadata](https://katadata.co.id),
 [Kompas](https://kompas.com),
 [Kontan](https://kontan.co.id),
@@ -144,6 +146,7 @@ The output file contains the following columns:
 [SINDOnews](https://sindonews.com),
 [Suara](https://suara.com),
 [Suara Merdeka](https://suaramerdeka.com),
+[Surabaya Pagi](https://surabayapagi.com),
 [Tempo](https://tempo.co),
 [Tirto](https://tirto.id),
 [Tribunnews](https://tribunnews.com),
