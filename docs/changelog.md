@@ -5,6 +5,21 @@ All notable changes to news-watch will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- New stable scrapers: Pikiran Rakyat, Poskota, RM.ID, Suara Merdeka
+
+### Changed
+- All 36 scrapers now pass strict keyword validation; no investigating or quarantined entries remain
+
+### Fixed
+- Pikiran Rakyat recovered via Playwright CSE after Cloudflare 1015 blocks
+- Poskota fixed with URL-date prefiltering to skip archived 404s
+- RM.ID fixed with title filtering and `div.content-berita` extraction
+- Suara Merdeka fixed with `content_PublishedDate` meta extraction
+- Docs synced to match final runtime state
+
 ## [0.6.0] - 2026-04-18
 
 ### Added

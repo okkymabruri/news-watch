@@ -92,4 +92,4 @@ print(len(df))
 
 **Performance**: Works best in local environments. Cloud platforms may experience reduced performance due to anti-bot measures.
 
-**Strict search policy**: Only scrapers with query-backed discovery are listed as supported. Experimental or investigating sources are intentionally excluded.
+**Strict search policy**: Every listed source passes real keyword search checks.

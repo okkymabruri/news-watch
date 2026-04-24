@@ -112,48 +112,44 @@ The output file contains the following columns:
 - `source`
 - `link`
 
-## Supported Websites
+## Supported Websites (36)
 
-All 36 stable scrapers support strict keyword search.
-
-| Source | Domain |
-|--------|--------|
-| Antara News | antaranews.com |
-| BBC News | bbc.com |
-| Bisnis.com | bisnis.com |
-| Bloomberg Technoz | bloombergtechnoz.com |
-| CNBC Indonesia | cnbcindonesia.com |
-| CNN Indonesia | cnnindonesia.com |
-| Detik | detik.com |
-| IDN Times | idntimes.com |
-| iNews | inews.id |
-| Investor Daily | investor.id |
-| Jawapos | jawapos.com |
-| Jakarta Post | thejakartapost.com |
-| Katadata | katadata.co.id |
-| Kompas | kompas.com |
-| Kontan | kontan.co.id |
-| Kumparan | kumparan.com |
-| Liputan6 | liputan6.com |
-| Media Indonesia | mediaindonesia.com |
-| Merdeka | merdeka.com |
-| Metro TV News | metrotvnews.com |
-| Mongabay Indonesia | mongabay.co.id |
-| Okezone | okezone.com |
-| Pikiran Rakyat | pikiran-rakyat.com |
-| Poskota | poskota.co.id |
-| Republika | republika.co.id |
-| RM.ID | rm.id |
-| RRI | rri.co.id |
-| SINDOnews | sindonews.com |
-| Suara | suara.com |
-| Suara Merdeka | suaramerdeka.com |
-| Tempo | tempo.co |
-| Tirto | tirto.id |
-| Tribunnews | tribunnews.com |
-| TVOne | tvonenews.com |
-| TVRI News | tvrinews.id |
-| Viva | viva.co.id |
+[Antara News](https://antaranews.com),
+[BBC News](https://bbc.com),
+[Bisnis.com](https://bisnis.com),
+[Bloomberg Technoz](https://bloombergtechnoz.com),
+[CNBC Indonesia](https://cnbcindonesia.com),
+[CNN Indonesia](https://cnnindonesia.com),
+[Detik](https://detik.com),
+[IDN Times](https://idntimes.com),
+[iNews](https://inews.id),
+[Investor Daily](https://investor.id),
+[Jawapos](https://jawapos.com),
+[Jakarta Post](https://thejakartapost.com),
+[Katadata](https://katadata.co.id),
+[Kompas](https://kompas.com),
+[Kontan](https://kontan.co.id),
+[Kumparan](https://kumparan.com),
+[Liputan6](https://liputan6.com),
+[Media Indonesia](https://mediaindonesia.com),
+[Merdeka](https://merdeka.com),
+[Metro TV News](https://metrotvnews.com),
+[Mongabay Indonesia](https://mongabay.co.id),
+[Okezone](https://okezone.com),
+[Pikiran Rakyat](https://pikiran-rakyat.com),
+[Poskota](https://poskota.co.id),
+[Republika](https://republika.co.id),
+[RM.ID](https://rm.id),
+[RRI](https://rri.co.id),
+[SINDOnews](https://sindonews.com),
+[Suara](https://suara.com),
+[Suara Merdeka](https://suaramerdeka.com),
+[Tempo](https://tempo.co),
+[Tirto](https://tirto.id),
+[Tribunnews](https://tribunnews.com),
+[TVOne](https://tvonenews.com),
+[TVRI News](https://tvrinews.id),
+[Viva](https://viva.co.id)
 
 > **Notes:**
 > - Use `-s all` to force-run all scrapers (may cause errors/timeouts).
