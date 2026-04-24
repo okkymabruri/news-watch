@@ -6,7 +6,7 @@
 
 news-watch scrapes structured news data from Indonesia's top news websites with keyword and date filtering.
 
-The current stable release supports 32 query-backed Indonesian news scrapers, with 5 additional sources under investigation.
+The current stable release supports 36 query-backed Indonesian news scrapers. No investigating or quarantined sources remain.
 
 ## Installation
 
@@ -56,6 +56,7 @@ print(len(df))
 | CNBC Indonesia | cnbcindonesia.com |
 | CNN Indonesia | cnnindonesia.com |
 | Detik | detik.com |
+| IDN Times | idntimes.com |
 | iNews | inews.id |
 | Investor Daily | investor.id |
 | Jawapos | jawapos.com |
@@ -70,20 +71,20 @@ print(len(df))
 | Metro TV News | metrotvnews.com |
 | Mongabay Indonesia | mongabay.co.id |
 | Okezone | okezone.com |
+| Pikiran Rakyat | pikiran-rakyat.com |
+| Poskota | poskota.co.id |
 | Republika | republika.co.id |
+| RM.ID | rm.id |
 | RRI | rri.co.id |
 | SINDOnews | sindonews.com |
 | Suara | suara.com |
+| Suara Merdeka | suaramerdeka.com |
 | Tempo | tempo.co |
 | Tirto | tirto.id |
 | Tribunnews | tribunnews.com |
 | TVOne | tvonenews.com |
 | TVRI News | tvrinews.id |
 | Viva | viva.co.id |
-
-### Under Investigation
-
-KBR (kbr.id), Pikiran Rakyat (pikiran-rakyat.com), Poskota (poskota.co.id), RM.ID (rm.id), Suara Merdeka (suaramerdeka.com).
 
 ## Important Considerations
 

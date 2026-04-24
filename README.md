@@ -114,7 +114,7 @@ The output file contains the following columns:
 
 ## Supported Websites
 
-All 32 stable scrapers support strict keyword search.
+All 36 stable scrapers support strict keyword search.
 
 | Source | Domain |
 |--------|--------|
@@ -125,6 +125,7 @@ All 32 stable scrapers support strict keyword search.
 | CNBC Indonesia | cnbcindonesia.com |
 | CNN Indonesia | cnnindonesia.com |
 | Detik | detik.com |
+| IDN Times | idntimes.com |
 | iNews | inews.id |
 | Investor Daily | investor.id |
 | Jawapos | jawapos.com |
@@ -139,20 +140,20 @@ All 32 stable scrapers support strict keyword search.
 | Metro TV News | metrotvnews.com |
 | Mongabay Indonesia | mongabay.co.id |
 | Okezone | okezone.com |
+| Pikiran Rakyat | pikiran-rakyat.com |
+| Poskota | poskota.co.id |
 | Republika | republika.co.id |
+| RM.ID | rm.id |
 | RRI | rri.co.id |
 | SINDOnews | sindonews.com |
 | Suara | suara.com |
+| Suara Merdeka | suaramerdeka.com |
 | Tempo | tempo.co |
 | Tirto | tirto.id |
 | Tribunnews | tribunnews.com |
 | TVOne | tvonenews.com |
 | TVRI News | tvrinews.id |
 | Viva | viva.co.id |
-
-### Under Investigation (5)
-
-KBR (kbr.id), Pikiran Rakyat (pikiran-rakyat.com), Poskota (poskota.co.id), RM.ID (rm.id), Suara Merdeka (suaramerdeka.com).
 
 > **Notes:**
 > - Use `-s all` to force-run all scrapers (may cause errors/timeouts).
