@@ -44,7 +44,7 @@ A source moves to **stable** only if:
 3. unrelated keywords yield different links
 4. URLs are canonical article pages
 
-## Current State (2026-04-24)
+## Current State (2026-04-25)
 
 | State | Count |
 |---|---|

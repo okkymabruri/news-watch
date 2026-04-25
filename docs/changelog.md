@@ -9,25 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.7.0] - 2026-04-25
 
-### Added
-- New stable scrapers: Pikiran Rakyat, Poskota, RM.ID, Suara Merdeka, JPNN, Surabaya Pagi, Galamedia
-- BeritaJatim promoted to stable
-- BBC News scraper
+## What's Changed
 
-### Changed
-- Centralized scraper loading around the registry-driven runtime
-- JPNN scraper rewritten with Indonesian date extraction from `meta[name=jpnncom_news_pubdate]`
-- SurabayaPagi scraper rewritten with `article`-based content extraction and lower concurrency for rate limiting
-- Galamedia scraper switched from stale tag pages to `/search?q=` with keyword-in-title filtering
-- Multiple recovered scrapers aligned with `dev/SCRAPER_TEMPLATE.md` patterns for imports, logging, and item structure
+## Highlights
+- Added new stable scrapers: `bbc`, `beritajatim`, `pikiranrakyat`, `poskota`, `rmid`, `suaramerdeka`, `jpnn`, `surabayapagi`, `galamedia`
+- Moved scraper loading to the central registry-driven runtime
+- Reworked `jpnn`, `surabayapagi`, and `galamedia` for the current strict-search flow
+- Aligned recovered scrapers with `dev/SCRAPER_TEMPLATE.md` patterns
 
-### Fixed
-- Pikiran Rakyat recovered via Playwright CSE after Cloudflare 1015 blocks
-- Poskota fixed with URL-date prefiltering to skip archived 404s
-- RM.ID fixed with title filtering and `div.content-berita` extraction
-- Suara Merdeka fixed with `content_PublishedDate` meta extraction
-- CI/docs sync updated to reflect the current stable runtime set
-- README now documents that some scrapers may fail on remote servers or CI because of anti-bot and environment-specific behavior
+## Quality
+- Recovered `pikiranrakyat` via Playwright CSE after Cloudflare 1015 blocks
+- Fixed `poskota` with URL-date prefiltering to skip archived 404s
+- Fixed `rmid` with title filtering and `div.content-berita` extraction
+- Fixed `suaramerdeka` with `content_PublishedDate` meta extraction
+- Added `ruff` to the dev toolchain and updated `Makefile` lint/test commands to use dev extras
+- Marked environment-sensitive CI sources in Linux minimal checks: `jakartapost`, `jawapos`, `kumparan`, `pikiranrakyat`, `suara`, `surabayapagi`, `tirto`
+
+## Notes
+- Stable supported scraper set is now 40 sources
+- Some scrapers may work locally but fail on remote servers, Linux CI, or GitHub Actions because of anti-bot protection, rate limits, geolocation, JavaScript rendering differences, or source-side changes
+- Docs and README were synced to the current runtime state
+
+**Full Changelog**: https://github.com/okkymabruri/news-watch/compare/v0.6.0...v0.7.0
 
 ## [0.6.0] - 2026-04-18
 

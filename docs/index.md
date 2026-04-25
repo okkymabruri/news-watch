@@ -51,16 +51,19 @@ print(len(df))
 |--------|--------|
 | Antara News | antaranews.com |
 | BBC News | bbc.com |
+| BeritaJatim | beritajatim.com |
 | Bisnis.com | bisnis.com |
 | Bloomberg Technoz | bloombergtechnoz.com |
 | CNBC Indonesia | cnbcindonesia.com |
 | CNN Indonesia | cnnindonesia.com |
 | Detik | detik.com |
+| Galamedia | galamedia.pikiran-rakyat.com |
 | IDN Times | idntimes.com |
 | iNews | inews.id |
 | Investor Daily | investor.id |
 | Jawapos | jawapos.com |
 | Jakarta Post | thejakartapost.com |
+| JPNN | jpnn.com |
 | Katadata | katadata.co.id |
 | Kompas | kompas.com |
 | Kontan | kontan.co.id |
@@ -79,6 +82,7 @@ print(len(df))
 | SINDOnews | sindonews.com |
 | Suara | suara.com |
 | Suara Merdeka | suaramerdeka.com |
+| Surabaya Pagi | surabayapagi.com |
 | Tempo | tempo.co |
 | Tirto | tirto.id |
 | Tribunnews | tribunnews.com |
