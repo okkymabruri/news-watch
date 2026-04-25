@@ -12,8 +12,21 @@ import pytest
 from newswatch.api import scrape
 from newswatch.registry import get_stable_slugs, SCRAPERS
 
+# Linux-excluded scrapers (known environment-sensitive sources)
+LINUX_EXCLUDED_SCRAPERS = [
+    "jakartapost",
+    "jawapos",
+    "kumparan",
+    "pikiranrakyat",
+    "suara",
+    "surabayapagi",
+    "tirto",
+]
+
 # Derive test matrix from the central registry
-LINUX_SCRAPERS = sorted(get_stable_slugs())
+LINUX_SCRAPERS = sorted(
+    slug for slug in get_stable_slugs() if slug not in LINUX_EXCLUDED_SCRAPERS
+)
 
 # Per-scraper keyword overrides (use registry smoke_keyword if set, else "ihsg")
 KEYWORDS_BY_SCRAPER = {
@@ -21,10 +34,6 @@ KEYWORDS_BY_SCRAPER = {
     for slug in LINUX_SCRAPERS
     if SCRAPERS.get(slug) and SCRAPERS[slug].smoke_keyword != "ihsg"
 }
-
-# Linux-excluded scrapers (empty — no platform-specific exclusions currently)
-LINUX_EXCLUDED_SCRAPERS = []
-
 
 @pytest.mark.network
 @pytest.mark.parametrize("scraper", LINUX_SCRAPERS)

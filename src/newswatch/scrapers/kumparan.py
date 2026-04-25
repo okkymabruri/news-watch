@@ -6,9 +6,7 @@ that can be filtered by keyword presence.
 """
 
 import logging
-import re
 
-import aiohttp
 from bs4 import BeautifulSoup
 
 from .basescraper import BaseScraper

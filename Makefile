@@ -1,13 +1,13 @@
 .PHONY: test lint format release release-patch release-minor release-major
 
 test:
-	@uv run pytest
+	@uv run --extra dev pytest
 
 lint:
-	@uv run ruff check
+	@uv run --extra dev ruff check
 
 format:
-	@uv run ruff format
+	@uv run --extra dev ruff format
 
 release-patch:
 	@uv run python scripts/version.py release

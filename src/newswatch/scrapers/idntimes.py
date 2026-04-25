@@ -50,7 +50,11 @@ class IDNTimesScraper(BaseScraper):
 
                 # Filter: only keep links where keyword appears in URL
                 kw_lower = keyword.lower()
-                article_links = [l for l in raw_links if kw_lower in l.lower() and self._article_href.match(l)]
+                article_links = [
+                    link
+                    for link in raw_links
+                    if kw_lower in link.lower() and self._article_href.match(link)
+                ]
 
                 if article_links:
                     await self.process_page(article_links, keyword)

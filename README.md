@@ -28,6 +28,8 @@ Development setup: see https://okky.dev/news-watch/getting-started/
 
 **⚠️ Works best locally.** Cloud environments (Google Colab, servers) may experience degraded performance or blocking due to anti-bot measures.
 
+Some scrapers may work on a local machine but fail on remote servers, Linux CI, or GitHub Actions. This usually happens because of anti-bot protection, rate limits, geolocation differences, JavaScript rendering differences, or sudden source-side changes.
+
 ## Usage
 
 To run the scraper from the command line:
@@ -157,6 +159,7 @@ The output file contains the following columns:
 
 > **Notes:**
 > - Use `-s all` to force-run all scrapers (may cause errors/timeouts).
+> - Some sources are environment-sensitive and may fail on remote servers even if they work locally.
 > - Limitation: Kontan scraper maximum 50 pages.
 
 ## Contributing

@@ -6,9 +6,7 @@ by keyword presence in title or description.
 """
 
 import logging
-import re
 
-import aiohttp
 from bs4 import BeautifulSoup
 
 from .basescraper import BaseScraper

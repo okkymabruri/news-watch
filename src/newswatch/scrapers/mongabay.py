@@ -7,7 +7,6 @@ with keyword in title or content. Nonsense returns empty array.
 
 import json
 import logging
-import re
 
 from bs4 import BeautifulSoup
 

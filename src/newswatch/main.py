@@ -11,7 +11,6 @@ import platform
 from datetime import datetime
 from pathlib import Path
 
-import importlib
 
 from .registry import get_available_scrapers_from_registry
 

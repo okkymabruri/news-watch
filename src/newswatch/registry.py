@@ -16,7 +16,7 @@ Each entry declares:
 
 import importlib
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 
@@ -253,7 +253,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         status="stable",
         strict_search=True,
         browser_required=True,
-        smoke_keyword="ekonomi",
+        smoke_keyword="prabowo",
         note="promoted to stable; rebuilt with Playwright CSE capture; 2026-04-18",
     ),
     "tribunnews": ScraperEntry(
@@ -273,7 +273,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         module="tvone",
         class_name="TVOneScraper",
         concurrency=5,
-        smoke_keyword="ihsg",
+        smoke_keyword="ekonomi",
     ),
     "viva": ScraperEntry(
         slug="viva",

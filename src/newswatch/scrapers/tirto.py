@@ -46,7 +46,7 @@ class TirtoScraper(BaseScraper):
                             if match:
                                 data = json.loads(match.group(1))
                                 cse_results.extend(data.get("results", []))
-                        except:
+                        except Exception:
                             pass
 
                 page.on("response", handle_response)

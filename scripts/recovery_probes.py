@@ -7,12 +7,10 @@ Three harnesses:
 3. Search Surface Discovery — probe common search endpoint patterns
 """
 
-import asyncio
-import json
 import logging
 import re
-from typing import Dict, List, Optional, Set, Tuple
-from urllib.parse import urlencode, urljoin
+from typing import Dict, List, Set
+from urllib.parse import urljoin
 
 import aiohttp
 from bs4 import BeautifulSoup
