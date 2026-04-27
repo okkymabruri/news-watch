@@ -58,6 +58,8 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         class_name="BisnisScraper",
         concurrency=5,
         smoke_keyword="ihsg",
+        browser_required=True,
+        supports_latest=True,
     ),
     "bloombergtechnoz": ScraperEntry(
         slug="bloombergtechnoz",
@@ -66,6 +68,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         class_name="BloombergTechnozScraper",
         concurrency=3,
         smoke_keyword="teknologi",
+        supports_latest=True,
     ),
     "cnbcindonesia": ScraperEntry(
         slug="cnbcindonesia",
@@ -74,6 +77,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         class_name="CNBCScraper",
         concurrency=5,
         smoke_keyword="ekonomi",
+        supports_latest=True,
     ),
     "cnnindonesia": ScraperEntry(
         slug="cnnindonesia",
@@ -96,6 +100,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         status="stable",
         strict_search=True,
         smoke_keyword="ekonomi",
+        supports_latest=True,
         note="promoted to stable; rebuilt with sitemap keyword filtering; 2026-04-18",
     ),
     "idntimes": ScraperEntry(
@@ -109,6 +114,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         browser_required=True,
         smoke_keyword="ihsg",
         note="promoted to stable; rebuilt with Playwright tag page + keyword URL filter; 2026-04-18",
+        supports_latest=True,
     ),
     "inews": ScraperEntry(
         slug="inews",
@@ -117,6 +123,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         class_name="INewsScraper",
         concurrency=5,
         smoke_keyword="ihsg",
+        supports_latest=True,
     ),
     "jawapos": ScraperEntry(
         slug="jawapos",
@@ -125,6 +132,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         class_name="JawaposScraper",
         concurrency=5,
         smoke_keyword="ihsg",
+        supports_latest=True,
     ),
     "katadata": ScraperEntry(
         slug="katadata",
@@ -133,6 +141,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         class_name="KatadataScraper",
         concurrency=5,
         smoke_keyword="ihsg",
+        supports_latest=True,
     ),
     "kompas": ScraperEntry(
         slug="kompas",
@@ -151,6 +160,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         concurrency=3,
         smoke_keyword="ihsg",
         note="max 50 pages",
+        supports_latest=True,
     ),
     "kumparan": ScraperEntry(
         slug="kumparan",
@@ -162,6 +172,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         strict_search=True,
         smoke_keyword="ekonomi",
         note="promoted to stable; rebuilt with sitemap keyword filtering; 2026-04-18",
+        supports_latest=True,
     ),
     "liputan6": ScraperEntry(
         slug="liputan6",
@@ -174,6 +185,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         browser_required=True,
         smoke_keyword="ihsg",
         note="promoted to stable; rebuilt with Playwright tag page + keyword URL filter; 2026-04-18",
+        supports_latest=True,
     ),
     "mediaindonesia": ScraperEntry(
         slug="mediaindonesia",
@@ -182,6 +194,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         class_name="MediaIndonesiaScraper",
         concurrency=5,
         smoke_keyword="ihsg",
+        supports_latest=True,
     ),
     "merdeka": ScraperEntry(
         slug="merdeka",
@@ -193,6 +206,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         strict_search=True,
         smoke_keyword="ekonomi",
         note="promoted to stable; rebuilt with RSS keyword filtering; 2026-04-18",
+        supports_latest=True,
     ),
     "metrotvnews": ScraperEntry(
         slug="metrotvnews",
@@ -202,6 +216,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         concurrency=2,
         smoke_keyword="prabowo",
         note="flaky for finance terms",
+        supports_latest=True,
     ),
     "okezone": ScraperEntry(
         slug="okezone",
@@ -213,6 +228,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         strict_search=True,
         smoke_keyword="ihsg",
         note="promoted to stable; rebuilt with /tag/{keyword} endpoint; 2026-04-18",
+        supports_latest=True,
     ),
     "republika": ScraperEntry(
         slug="republika",
@@ -225,6 +241,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         browser_required=True,
         smoke_keyword="ekonomi",
         note="promoted to stable; rebuilt with Playwright tag page + keyword URL filter; 2026-04-18",
+        supports_latest=True,
     ),
     "sindonews": ScraperEntry(
         slug="sindonews",
@@ -233,6 +250,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         class_name="SindonewsScraper",
         concurrency=5,
         smoke_keyword="ihsg",
+        supports_latest=True,
     ),
     "suara": ScraperEntry(
         slug="suara",
@@ -242,6 +260,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         concurrency=12,
         smoke_keyword="prabowo",
         browser_required=True,
+        supports_latest=True,
     ),
     "tempo": ScraperEntry(
         slug="tempo",
@@ -250,6 +269,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         class_name="TempoScraper",
         concurrency=1,
         smoke_keyword="ihsg",
+        supports_latest=True,
     ),
     "tirto": ScraperEntry(
         slug="tirto",
@@ -262,6 +282,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         browser_required=True,
         smoke_keyword="prabowo",
         note="promoted to stable; rebuilt with Playwright CSE capture; 2026-04-18",
+        supports_latest=True,
     ),
     "tribunnews": ScraperEntry(
         slug="tribunnews",
@@ -273,6 +294,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         strict_search=True,
         smoke_keyword="ekonomi",
         note="promoted to stable; rebuilt with sitemap keyword filtering; 2026-04-23",
+        supports_latest=True,
     ),
     "tvone": ScraperEntry(
         slug="tvone",
@@ -281,6 +303,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         class_name="TVOneScraper",
         concurrency=5,
         smoke_keyword="ekonomi",
+        supports_latest=True,
     ),
     "viva": ScraperEntry(
         slug="viva",
@@ -303,6 +326,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         browser_required=True,
         smoke_keyword="indonesia",
         note="rebuilt with Playwright CSE bootstrap; 2026-04-18",
+        supports_latest=True,
     ),
     "investor": ScraperEntry(
         slug="investor",
@@ -314,6 +338,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         strict_search=True,
         smoke_keyword="ihsg",
         note="promoted to stable; no-result gate added 2026-04-18",
+        supports_latest=True,
     ),
     "tvrinews": ScraperEntry(
         slug="tvrinews",
@@ -325,6 +350,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         strict_search=True,
         smoke_keyword="ekonomi",
         note="promoted to stable; rebuilt with sitemap keyword filtering; 2026-04-18",
+        supports_latest=True,
     ),
     # ── Investigating / new targets ──────────────────────────────────────────
     "pikiranrakyat": ScraperEntry(
@@ -338,6 +364,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         browser_required=True,
         smoke_keyword="ekonomi",
         note="promoted to stable; Playwright CSE bypass CF 1015; 2026-04-23",
+        supports_latest=True,
     ),
     "poskota": ScraperEntry(
         slug="poskota",
@@ -349,6 +376,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         strict_search=True,
         smoke_keyword="ekonomi",
         note="promoted to stable; /tag/{keyword} endpoint with URL date pre-filter; 2026-04-23",
+        supports_latest=True,
     ),
     "rmid": ScraperEntry(
         slug="rmid",
@@ -360,6 +388,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         strict_search=True,
         smoke_keyword="ekonomi",
         note="promoted to stable; /?s= search + title filtering + div.content-berita; 2026-04-23",
+        supports_latest=True,
     ),
     "suaramerdeka": ScraperEntry(
         slug="suaramerdeka",
@@ -371,6 +400,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         strict_search=True,
         smoke_keyword="ekonomi",
         note="promoted to stable; /search?q= endpoint with content_PublishedDate; 2026-04-23",
+        supports_latest=True,
     ),
     "bbc": ScraperEntry(
         slug="bbc",
@@ -379,6 +409,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         class_name="BBCNewsScraper",
         concurrency=5,
         smoke_keyword="election",
+        supports_latest=True,
     ),
     "mongabay": ScraperEntry(
         slug="mongabay",
@@ -390,6 +421,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         strict_search=True,
         smoke_keyword="deforestasi",
         note="promoted to stable; WordPress REST API /wp-json/wp/v2/posts?search=; 2026-04-18",
+        supports_latest=True,
     ),
     "beritajatim": ScraperEntry(
         slug="beritajatim",
@@ -401,6 +433,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         strict_search=True,
         smoke_keyword="ekonomi",
         note="promoted to stable; /tag/{keyword} endpoint; 2026-04-24",
+        supports_latest=True,
     ),
     "galamedia": ScraperEntry(
         slug="galamedia",
@@ -412,6 +445,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         strict_search=True,
         smoke_keyword="ekonomi",
         note="promoted to stable; /search?q= endpoint + div.latest__item + keyword-in-title filtering; 2026-04-24",
+        supports_latest=True,
     ),
     "jpnn": ScraperEntry(
         slug="jpnn",
@@ -423,6 +457,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         strict_search=True,
         smoke_keyword="ekonomi",
         note="promoted to stable; /tag/{keyword} + meta[name=jpnncom_news_pubdate] date extraction; 2026-04-24",
+        supports_latest=True,
     ),
     "surabayapagi": ScraperEntry(
         slug="surabayapagi",
@@ -434,6 +469,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         strict_search=True,
         smoke_keyword="ekonomi",
         note="promoted to stable; /tag/{keyword} + article:published_time; concurrency=3 for rate limiting; 2026-04-24",
+        supports_latest=True,
     ),
     "rri": ScraperEntry(
         slug="rri",
@@ -445,6 +481,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         strict_search=True,
         smoke_keyword="ekonomi",
         note="promoted to stable; /search?q= endpoint with plain HTTP; 2026-04-18",
+        supports_latest=True,
     ),
 }
 

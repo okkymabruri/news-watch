@@ -130,3 +130,93 @@ class TirtoScraper(BaseScraper):
 
     async def get_article(self, link, keyword):
         pass
+
+    async def fetch_latest_results(self):
+        """Override to handle latest extraction entirely in one browser session."""
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            try:
+                context = await browser.new_context(
+                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+                )
+                page = await context.new_page()
+
+                for p_num in range(1, self.max_latest_pages + 1):
+                    if not self.continue_scraping:
+                        break
+
+                    # Navigate to homepage or latest index
+                    url = self.base_url if p_num == 1 else f"{self.base_url}/indeks"
+                    try:
+                        await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                    except Exception:
+                        break
+                    await page.wait_for_timeout(3000)
+
+                    # Extract article links from the page
+                    raw_links = await page.evaluate("""() => {
+                        return [...new Set(
+                            [...document.querySelectorAll('a[href]')]
+                                .map(a => a.href)
+                                .filter(h => h.startsWith('https://tirto.id/') && h.match(/-[a-z0-9]+$/))
+                        )]
+                    }""")
+
+                    if not raw_links:
+                        break
+
+                    # Navigate to each article and extract content
+                    for link in raw_links[:10]:
+                        if not self.continue_scraping:
+                            break
+                        try:
+                            await page.goto(link, wait_until="domcontentloaded", timeout=15000)
+                            await page.wait_for_timeout(2000)
+
+                            title_el = await page.query_selector("h1")
+                            title = await title_el.inner_text() if title_el else ""
+                            title = title.strip()
+                            if not title:
+                                continue
+
+                            article_el = await page.query_selector("article") or await page.query_selector(".detail-content")
+                            if not article_el:
+                                continue
+
+                            content = await article_el.inner_text()
+                            content = " ".join([p.strip() for p in content.split("\n") if len(p.strip()) > 30])
+                            if not content:
+                                continue
+
+                            body_text = await page.evaluate("() => document.body.textContent")
+                            date_match = re.search(r"(\d{1,2}\s+[A-Z][a-z]+\s+\d{4})", body_text)
+                            publish_date_str = date_match.group(1) if date_match else ""
+                            publish_date = self.parse_date(publish_date_str, locales=["id"])
+                            if not publish_date:
+                                continue
+
+                            author_match = re.search(r"Penulis[:\s]+([^\n,]+)", body_text)
+                            author = author_match.group(1).strip() if author_match else "Unknown"
+
+                            item = {
+                                "title": title,
+                                "publish_date": publish_date,
+                                "author": author,
+                                "content": content,
+                                "keyword": "latest",
+                                "category": "Unknown",
+                                "source": "tirto.id",
+                                "link": link,
+                            }
+                            await self.queue_.put(item)
+                        except Exception as e:
+                            logging.debug(f"Error processing Tirto article {link}: {e}")
+            finally:
+                await browser.close()
+
+    def build_latest_url(self, page):
+        return None
+
+    def parse_latest_article_links(self, response_text):
+        return None
+
