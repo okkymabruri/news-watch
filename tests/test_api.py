@@ -44,7 +44,7 @@ class TestListScrapers:
         assert isinstance(scrapers, list)
         assert "kompas" in scrapers
         assert "antaranews" in scrapers
-        assert "tempo" not in scrapers
+        assert "tempo" in scrapers  # now supports latest
 
 
 class TestInputValidation:
@@ -280,6 +280,67 @@ class TestConvenienceFunctions:
             limit=None,
             max_pages=None,
         )
+
+
+class TestMaxPagesPropagation:
+    """Test that max_pages is properly forwarded to scrapers in both CLI and API paths."""
+
+    @patch("newswatch.api._async_scrape_to_list", new_callable=AsyncMock)
+    def test_scrape_passes_max_pages(self, mock_async):
+        """Test that scrape() forwards max_pages to internal function."""
+        mock_async.return_value = []
+        scrape("test", "2025-01-01", max_pages=3)
+        assert mock_async.call_args[0][7] == 3  # max_pages is 8th positional arg
+
+    @patch("newswatch.api._async_scrape_to_list", new_callable=AsyncMock)
+    def test_latest_passes_max_pages(self, mock_async):
+        """Test that latest() forwards max_pages."""
+        mock_async.return_value = []
+        latest(scrapers="kompas", max_pages=2)
+        assert mock_async.call_args[0][7] == 2  # max_pages is 8th positional arg
+
+    @patch("newswatch.api._async_scrape_to_list", new_callable=AsyncMock)
+    def test_latest_passes_limit(self, mock_async):
+        """Test that latest() forwards limit."""
+        mock_async.return_value = []
+        latest(scrapers="kompas", limit=10)
+        assert mock_async.call_args[0][6] == 10  # limit is 7th positional arg
+
+
+class TestLatestCoverage:
+    """Ensure every registered latest-capable scraper has a working implementation."""
+
+    @pytest.mark.parametrize(
+        "slug",
+        sorted(
+            s for s, e in __import__("newswatch.registry", fromlist=["SCRAPERS"]).SCRAPERS.items()
+            if e.supports_latest
+        ),
+    )
+    def test_latest_scraper_has_working_implementation(self, slug):
+        """Scraper must either override fetch_latest_results, or provide latest hooks + get_article."""
+        from newswatch.registry import SCRAPERS
+        entry = SCRAPERS[slug]
+        import importlib
+        module = importlib.import_module(f"newswatch.scrapers.{entry.module}")
+        cls = getattr(module, entry.class_name)
+        from newswatch.scrapers.basescraper import BaseScraper
+
+        has_custom_latest = (
+            cls.fetch_latest_results is not BaseScraper.fetch_latest_results
+        )
+
+        if has_custom_latest:
+            return
+
+        import inspect
+        get_article_source = inspect.getsource(cls.get_article)
+        is_noop = "pass" in get_article_source and not any(
+            kw in get_article_source for kw in ("await ", "return ", "if ", "try:", "except", "logging", "soup", "fetch(", "queue_")
+        )
+
+        assert not is_noop, \
+            f"{slug}: latest-capable scraper has no working get_article or custom fetch_latest_results"
 
 
 class TestAPIIntegration:
