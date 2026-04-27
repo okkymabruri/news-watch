@@ -1,7 +1,6 @@
 import argparse
 import asyncio
 import logging
-import platform
 from datetime import datetime
 
 from .main import get_available_scrapers
@@ -9,7 +8,7 @@ from .main import main as run_main
 
 
 def cli():
-    scraper_classes, linux_excluded_scrapers = get_available_scrapers(method="search")
+    scraper_classes, _linux_excluded = get_available_scrapers(method="search")
     available_scrapers = list(scraper_classes.keys())
     available_scrapers_str = ",".join(available_scrapers)
 
@@ -18,9 +17,6 @@ def cli():
         "News Watch - Scrape news articles from various Indonesian news websites.\n"
         f"Currently supports: {available_scrapers_str}.\n"
     )
-    if platform.system().lower() == "linux":
-        excluded_names = list(linux_excluded_scrapers.keys())
-        description += f"Note: The '{', '.join(excluded_names)}' scrapers are not available on Linux platforms due to known issues."
 
     parser = argparse.ArgumentParser(
         description=description,
@@ -89,7 +85,7 @@ def cli():
     )
     args = parser.parse_args()
 
-    scraper_classes, linux_excluded_scrapers = get_available_scrapers(
+    scraper_classes, _linux_excluded = get_available_scrapers(
         method=args.method
     )
     available_scrapers = list(scraper_classes.keys())

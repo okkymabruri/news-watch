@@ -20,7 +20,6 @@ class PoskotaScraper(BaseScraper):
         self.base_url = "https://www.poskota.co.id"
         self.start_date = start_date
         self.continue_scraping = True
-        self.max_pages = 10
         self._article_re = re.compile(r"https?://www\.poskota\.co\.id/(\d{4})/(\d{2})/(\d{2})/")
         self._date_re = re.compile(r"(\d{1,2})\s+([A-Z][a-z]+)\s+(\d{4})")
 
@@ -111,3 +110,19 @@ class PoskotaScraper(BaseScraper):
             "link": link,
         }
         await self.queue_.put(item)
+
+    async def build_latest_url(self, page):
+        if page > 1:
+            return None
+        return await self.fetch(self.base_url, timeout=30)
+
+    def parse_latest_article_links(self, response_text):
+        if not response_text:
+            return None
+        soup = BeautifulSoup(response_text, "html.parser")
+        links = set()
+        for a in soup.select("a[href]"):
+            href = a.get("href", "")
+            if self._article_re.match(href):
+                links.add(href)
+        return links or None

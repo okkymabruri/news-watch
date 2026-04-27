@@ -162,16 +162,10 @@ async def _async_scrape_to_list(
         start_date_obj = None
 
     # get available scrapers and validate selection
-    scraper_classes, linux_excluded_scrapers = get_available_scrapers(method=method)
+    scraper_classes, _linux_excluded = get_available_scrapers(method=method)
     if scrapers not in ["auto", "all"] and scrapers:
-        import platform
-
-        scraper_list = [name.strip().lower() for name in scrapers.split(",")]
-
         allowed_scrapers = dict(scraper_classes)
-        if platform.system().lower() == "linux":
-            # Allow explicit selection of Linux-excluded scrapers.
-            allowed_scrapers.update(linux_excluded_scrapers)
+        scraper_list = [name.strip().lower() for name in scrapers.split(",")]
 
         invalid_scrapers = [s for s in scraper_list if s not in allowed_scrapers]
         if invalid_scrapers:
@@ -188,40 +182,10 @@ async def _async_scrape_to_list(
         _collect_queue_results(queue, scrapers_done_event, limit=limit)
     )
 
-    # determine which scrapers to run
-    force_all_scrapers = scrapers.lower() == "all"
-
-    if force_all_scrapers:
-        import platform
-
-        if platform.system().lower() == "linux":
-            scraper_classes.update(linux_excluded_scrapers)
-            logging.warning(
-                f"Forcing all scrapers on Linux - may cause errors: {', '.join(linux_excluded_scrapers.keys())}"
-            )
-
     if scrapers.lower() in ["all", "auto"]:
         scrapers_to_run = list(scraper_classes.keys())
     else:
         scrapers_to_run = [name.strip().lower() for name in scrapers.split(",")]
-
-    # If the caller explicitly requested Linux-excluded scrapers, enable them.
-    import platform
-
-    if platform.system().lower() == "linux":
-        requested_excluded = [
-            s
-            for s in scrapers_to_run
-            if s in linux_excluded_scrapers and s not in scraper_classes
-        ]
-        if requested_excluded:
-            scraper_classes.update(
-                {name: linux_excluded_scrapers[name] for name in requested_excluded}
-            )
-            logging.warning(
-                "Using Linux-excluded scrapers (may fail due to WAF/Cloudflare/anti-bot): %s",
-                ", ".join(requested_excluded),
-            )
 
     # instantiate scrapers
     scraper_instances = []
@@ -236,6 +200,9 @@ async def _async_scrape_to_list(
                 queue_=queue,
                 **scraper_params,
             )
+            # Apply max_pages limit for latest mode
+            if max_pages is not None:
+                scraper_instance.max_latest_pages = max_pages
             scraper_instances.append(scraper_instance)
         else:
             logging.warning(f"scraper '{scraper_name}' is not recognized.")

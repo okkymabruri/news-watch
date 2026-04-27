@@ -7,7 +7,6 @@ import asyncio
 import csv
 import json
 import logging
-import platform
 from datetime import datetime
 from pathlib import Path
 
@@ -197,20 +196,7 @@ async def main(args):
     else:
         writer_task = asyncio.create_task(write_csv(queue_, output_label, output_path))
 
-    scraper_classes, linux_excluded_scrapers = get_available_scrapers(method=method)
-
-    force_all_scrapers = selected_scrapers.lower() == "all"
-
-    if force_all_scrapers and platform.system().lower() == "linux":
-        scraper_classes.update(linux_excluded_scrapers)
-        logging.warning(
-            f"Forcing all scrapers on Linux - may cause errors: {', '.join(linux_excluded_scrapers.keys())}"
-        )
-    elif platform.system().lower() == "linux":
-        excluded_names = list(linux_excluded_scrapers.keys())
-        logging.info(
-            f"Running on Linux - excluded scrapers: {', '.join(excluded_names)}"
-        )
+    scraper_classes, _linux_excluded = get_available_scrapers(method=method)
 
     if selected_scrapers.lower() in ["all", "auto"]:
         scrapers_to_run = list(scraper_classes.keys())
@@ -225,13 +211,13 @@ async def main(args):
         if scraper_info:
             scraper_class = scraper_info["class"]
             scraper_params = dict(scraper_info["params"])
-            # Override max_latest_pages if caller specified max_pages
-            if max_pages is not None:
-                scraper_params["max_latest_pages"] = max_pages
             # instantiate scraper with possible special parameters
             scraper_instance = scraper_class(
                 keywords, start_date=start_date, queue_=queue_, **scraper_params
             )
+            # Apply max_pages limit for latest mode
+            if max_pages is not None:
+                scraper_instance.max_latest_pages = max_pages
             scrapers.append(scraper_instance)
         else:
             logging.warning(f"scraper '{scraper_name}' is not recognized.")

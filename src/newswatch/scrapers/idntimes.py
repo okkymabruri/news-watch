@@ -37,12 +37,12 @@ class IDNTimesScraper(BaseScraper):
                 await page.goto(tag_url, wait_until="domcontentloaded", timeout=20000)
                 await page.wait_for_timeout(5000)
 
-                raw_links = await page.evaluate("""() => {
+                raw_links = await page.evaluate(r"""() => {
                     return [...new Set(
                         [...document.querySelectorAll('a[href]')]
                             .filter(a => {
                                 const h = a.href || ''
-                                return h.includes('.com/') && h.match(/[a-z-]+\/[a-z-]+\//)
+                                return h.includes('.com/') && h.match(/[a-z-]+\/[a-z-]+\/[a-z-]/)
                             })
                             .map(a => a.href)
                     )]
@@ -154,3 +154,31 @@ class IDNTimesScraper(BaseScraper):
     def _get_soup(self, text):
         from bs4 import BeautifulSoup
         return BeautifulSoup(text, "html.parser")
+
+    async def build_latest_url(self, page):
+        if page > 1:
+            return None
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            try:
+                context = await browser.new_context(
+                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                )
+                pg = await context.new_page()
+                await pg.goto(f"{self.base_url}/", wait_until="domcontentloaded", timeout=20000)
+                await pg.wait_for_timeout(3000)
+                html = await pg.content()
+                return html
+            finally:
+                await browser.close()
+
+    def parse_latest_article_links(self, response_text):
+        if not response_text:
+            return None
+        soup = self._get_soup(response_text)
+        links = set()
+        for a in soup.select("a[href]"):
+            href = a.get("href", "")
+            if self._article_href.match(href) and "tag" not in href:
+                links.add(href)
+        return links or None

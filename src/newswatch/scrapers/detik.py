@@ -6,6 +6,7 @@ that can be filtered by keyword presence in the URL.
 """
 
 import logging
+import re
 
 from bs4 import BeautifulSoup
 
@@ -26,6 +27,9 @@ class DetikScraper(BaseScraper):
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
         }
+        self.latest_href_pattern = re.compile(
+            r"^https://news\.detik\.com/.+/d-\d+/"
+        )
 
     async def fetch_search_results(self, keyword):
         """Scan sitemaps and filter by keyword in URL."""
@@ -47,11 +51,39 @@ class DetikScraper(BaseScraper):
 
         if all_links:
             for link in list(all_links):
-                await self._process_article(link, keyword)
+                await self.get_article(link, keyword)
         else:
             logging.info(f"No news found on {self.base_url} for keyword: '{keyword}'")
 
-    async def _process_article(self, link, keyword):
+    async def build_search_url(self, keyword, page):
+        return None
+
+    def parse_article_links(self, response_text):
+        return None
+
+    async def build_latest_url(self, page):
+        return await self.fetch(
+            f"https://news.detik.com/indeks?page={page}",
+            headers=self.headers,
+            timeout=30,
+        )
+
+    def parse_latest_article_links(self, response_text):
+        if not response_text:
+            return None
+
+        soup = BeautifulSoup(response_text, "html.parser")
+        filtered_hrefs = {
+            a.get("href")
+            for a in soup.select("article a[href]")
+            if a.get("href")
+            and self.latest_href_pattern.match(a.get("href"))
+            and "20.detik.com" not in a.get("href")
+            and "/foto-" not in a.get("href")
+        }
+        return filtered_hrefs or None
+
+    async def get_article(self, link, keyword):
         try:
             response_text = await self.fetch(link, headers=self.headers, timeout=30)
             if not response_text:
@@ -108,12 +140,3 @@ class DetikScraper(BaseScraper):
             await self.queue_.put(item)
         except Exception as e:
             logging.error("Error parsing article %s: %s", link, e)
-
-    async def build_search_url(self, keyword, page):
-        return None
-
-    def parse_article_links(self, response_text):
-        return None
-
-    async def get_article(self, link, keyword):
-        pass
