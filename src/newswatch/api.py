@@ -31,6 +31,8 @@ class MockArgs:
         output_format: str = "xlsx",
         verbose: bool = False,
         method: str = "search",
+        limit: int | None = None,
+        max_pages: int | None = None,
     ):
         self.keywords = keywords
         self.start_date = start_date
@@ -38,10 +40,12 @@ class MockArgs:
         self.output_format = output_format
         self.verbose = verbose
         self.method = method
+        self.limit = limit
+        self.max_pages = max_pages
 
 
 async def _collect_queue_results(
-    queue: asyncio.Queue, scrapers_done_event: asyncio.Event
+    queue: asyncio.Queue, scrapers_done_event: asyncio.Event, limit: int | None = None
 ) -> List[Dict]:
     """
     Collect all items from the async queue into a list with improved coordination.
@@ -49,11 +53,17 @@ async def _collect_queue_results(
     Uses adaptive timeout strategy:
     - While scrapers running: longer timeout to allow for slow scrapers
     - After scrapers done: shorter timeout to collect remaining items quickly
+    - Stops early if limit is reached
     """
     results = []
     items_collected = 0
 
     while True:
+        # Check if we've reached the limit
+        if limit is not None and items_collected >= limit:
+            logging.debug(f"Reached limit of {limit} articles. Stopping collection.")
+            break
+
         try:
             # adaptive timeout based on scraper status
             if scrapers_done_event.is_set():
@@ -114,6 +124,8 @@ async def _async_scrape_to_list(
     verbose: bool = False,
     timeout: int = 300,
     method: str = "search",
+    limit: int | None = None,
+    max_pages: int | None = None,
 ) -> List[Dict]:
     """
     Internal async function to scrape and return results as list.
@@ -173,7 +185,7 @@ async def _async_scrape_to_list(
 
     # start collector task (runs concurrently with scrapers)
     collector_task = asyncio.create_task(
-        _collect_queue_results(queue, scrapers_done_event)
+        _collect_queue_results(queue, scrapers_done_event, limit=limit)
     )
 
     # determine which scrapers to run
@@ -306,6 +318,8 @@ def scrape(
     verbose: bool = False,
     timeout: int = 300,
     method: str = "search",
+    limit: int | None = None,
+    max_pages: int | None = None,
     **kwargs,
 ) -> List[Dict]:
     """
@@ -318,6 +332,8 @@ def scrape(
         verbose (bool): Enable verbose logging
         timeout (int): Maximum time in seconds for scraping operation
         method (str): Retrieval method - "search" or "latest"
+        limit (int | None): Maximum number of articles to collect (latest mode)
+        max_pages (int | None): Maximum pages to fetch per scraper (latest mode)
         **kwargs: Additional parameters (for future compatibility)
 
     Returns:
@@ -338,7 +354,7 @@ def scrape(
     try:
         return asyncio.run(
             _async_scrape_to_list(
-                keywords, start_date, scrapers, verbose, timeout, method
+                keywords, start_date, scrapers, verbose, timeout, method, limit, max_pages
             )
         )
     except KeyboardInterrupt:
@@ -358,6 +374,8 @@ def scrape_to_dataframe(
     verbose: bool = False,
     timeout: int = 300,
     method: str = "search",
+    limit: int | None = None,
+    max_pages: int | None = None,
     **kwargs,
 ) -> pd.DataFrame:
     """
@@ -369,6 +387,9 @@ def scrape_to_dataframe(
         scrapers (str): Scrapers to use - "auto", "all", or comma-separated list
         verbose (bool): Enable verbose logging
         timeout (int): Maximum time in seconds for scraping operation
+        method (str): Retrieval method - "search" or "latest"
+        limit (int | None): Maximum number of articles to collect (latest mode)
+        max_pages (int | None): Maximum pages to fetch per scraper (latest mode)
         **kwargs: Additional parameters (for future compatibility)
 
     Returns:
@@ -380,7 +401,7 @@ def scrape_to_dataframe(
     """
     try:
         results = scrape(
-            keywords, start_date, scrapers, verbose, timeout, method, **kwargs
+            keywords, start_date, scrapers, verbose, timeout, method, limit, max_pages, **kwargs
         )
 
         # define column order
@@ -422,6 +443,8 @@ def scrape_to_file(
     verbose: bool = False,
     timeout: int = 300,
     method: str = "search",
+    limit: int | None = None,
+    max_pages: int | None = None,
     **kwargs,
 ) -> None:
     """
@@ -435,6 +458,9 @@ def scrape_to_file(
         scrapers (str): Scrapers to use - "auto", "all", or comma-separated list
         verbose (bool): Enable verbose logging
         timeout (int): Maximum time in seconds for scraping operation
+        method (str): Retrieval method - "search" or "latest"
+        limit (int | None): Maximum number of articles to collect (latest mode)
+        max_pages (int | None): Maximum pages to fetch per scraper (latest mode)
         **kwargs: Additional parameters (for future compatibility)
 
     Raises:
@@ -459,7 +485,7 @@ def scrape_to_file(
     try:
         # get results as dataframe
         df = scrape_to_dataframe(
-            keywords, start_date, scrapers, verbose, timeout, method, **kwargs
+            keywords, start_date, scrapers, verbose, timeout, method, limit, max_pages, **kwargs
         )
 
         if df.empty:
@@ -518,7 +544,8 @@ def quick_scrape(
 
 
 def latest(
-    scrapers: str = "auto", verbose: bool = False, timeout: int = 300
+    scrapers: str = "auto", verbose: bool = False, timeout: int = 300,
+    limit: int | None = None, max_pages: int | None = None,
 ) -> List[Dict]:
     """Fetch latest articles for monitoring workflows."""
     return scrape(
@@ -528,11 +555,14 @@ def latest(
         verbose=verbose,
         timeout=timeout,
         method="latest",
+        limit=limit,
+        max_pages=max_pages,
     )
 
 
 def latest_to_dataframe(
-    scrapers: str = "auto", verbose: bool = False, timeout: int = 300
+    scrapers: str = "auto", verbose: bool = False, timeout: int = 300,
+    limit: int | None = None, max_pages: int | None = None,
 ) -> pd.DataFrame:
     """Fetch latest articles and return them as a DataFrame."""
     return scrape_to_dataframe(
@@ -542,6 +572,8 @@ def latest_to_dataframe(
         verbose=verbose,
         timeout=timeout,
         method="latest",
+        limit=limit,
+        max_pages=max_pages,
     )
 
 
@@ -551,6 +583,8 @@ def latest_to_file(
     scrapers: str = "auto",
     verbose: bool = False,
     timeout: int = 300,
+    limit: int | None = None,
+    max_pages: int | None = None,
 ) -> None:
     """Fetch latest articles and save them directly to a file."""
     scrape_to_file(
@@ -562,4 +596,6 @@ def latest_to_file(
         verbose=verbose,
         timeout=timeout,
         method="latest",
+        limit=limit,
+        max_pages=max_pages,
     )

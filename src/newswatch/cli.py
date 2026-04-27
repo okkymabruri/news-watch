@@ -75,6 +75,18 @@ def cli():
         action="store_true",
         help="List supported scrapers.",
     )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Maximum number of articles to collect in latest mode.",
+    )
+    parser.add_argument(
+        "--max-pages",
+        type=int,
+        default=None,
+        help="Maximum number of pages to fetch per scraper in latest mode.",
+    )
     args = parser.parse_args()
 
     scraper_classes, linux_excluded_scrapers = get_available_scrapers(

@@ -177,6 +177,7 @@ async def main(args):
     )
     keywords = (args.keywords or "ihsg") if method == "search" else "latest"
     selected_scrapers = args.scrapers
+    max_pages = getattr(args, "max_pages", None)
 
     queue_ = asyncio.Queue()
 
@@ -223,7 +224,10 @@ async def main(args):
         scraper_info = scraper_classes.get(scraper_name)
         if scraper_info:
             scraper_class = scraper_info["class"]
-            scraper_params = scraper_info["params"]
+            scraper_params = dict(scraper_info["params"])
+            # Override max_latest_pages if caller specified max_pages
+            if max_pages is not None:
+                scraper_params["max_latest_pages"] = max_pages
             # instantiate scraper with possible special parameters
             scraper_instance = scraper_class(
                 keywords, start_date=start_date, queue_=queue_, **scraper_params

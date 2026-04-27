@@ -239,6 +239,8 @@ class TestConvenienceFunctions:
             verbose=False,
             timeout=300,
             method="latest",
+            limit=None,
+            max_pages=None,
         )
 
     @patch("newswatch.api.scrape_to_dataframe")
@@ -257,6 +259,8 @@ class TestConvenienceFunctions:
             verbose=False,
             timeout=300,
             method="latest",
+            limit=None,
+            max_pages=None,
         )
 
     @patch("newswatch.api.scrape_to_file")
@@ -273,6 +277,8 @@ class TestConvenienceFunctions:
             verbose=False,
             timeout=300,
             method="latest",
+            limit=None,
+            max_pages=None,
         )
 
 

@@ -7,7 +7,7 @@ from ..utils import AsyncScraper
 
 
 class BaseScraper(AsyncScraper, ABC):
-    def __init__(self, keywords, concurrency=10, queue_=None):
+    def __init__(self, keywords, concurrency=10, queue_=None, max_latest_pages=None):
         super().__init__(concurrency)
         self.keywords = (
             [keyword.strip() for keyword in keywords.split(",") if keyword.strip()]
@@ -16,7 +16,7 @@ class BaseScraper(AsyncScraper, ABC):
         )
         self.queue_ = queue_
         self.continue_scraping = True
-        self.max_latest_pages = 1
+        self.max_latest_pages = max_latest_pages if max_latest_pages is not None else 1
 
     def parse_date(self, date_string, **kwargs):
         parsed_date = dateparser.parse(date_string, **kwargs)
