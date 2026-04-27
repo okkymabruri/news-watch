@@ -9,7 +9,7 @@ from .main import main as run_main
 
 
 def cli():
-    scraper_classes, linux_excluded_scrapers = get_available_scrapers()
+    scraper_classes, linux_excluded_scrapers = get_available_scrapers(method="search")
     available_scrapers = list(scraper_classes.keys())
     available_scrapers_str = ",".join(available_scrapers)
 
@@ -27,10 +27,16 @@ def cli():
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
+        "--method",
+        choices=["search", "latest"],
+        default="search",
+        help="Retrieval method. 'search' uses keyword/date search. 'latest' fetches newest articles for near-realtime monitoring.",
+    )
+    parser.add_argument(
         "--keywords",
         "-k",
-        default="ihsg",
-        help="Comma-separated list of keywords to scrape (e.g., 'ojk,bank,npl')",
+        default=None,
+        help="Comma-separated list of keywords to scrape (e.g., 'ojk,bank,npl'). Default is 'ihsg' for search mode, unused in latest mode.",
     )
     parser.add_argument(
         "--start_date",
@@ -71,8 +77,17 @@ def cli():
     )
     args = parser.parse_args()
 
+    scraper_classes, linux_excluded_scrapers = get_available_scrapers(
+        method=args.method
+    )
+    available_scrapers = list(scraper_classes.keys())
+    available_scrapers_str = ",".join(available_scrapers)
+
     if args.list_scrapers:
-        print("Supported scrapers:\n- " + available_scrapers_str.replace(",", "\n- "))
+        print(
+            f"Supported {args.method} scrapers:\n- "
+            + available_scrapers_str.replace(",", "\n- ")
+        )
         return
 
     # By default, suppress all logging unless verbose is specified

@@ -25,17 +25,19 @@ class MockArgs:
 
     def __init__(
         self,
-        keywords: str,
-        start_date: str,
+        keywords: str | None,
+        start_date: str | None,
         scrapers: str = "auto",
         output_format: str = "xlsx",
         verbose: bool = False,
+        method: str = "search",
     ):
         self.keywords = keywords
         self.start_date = start_date
         self.scrapers = scrapers
         self.output_format = output_format
         self.verbose = verbose
+        self.method = method
 
 
 async def _collect_queue_results(
@@ -106,11 +108,12 @@ async def _collect_queue_results(
 
 
 async def _async_scrape_to_list(
-    keywords: str,
-    start_date: str,
+    keywords: str | None,
+    start_date: str | None,
     scrapers: str = "auto",
     verbose: bool = False,
     timeout: int = 300,
+    method: str = "search",
 ) -> List[Dict]:
     """
     Internal async function to scrape and return results as list.
@@ -126,18 +129,28 @@ async def _async_scrape_to_list(
         logging.disable(logging.CRITICAL)
 
     # validate inputs
-    try:
-        start_date_obj = datetime.strptime(start_date, "%Y-%m-%d")
-    except ValueError:
+    if method not in {"search", "latest"}:
         raise ValidationError(
-            f"Invalid date format: {start_date}. Use YYYY-MM-DD format."
+            f"Invalid method: {method}. Use 'search' or 'latest'."
         )
 
-    if not keywords.strip():
-        raise ValidationError("Keywords cannot be empty.")
+    if method == "search":
+        if not start_date:
+            raise ValidationError("Start date is required for search method.")
+        try:
+            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d")
+        except ValueError:
+            raise ValidationError(
+                f"Invalid date format: {start_date}. Use YYYY-MM-DD format."
+            )
+
+        if not keywords or not keywords.strip():
+            raise ValidationError("Keywords cannot be empty.")
+    else:
+        start_date_obj = None
 
     # get available scrapers and validate selection
-    scraper_classes, linux_excluded_scrapers = get_available_scrapers()
+    scraper_classes, linux_excluded_scrapers = get_available_scrapers(method=method)
     if scrapers not in ["auto", "all"] and scrapers:
         import platform
 
@@ -206,7 +219,10 @@ async def _async_scrape_to_list(
             scraper_class = scraper_info["class"]
             scraper_params = scraper_info["params"]
             scraper_instance = scraper_class(
-                keywords, start_date=start_date_obj, queue_=queue, **scraper_params
+                keywords or "latest",
+                start_date=start_date_obj,
+                queue_=queue,
+                **scraper_params,
             )
             scraper_instances.append(scraper_instance)
         else:
@@ -232,7 +248,8 @@ async def _async_scrape_to_list(
     scraper_tasks = []
     try:
         scraper_tasks = [
-            asyncio.create_task(scraper.scrape()) for scraper in scraper_instances
+            asyncio.create_task(scraper.scrape(method=method))
+            for scraper in scraper_instances
         ]
         # respect caller-provided timeout for overall scrape
         await asyncio.wait_for(asyncio.gather(*scraper_tasks), timeout=timeout)
@@ -283,22 +300,24 @@ async def _async_scrape_to_list(
 
 
 def scrape(
-    keywords: str,
-    start_date: str,
+    keywords: str | None = None,
+    start_date: str | None = None,
     scrapers: str = "auto",
     verbose: bool = False,
     timeout: int = 300,
+    method: str = "search",
     **kwargs,
 ) -> List[Dict]:
     """
     Scrape news articles and return as list of dictionaries.
 
     Args:
-        keywords (str): Comma-separated keywords to search for
-        start_date (str): Start date in YYYY-MM-DD format
+        keywords (str | None): Comma-separated keywords to search for
+        start_date (str | None): Start date in YYYY-MM-DD format
         scrapers (str): Scrapers to use - "auto", "all", or comma-separated list
         verbose (bool): Enable verbose logging
         timeout (int): Maximum time in seconds for scraping operation
+        method (str): Retrieval method - "search" or "latest"
         **kwargs: Additional parameters (for future compatibility)
 
     Returns:
@@ -318,7 +337,9 @@ def scrape(
     """
     try:
         return asyncio.run(
-            _async_scrape_to_list(keywords, start_date, scrapers, verbose, timeout)
+            _async_scrape_to_list(
+                keywords, start_date, scrapers, verbose, timeout, method
+            )
         )
     except KeyboardInterrupt:
         logging.info("Scraping interrupted by user")
@@ -331,11 +352,12 @@ def scrape(
 
 
 def scrape_to_dataframe(
-    keywords: str,
-    start_date: str,
+    keywords: str | None = None,
+    start_date: str | None = None,
     scrapers: str = "auto",
     verbose: bool = False,
     timeout: int = 300,
+    method: str = "search",
     **kwargs,
 ) -> pd.DataFrame:
     """
@@ -357,7 +379,9 @@ def scrape_to_dataframe(
         NewsWatchError: For other newswatch-related errors
     """
     try:
-        results = scrape(keywords, start_date, scrapers, verbose, timeout, **kwargs)
+        results = scrape(
+            keywords, start_date, scrapers, verbose, timeout, method, **kwargs
+        )
 
         # define column order
         columns = [
@@ -390,13 +414,14 @@ def scrape_to_dataframe(
 
 
 def scrape_to_file(
-    keywords: str,
-    start_date: str,
+    keywords: str | None,
+    start_date: str | None,
     output_path: Union[str, Path],
     output_format: str = "xlsx",
     scrapers: str = "auto",
     verbose: bool = False,
     timeout: int = 300,
+    method: str = "search",
     **kwargs,
 ) -> None:
     """
@@ -434,7 +459,7 @@ def scrape_to_file(
     try:
         # get results as dataframe
         df = scrape_to_dataframe(
-            keywords, start_date, scrapers, verbose, timeout, **kwargs
+            keywords, start_date, scrapers, verbose, timeout, method, **kwargs
         )
 
         if df.empty:
@@ -460,14 +485,14 @@ def scrape_to_file(
         raise NewsWatchError(f"Error saving to file: {e}") from e
 
 
-def list_scrapers() -> List[str]:
+def list_scrapers(method: str = "search") -> List[str]:
     """
     Get list of available scrapers.
 
     Returns:
         List[str]: List of available scraper names
     """
-    scraper_classes, _ = get_available_scrapers()
+    scraper_classes, _ = get_available_scrapers(method=method)
     return list(scraper_classes.keys())
 
 
@@ -490,3 +515,51 @@ def quick_scrape(
 
     start_date = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
     return scrape_to_dataframe(keywords, start_date, scrapers)
+
+
+def latest(
+    scrapers: str = "auto", verbose: bool = False, timeout: int = 300
+) -> List[Dict]:
+    """Fetch latest articles for monitoring workflows."""
+    return scrape(
+        keywords=None,
+        start_date=None,
+        scrapers=scrapers,
+        verbose=verbose,
+        timeout=timeout,
+        method="latest",
+    )
+
+
+def latest_to_dataframe(
+    scrapers: str = "auto", verbose: bool = False, timeout: int = 300
+) -> pd.DataFrame:
+    """Fetch latest articles and return them as a DataFrame."""
+    return scrape_to_dataframe(
+        keywords=None,
+        start_date=None,
+        scrapers=scrapers,
+        verbose=verbose,
+        timeout=timeout,
+        method="latest",
+    )
+
+
+def latest_to_file(
+    output_path: Union[str, Path],
+    output_format: str = "xlsx",
+    scrapers: str = "auto",
+    verbose: bool = False,
+    timeout: int = 300,
+) -> None:
+    """Fetch latest articles and save them directly to a file."""
+    scrape_to_file(
+        keywords=None,
+        start_date=None,
+        output_path=output_path,
+        output_format=output_format,
+        scrapers=scrapers,
+        verbose=verbose,
+        timeout=timeout,
+        method="latest",
+    )

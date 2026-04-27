@@ -23,7 +23,18 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-async def write_csv(queue, keywords, filename=None):
+def _build_output_label(keywords=None, method="search"):
+    if method == "latest":
+        return "latest"
+
+    keywords = keywords or "news"
+    keywords_list = keywords.split(",")
+    if len(keywords_list) > 2:
+        return ".".join(keywords_list[:2]) + "..."
+    return ".".join(keywords_list)
+
+
+async def write_csv(queue, output_label, filename=None):
     fieldnames = [
         "title",
         "publish_date",
@@ -37,12 +48,7 @@ async def write_csv(queue, keywords, filename=None):
 
     if filename is None:
         current_time = datetime.now().strftime("%Y%m%d_%H")
-        keywords_list = keywords.split(",")
-        if len(keywords_list) > 2:
-            keywords_short = ".".join(keywords_list[:2]) + "..."
-        else:
-            keywords_short = ".".join(keywords_list)
-        filename = Path.cwd() / f"news-watch-{keywords_short}-{current_time}.csv"
+        filename = Path.cwd() / f"news-watch-{output_label}-{current_time}.csv"
     else:
         filename = Path(filename)
 
@@ -74,16 +80,11 @@ async def write_csv(queue, keywords, filename=None):
         logging.error(f"Error writing to CSV: {e}")
 
 
-async def write_json(queue, keywords, filename=None):
+async def write_json(queue, output_label, filename=None):
     """Write scraped articles to JSON file format."""
     if filename is None:
         current_time = datetime.now().strftime("%Y%m%d_%H")
-        keywords_list = keywords.split(",")
-        if len(keywords_list) > 2:
-            keywords_short = ".".join(keywords_list[:2]) + "..."
-        else:
-            keywords_short = ".".join(keywords_list)
-        filename = Path.cwd() / f"news-watch-{keywords_short}-{current_time}.json"
+        filename = Path.cwd() / f"news-watch-{output_label}-{current_time}.json"
     else:
         filename = Path(filename)
 
@@ -111,7 +112,7 @@ async def write_json(queue, keywords, filename=None):
         logging.error(f"Error writing to JSON: {e}")
 
 
-async def write_xlsx(queue, keywords, filename=None):
+async def write_xlsx(queue, output_label, filename=None):
     import pandas as pd
 
     fieldnames = [
@@ -127,12 +128,7 @@ async def write_xlsx(queue, keywords, filename=None):
 
     if filename is None:
         current_time = datetime.now().strftime("%Y%m%d_%H")
-        keywords_list = keywords.split(",")
-        if len(keywords_list) > 2:
-            keywords_short = ".".join(keywords_list[:2]) + "..."
-        else:
-            keywords_short = ".".join(keywords_list)
-        filename = Path.cwd() / f"news-watch-{keywords_short}-{current_time}.xlsx"
+        filename = Path.cwd() / f"news-watch-{output_label}-{current_time}.xlsx"
     else:
         filename = Path(filename)
 
@@ -167,34 +163,40 @@ async def write_xlsx(queue, keywords, filename=None):
         logging.error(f"Error writing to XLSX: {e}")
 
 
-def get_available_scrapers():
+def get_available_scrapers(method="search"):
     """Get list of available scrapers from the central registry."""
-    return get_available_scrapers_from_registry()
+    return get_available_scrapers_from_registry(method=method)
 
 
 async def main(args):
-    start_date = datetime.strptime(args.start_date, "%Y-%m-%d")
-    keywords = args.keywords
+    method = getattr(args, "method", "search")
+    start_date = (
+        datetime.strptime(args.start_date, "%Y-%m-%d")
+        if method == "search" and args.start_date
+        else None
+    )
+    keywords = (args.keywords or "ihsg") if method == "search" else "latest"
     selected_scrapers = args.scrapers
 
     queue_ = asyncio.Queue()
 
     # Get custom output path if provided
     output_path = getattr(args, "output_path", None)
+    output_label = _build_output_label(args.keywords, method)
 
     output_format = getattr(args, "output_format", "xlsx")
     if output_format.lower() == "xlsx":
         writer_task = asyncio.create_task(
-            write_xlsx(queue_, args.keywords, output_path)
+            write_xlsx(queue_, output_label, output_path)
         )
     elif output_format.lower() == "json":
         writer_task = asyncio.create_task(
-            write_json(queue_, args.keywords, output_path)
+            write_json(queue_, output_label, output_path)
         )
     else:
-        writer_task = asyncio.create_task(write_csv(queue_, args.keywords, output_path))
+        writer_task = asyncio.create_task(write_csv(queue_, output_label, output_path))
 
-    scraper_classes, linux_excluded_scrapers = get_available_scrapers()
+    scraper_classes, linux_excluded_scrapers = get_available_scrapers(method=method)
 
     force_all_scrapers = selected_scrapers.lower() == "all"
 
@@ -243,7 +245,9 @@ async def main(args):
     # run all scrapers concurrently with a timeout
     scraper_tasks: list[asyncio.Task] = []
     try:
-        scraper_tasks = [asyncio.create_task(scraper.scrape()) for scraper in scrapers]
+        scraper_tasks = [
+            asyncio.create_task(scraper.scrape(method=method)) for scraper in scrapers
+        ]
         # Set overall timeout to 3 minutes for all scrapers
         await asyncio.wait_for(asyncio.gather(*scraper_tasks), timeout=180)
     except asyncio.TimeoutError:

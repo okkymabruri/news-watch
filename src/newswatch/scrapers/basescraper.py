@@ -9,9 +9,14 @@ from ..utils import AsyncScraper
 class BaseScraper(AsyncScraper, ABC):
     def __init__(self, keywords, concurrency=10, queue_=None):
         super().__init__(concurrency)
-        self.keywords = [keyword.strip() for keyword in keywords.split(",")]
+        self.keywords = (
+            [keyword.strip() for keyword in keywords.split(",") if keyword.strip()]
+            if keywords
+            else []
+        )
         self.queue_ = queue_
         self.continue_scraping = True
+        self.max_latest_pages = 1
 
     def parse_date(self, date_string, **kwargs):
         parsed_date = dateparser.parse(date_string, **kwargs)
@@ -30,6 +35,12 @@ class BaseScraper(AsyncScraper, ABC):
     @abstractmethod
     async def get_article(self, link, keyword):
         pass
+
+    async def build_latest_url(self, page):
+        return None
+
+    def parse_latest_article_links(self, response_text):
+        return None
 
     async def fetch_search_results(self, keyword):
         page = 1
@@ -59,7 +70,35 @@ class BaseScraper(AsyncScraper, ABC):
         await self.run(tasks)
         return self.continue_scraping
 
-    async def scrape(self):
+    async def fetch_latest_results(self):
+        page = 1
+        found_articles = False
+
+        while self.continue_scraping and page <= self.max_latest_pages:
+            response_text = await self.build_latest_url(page)
+            if not response_text:
+                break
+
+            filtered_hrefs = self.parse_latest_article_links(response_text)
+            if not filtered_hrefs:
+                break
+
+            found_articles = True
+            continue_scraping = await self.process_page(filtered_hrefs, "latest")
+            if not continue_scraping:
+                break
+
+            page += 1
+
+        if not found_articles:
+            logging.info(f"No latest news found on {self.base_url}")
+
+    async def scrape(self, method="search"):
         async with self:
-            tasks = [self.fetch_search_results(keyword) for keyword in self.keywords]
-            await self.run(tasks)
+            if method == "latest":
+                await self.fetch_latest_results()
+            else:
+                tasks = [
+                    self.fetch_search_results(keyword) for keyword in self.keywords
+                ]
+                await self.run(tasks)

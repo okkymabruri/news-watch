@@ -11,6 +11,8 @@ Each entry declares:
   - strict_search: whether true arbitrary-keyword search is validated
   - browser_required: whether Playwright is needed for this source
   - smoke_keyword: best keyword for smoke tests (defaults to "ihsg")
+  - supports_search: whether search mode is supported
+  - supports_latest: whether latest mode is supported
   - note: free-text context for devs
 """
 
@@ -31,6 +33,8 @@ class ScraperEntry:
     strict_search: bool = True
     browser_required: bool = False
     smoke_keyword: str = "ihsg"
+    supports_search: bool = True
+    supports_latest: bool = False
     note: str = ""
 
 
@@ -45,6 +49,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         class_name="AntaranewsScraper",
         concurrency=7,
         smoke_keyword="ihsg",
+        supports_latest=True,
     ),
     "bisnis": ScraperEntry(
         slug="bisnis",
@@ -79,6 +84,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         status="stable",
         strict_search=True,
         smoke_keyword="ihsg",
+        supports_latest=True,
         note="promoted to stable; rebuilt with RSS keyword filtering; 2026-04-18",
     ),
     "detik": ScraperEntry(
@@ -135,6 +141,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         class_name="KompasScraper",
         concurrency=7,
         smoke_keyword="ihsg",
+        supports_latest=True,
     ),
     "kontan": ScraperEntry(
         slug="kontan",
@@ -282,6 +289,7 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         class_name="VivaScraper",
         concurrency=7,
         smoke_keyword="ihsg",
+        supports_latest=True,
     ),
     # ── Quarantined scrapers ─────────────────────────────────────────────────
     "jakartapost": ScraperEntry(
@@ -448,6 +456,16 @@ def get_stable_scrapers() -> Dict[str, ScraperEntry]:
     return {k: v for k, v in SCRAPERS.items() if v.status == "stable"}
 
 
+def get_search_scrapers() -> Dict[str, ScraperEntry]:
+    """Return stable scrapers that support search mode."""
+    return {k: v for k, v in get_stable_scrapers().items() if v.supports_search}
+
+
+def get_latest_scrapers() -> Dict[str, ScraperEntry]:
+    """Return stable scrapers that support latest mode."""
+    return {k: v for k, v in get_stable_scrapers().items() if v.supports_latest}
+
+
 def get_quarantined_scrapers() -> Dict[str, ScraperEntry]:
     """Return scrapers that are quarantined."""
     return {k: v for k, v in SCRAPERS.items() if v.status == "quarantined"}
@@ -473,7 +491,7 @@ def get_all_slugs() -> List[str]:
     return sorted(SCRAPERS.keys())
 
 
-def get_available_scrapers_from_registry():
+def get_available_scrapers_from_registry(method: str = "search"):
     """Build the scraper_classes dict for main.py from the registry.
 
     Returns:
@@ -483,10 +501,12 @@ def get_available_scrapers_from_registry():
     scraper_classes = {}
     linux_excluded = {}
 
-    for slug, entry in SCRAPERS.items():
-        if entry.status != "stable":
-            continue
+    if method == "latest":
+        entries = get_latest_scrapers()
+    else:
+        entries = get_search_scrapers()
 
+    for slug, entry in entries.items():
         try:
             module = importlib.import_module(f".scrapers.{entry.module}", package="newswatch")
             scraper_class = getattr(module, entry.class_name)
