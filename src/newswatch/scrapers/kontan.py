@@ -117,3 +117,24 @@ class KontanScraper(BaseScraper):
             await self.queue_.put(item)
         except Exception:
             pass
+
+    async def build_latest_url(self, page):
+        if page > 1:
+            return None
+        return await self.fetch(
+            f"{self.base_url}/",
+            timeout=30,
+        )
+
+    def parse_latest_article_links(self, response_text):
+        if not response_text:
+            return None
+        soup = BeautifulSoup(response_text, "html.parser")
+        filtered_hrefs = {
+            f"http:{a.get('href')}"
+            for a in soup.select(".list-berita ul li a, .main-headline a, .box-terbaru ul li a")
+            if a.get("href")
+            and self.href_pattern.match(a.get("href"))
+            and "insight.kontan.co.id" not in a.get("href")
+        }
+        return filtered_hrefs or None

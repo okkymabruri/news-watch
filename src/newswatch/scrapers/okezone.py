@@ -161,3 +161,22 @@ class OkezoneScraper(BaseScraper):
             await self.queue_.put(item)
         except Exception as e:
             logging.error(f"Error parsing article {link}: {e}")
+
+    async def build_latest_url(self, page):
+        if page > 1:
+            return None
+        return await self.fetch(self.base_url, headers=self.headers, timeout=30)
+
+    def parse_latest_article_links(self, response_text):
+        if not response_text:
+            return None
+        soup = BeautifulSoup(response_text, "html.parser")
+        pattern = re.compile(r"https?://[\w.-]*okezone\.com/read/\d+/\d+/\d+/\d+/")
+        links = set()
+        for a in soup.find_all("a", href=True):
+            href = a["href"]
+            if not href.startswith("http"):
+                href = f"{self.base_url}{href}"
+            if pattern.match(href):
+                links.add(href)
+        return links or None

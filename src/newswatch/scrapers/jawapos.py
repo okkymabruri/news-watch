@@ -179,3 +179,11 @@ class JawaposScraper(BaseScraper):
             "link": link,
         }
         await self.queue_.put(item)
+
+    async def build_latest_url(self, page):
+        return await self.fetch(
+            f"{self.base_url}/?sort=latest&page={page}",
+        )
+
+    def parse_latest_article_links(self, response_text):
+        return self.parse_article_links(response_text)

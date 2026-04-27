@@ -94,3 +94,20 @@ class BeritaJatimScraper(BaseScraper):
             "link": link,
         }
         await self.queue_.put(item)
+
+    async def build_latest_url(self, page):
+        if page == 1:
+            return await self.fetch(self.base_url, timeout=30)
+        else:
+            return await self.fetch(f"{self.base_url}/page/{page}/", timeout=30)
+
+    def parse_latest_article_links(self, response_text):
+        if not response_text:
+            return None
+        soup = BeautifulSoup(response_text, "html.parser")
+        links = set()
+        for h in soup.select("h2 a[href], h3 a[href]"):
+            href = h.get("href", "")
+            if self._article_re.match(href):
+                links.add(href if href.startswith("http") else f"{self.base_url}{href}")
+        return links or None

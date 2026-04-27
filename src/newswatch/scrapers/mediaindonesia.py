@@ -80,3 +80,13 @@ class MediaIndonesiaScraper(BaseScraper):
             await self.queue_.put(item)
         except Exception as e:
             logging.error(f"Error parsing article {link}: {e}")
+
+    async def build_latest_url(self, page):
+        if page > 1:
+            return None
+        return await self.fetch(f"{self.base_url}/", timeout=30)
+
+    def parse_latest_article_links(self, response_text):
+        if not response_text:
+            return None
+        return self.parse_article_links(response_text)

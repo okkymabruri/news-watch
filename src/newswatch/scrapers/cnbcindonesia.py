@@ -168,3 +168,28 @@ class CNBCScraper(BaseScraper):
             await self.queue_.put(item)
         except Exception as e:
             logging.error(f"Error parsing article {link}: {e}")
+
+    async def build_latest_url(self, page):
+        if page > 1:
+            return None
+        return await self.fetch(
+            f"{self.base_url}/rss",
+            headers={"Accept": "application/xml,*/*", "User-Agent": "Mozilla/5.0"},
+            timeout=30,
+        )
+
+    def parse_latest_article_links(self, response_text):
+        if not response_text:
+            return None
+        soup = BeautifulSoup(response_text, "xml")
+        article_href = re.compile(
+            r"^https?://www\.cnbcindonesia\.com/.+?/\d+-\d+-\d+/"
+        )
+        links = set()
+        for item in soup.find_all("item"):
+            link_el = item.find("link")
+            if link_el:
+                link = link_el.get_text(strip=True)
+                if article_href.search(link):
+                    links.add(link)
+        return links or None

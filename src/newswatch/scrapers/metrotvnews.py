@@ -123,3 +123,20 @@ class MetrotvnewsScraper(BaseScraper):
             await self.queue_.put(item)
         except Exception as e:
             logging.error(f"Error parsing article {link}: {e}", exc_info=True)
+
+    async def build_latest_url(self, page):
+        if page > 1:
+            return None
+        return await self.fetch(self.base_url, headers=self._headers, timeout=30)
+
+    def parse_latest_article_links(self, response_text):
+        if not response_text:
+            return None
+        soup = BeautifulSoup(response_text, "html.parser")
+        links = set()
+        for a in soup.select(".item .text h3 a[href], .list-news .text a[href], .trending-list a[href]"):
+            href = a.get("href")
+            if href:
+                links.add(urljoin(self.base_url, href))
+        links = {link for link in links if link.startswith("http")}
+        return links or None

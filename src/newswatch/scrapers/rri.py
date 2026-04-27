@@ -127,3 +127,13 @@ class RRIScraper(BaseScraper):
             await self.queue_.put(item)
         except Exception as e:
             logging.error("Error parsing article %s: %s", link, e)
+
+    async def build_latest_url(self, page):
+        query_params = {"page": page}
+        url = f"{self.base_url}/search?{urlencode(query_params)}" if page > 1 else f"{self.base_url}/"
+        return await self.fetch(url, headers=self.headers, timeout=30)
+
+    def parse_latest_article_links(self, response_text):
+        if not response_text:
+            return None
+        return self.parse_article_links(response_text)

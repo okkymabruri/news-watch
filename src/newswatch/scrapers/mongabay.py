@@ -104,3 +104,81 @@ class MongabayScraper(BaseScraper):
     # Satisfy abstract methods (not used — articles from API JSON)
     async def get_article(self, link, keyword):
         pass
+
+    async def build_latest_url(self, page):
+        return await self.fetch(
+            f"{self.base_url}/wp-json/wp/v2/posts?per_page=20&page={page}",
+            headers=self.headers,
+            timeout=30,
+        )
+
+    def parse_latest_article_links(self, response_text):
+        if not response_text:
+            return None
+        try:
+            data = json.loads(response_text)
+            if not isinstance(data, list):
+                return None
+            links = set()
+            for item in data:
+                link = item.get("link", "")
+                if link:
+                    links.add(link)
+            return links or None
+        except Exception:
+            return None
+
+    async def fetch_latest_results(self):
+        """Override to process API items directly."""
+        page = 1
+        found = False
+        while self.continue_scraping and page <= self.max_latest_pages:
+            response_text = await self.build_latest_url(page)
+            if not response_text:
+                break
+
+            try:
+                data = json.loads(response_text)
+                if not isinstance(data, list) or not data:
+                    break
+            except Exception:
+                break
+
+            found = True
+            for item in data:
+                link = item.get("link", "")
+                if not link:
+                    continue
+                title = BeautifulSoup(item.get("title", {}).get("rendered", ""), "html.parser").get_text(strip=True)
+                content = BeautifulSoup(item.get("content", {}).get("rendered", ""), "html.parser").get_text(" ", strip=True)
+                publish_date_str = item.get("date", "")
+                publish_date = self.parse_date(publish_date_str)
+                if not publish_date:
+                    continue
+
+                if self.start_date and publish_date < self.start_date:
+                    self.continue_scraping = False
+                    continue
+
+                path = link.replace(self.base_url, "").strip("/")
+                parts = path.split("/")
+                category = parts[0] if parts else "Unknown"
+
+                article = {
+                    "title": title,
+                    "publish_date": publish_date,
+                    "author": "Unknown",
+                    "content": content,
+                    "keyword": "latest",
+                    "category": category,
+                    "source": "mongabay.co.id",
+                    "link": link,
+                }
+                await self.queue_.put(article)
+
+            if len(data) < 20:
+                break
+            page += 1
+
+        if not found:
+            logging.info(f"No latest news found on {self.base_url}")
