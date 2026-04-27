@@ -3,12 +3,15 @@ Tests for the synchronous API module.
 """
 
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pandas as pd
 import pytest
 
 from newswatch.api import (
+    latest,
+    latest_to_dataframe,
+    latest_to_file,
     list_scrapers,
     quick_scrape,
     scrape,
@@ -35,6 +38,14 @@ class TestListScrapers:
         for scraper in expected_scrapers:
             assert scraper in scrapers
 
+    def test_list_latest_scrapers_returns_subset(self):
+        """Test that latest scraper listing works."""
+        scrapers = list_scrapers(method="latest")
+        assert isinstance(scrapers, list)
+        assert "kompas" in scrapers
+        assert "antaranews" in scrapers
+        assert "tempo" not in scrapers
+
 
 class TestInputValidation:
     """Test input validation for API functions."""
@@ -53,6 +64,27 @@ class TestInputValidation:
         """Test that invalid scrapers raise ValidationError."""
         with pytest.raises(ValidationError, match="Invalid scrapers"):
             scrape("test", "2025-01-01", scrapers="nonexistent_scraper")
+
+    def test_scrape_invalid_method(self):
+        """Test that invalid method raises ValidationError."""
+        with pytest.raises(ValidationError, match="Invalid method"):
+            scrape("test", "2025-01-01", method="invalid")
+
+    def test_search_requires_start_date(self):
+        """Test that search method still requires start_date."""
+        with pytest.raises(ValidationError, match="Start date is required"):
+            scrape("test", None)
+
+    def test_latest_does_not_require_keywords_or_start_date(self):
+        """Test that latest method can run without keywords/start_date."""
+        with patch("newswatch.api._async_scrape_to_list", new_callable=AsyncMock) as mock_async:
+            mock_async.return_value = []
+            result = scrape(method="latest")
+            assert result == []
+            args = mock_async.call_args[0]
+            assert args[0] is None
+            assert args[1] is None
+            assert args[5] == "latest"
 
 
 class TestScrapeToDataFrame:
@@ -191,6 +223,57 @@ class TestConvenienceFunctions:
         # verify date is approximately 2 days ago
         expected_date = (datetime.now() - timedelta(days=2)).strftime("%Y-%m-%d")
         assert start_date == expected_date
+
+    @patch("newswatch.api.scrape")
+    def test_latest(self, mock_scrape):
+        """Test latest convenience function."""
+        mock_scrape.return_value = []
+
+        result = latest(scrapers="kompas")
+
+        assert result == []
+        mock_scrape.assert_called_once_with(
+            keywords=None,
+            start_date=None,
+            scrapers="kompas",
+            verbose=False,
+            timeout=300,
+            method="latest",
+        )
+
+    @patch("newswatch.api.scrape_to_dataframe")
+    def test_latest_to_dataframe(self, mock_scrape_df):
+        """Test latest_to_dataframe convenience function."""
+        mock_df = MagicMock()
+        mock_scrape_df.return_value = mock_df
+
+        result = latest_to_dataframe(scrapers="kompas")
+
+        assert result == mock_df
+        mock_scrape_df.assert_called_once_with(
+            keywords=None,
+            start_date=None,
+            scrapers="kompas",
+            verbose=False,
+            timeout=300,
+            method="latest",
+        )
+
+    @patch("newswatch.api.scrape_to_file")
+    def test_latest_to_file(self, mock_scrape_to_file):
+        """Test latest_to_file convenience function."""
+        latest_to_file("latest.json", output_format="json", scrapers="kompas")
+
+        mock_scrape_to_file.assert_called_once_with(
+            keywords=None,
+            start_date=None,
+            output_path="latest.json",
+            output_format="json",
+            scrapers="kompas",
+            verbose=False,
+            timeout=300,
+            method="latest",
+        )
 
 
 class TestAPIIntegration:

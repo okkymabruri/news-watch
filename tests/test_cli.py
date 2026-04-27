@@ -18,7 +18,8 @@ def test_cli_no_args(monkeypatch, capsys):
         # Verify that main was called with expected arguments
         mock_main.assert_called_once()
         args = mock_main.call_args[0][0]
-        assert args.keywords == "ihsg"
+        assert args.method == "search"
+        assert args.keywords is None
         assert args.scrapers == "auto"
         assert args.output_format == "csv"
 
@@ -58,6 +59,30 @@ def test_cli_list_scrapers(monkeypatch, capsys):
     with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main:
         cli()
         captured = capsys.readouterr()
-        assert "Supported scrapers:" in captured.out
+        assert "Supported search scrapers:" in captured.out
         # Main should not be called when listing scrapers
+        mock_main.assert_not_called()
+
+
+def test_cli_latest_method(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["cli.py", "--method", "latest"])
+
+    with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main:
+        cli()
+        capsys.readouterr()
+
+        mock_main.assert_called_once()
+        args = mock_main.call_args[0][0]
+        assert args.method == "latest"
+
+
+def test_cli_list_latest_scrapers(monkeypatch, capsys):
+    monkeypatch.setattr(
+        sys, "argv", ["cli.py", "--method", "latest", "--list_scrapers"]
+    )
+
+    with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main:
+        cli()
+        captured = capsys.readouterr()
+        assert "Supported latest scrapers:" in captured.out
         mock_main.assert_not_called()
