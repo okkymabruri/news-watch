@@ -35,15 +35,16 @@ Some scrapers may work on a local machine but fail on remote servers, Linux CI, 
 To run the scraper from the command line:
 
 ```bash
-newswatch -k <keywords> -sd <start_date> -s [<scrapers>] -of <output_format> -v
+newswatch --method <search|latest> -k <keywords> -sd <start_date> -s [<scrapers>] -of <output_format> -v
 ```
 
 **Command-Line Arguments**
 
 | Argument | Description |
 |----------|-------------|
-| `-k, --keywords` | **Required.** Comma-separated keywords to scrape (e.g., `"ojk,bank,npl"`) |
-| `-sd, --start_date` | **Required.** Start date in YYYY-MM-DD format (e.g., `2025-01-01`) |
+| `--method` | Retrieval method: `search` (default) or `latest` |
+| `-k, --keywords` | Comma-separated keywords to scrape (required for `search`, optional for `latest`) |
+| `-sd, --start_date` | Start date in YYYY-MM-DD format (required for `search`, ignored in `latest`) |
 | `-s, --scrapers` | Scrapers to use: specific names (e.g., `"kompas,viva"`), `"auto"` (default, platform-appropriate), or `"all"` (force all, may fail) |
 | `-of, --output_format` | Output format: `csv`, `xlsx`, or `json` (default: csv) |
 | `-o, --output_path` | Custom output file path (optional) |
@@ -56,6 +57,9 @@ newswatch -k <keywords> -sd <start_date> -s [<scrapers>] -of <output_format> -v
 ```bash
 # Basic usage
 newswatch --keywords ihsg --start_date 2025-01-01
+
+# Latest monitoring mode
+newswatch --method latest --scrapers "antaranews,kompas,viva"
 
 # Multiple keywords with specific scraper
 newswatch -k "ihsg,bank" -s "tempo" --output_format xlsx -v
@@ -76,6 +80,10 @@ print(f"Found {len(articles)} articles")
 # Get results as pandas DataFrame for analysis
 df = nw.scrape_to_dataframe("teknologi,startup", "2025-01-01")
 print(df['source'].value_counts())
+
+# Latest monitoring
+latest = nw.latest_to_dataframe(scrapers="antaranews,kompas,viva")
+print(latest[["source", "title"]].head())
 
 # Save directly to file
 nw.scrape_to_file(
@@ -113,6 +121,12 @@ The output file contains the following columns:
 - `category`
 - `source`
 - `link`
+
+## Retrieval Methods
+
+- `search` is the default and keeps the current keyword/date research workflow.
+- `latest` is intended for latest-news monitoring and does not require keywords.
+- Latest mode currently starts with a smaller subset of sources than the full search catalog.
 
 ## Supported Websites (40)
 

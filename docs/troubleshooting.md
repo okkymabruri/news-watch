@@ -41,6 +41,7 @@ Quick checks:
 ```bash
 newswatch --list_scrapers
 newswatch --keywords indonesia --start_date 2025-01-15 -v
+newswatch --method latest --scrapers "antaranews,kompas,viva" -v
 ```
 
 Common causes:
@@ -49,6 +50,7 @@ Common causes:
 - date too old → try a recent date first
 - blocked in cloud/Linux → try fewer scrapers or run locally
 - some supported scrapers may legitimately return zero results for a given keyword/date window
+- latest mode is only enabled for a subset of sources, so narrow scrapers if needed
 
 ### Timeout
 

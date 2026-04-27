@@ -21,6 +21,15 @@ This comprehensive guide covers everything you need to know about using news-wat
 
 For installation, see the [Getting Started guide](getting-started.md).
 
+## Retrieval Methods
+
+`news-watch` now supports two retrieval methods:
+
+- `search` — default keyword/date search for research workflows
+- `latest` — latest-news collection for monitoring workflows
+
+Use `search` when you care about a topic. Use `latest` when you want the newest headlines from supported sources.
+
 ### Your First Scrape
 
 Let's start with something simple - finding recent news about Indonesian economics:
@@ -38,6 +47,10 @@ articles = nw.scrape(
 print(f"Found {len(articles)} articles about IHSG")
 if articles:
     print("First article title:", articles[0]['title'])
+
+# Latest monitoring without keywords
+latest = nw.latest_to_dataframe(scrapers="antaranews,kompas,viva")
+print(latest[["source", "title"]].head())
 ```
 
 Each article contains these fields:
@@ -194,6 +207,8 @@ tech_df = nw.scrape_to_dataframe(
 The `auto` setting picks reliable scrapers based on your platform. Use `all` only if you need maximum coverage and don't mind potential errors.
 
 The stable release currently exposes 40 supported query-backed scrapers. No investigating or quarantined sources remain.
+
+Latest mode starts with a smaller rollout and is best treated as a monitoring capability that expands source by source.
 
 ## Building Your First Analysis
 

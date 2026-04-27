@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `search` and `latest` retrieval methods in the CLI and Python API
+- Convenience helpers for latest monitoring: `latest()`, `latest_to_dataframe()`, and `latest_to_file()`
+
+### Changed
+- Search remains the default retrieval method for backward compatibility
+- Registry metadata now tracks whether a scraper supports `latest` mode
+
+### Notes
+- Initial `latest` rollout starts with a smaller source subset for realtime monitoring
+
 ## [0.7.0] - 2026-04-25
 
 ## What's Changed
