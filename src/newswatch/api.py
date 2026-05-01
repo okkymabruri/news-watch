@@ -9,6 +9,7 @@ maintainer: Okky Mabruri <okkymbrur@gmail.com>
 """
 
 import asyncio
+import json
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -18,6 +19,7 @@ import pandas as pd
 
 from .exceptions import NewsWatchError, ValidationError
 from .main import get_available_scrapers
+from .main import _load_dedup_links, _parse_time_range
 
 
 class MockArgs:
@@ -25,21 +27,34 @@ class MockArgs:
 
     def __init__(
         self,
-        keywords: str,
-        start_date: str,
+        keywords: str | None,
+        start_date: str | None,
         scrapers: str = "auto",
         output_format: str = "xlsx",
         verbose: bool = False,
+        method: str = "search",
+        limit: int | None = None,
+        max_pages: int | None = None,
+        time_range: str | None = None,
+        dedup_file: str | None = None,
     ):
         self.keywords = keywords
         self.start_date = start_date
         self.scrapers = scrapers
         self.output_format = output_format
         self.verbose = verbose
+        self.method = method
+        self.limit = limit
+        self.max_pages = max_pages
+        self.time_range = time_range
+        self.dedup_file = dedup_file
 
 
 async def _collect_queue_results(
-    queue: asyncio.Queue, scrapers_done_event: asyncio.Event
+    queue: asyncio.Queue, scrapers_done_event: asyncio.Event, limit: int | None = None,
+    limit_reached_event: asyncio.Event | None = None,
+    dedup_links: set | None = None,
+    time_range: tuple | None = None,
 ) -> List[Dict]:
     """
     Collect all items from the async queue into a list with improved coordination.
@@ -47,11 +62,24 @@ async def _collect_queue_results(
     Uses adaptive timeout strategy:
     - While scrapers running: longer timeout to allow for slow scrapers
     - After scrapers done: shorter timeout to collect remaining items quickly
+    - Stops early if limit is reached and signals limit_reached_event
     """
     results = []
     items_collected = 0
 
+    # Parse time range if provided
+    time_start, time_end = (None, None)
+    if time_range:
+        time_start, time_end = time_range
+
     while True:
+        # Check if we've reached the limit
+        if limit is not None and items_collected >= limit:
+            logging.debug(f"Reached limit of {limit} articles. Stopping collection.")
+            if limit_reached_event:
+                limit_reached_event.set()
+            break
+
         try:
             # adaptive timeout based on scraper status
             if scrapers_done_event.is_set():
@@ -94,6 +122,26 @@ async def _collect_queue_results(
             )
             break
 
+        # Skip duplicates
+        if dedup_links is not None and item.get("link", "") in dedup_links:
+            continue
+
+        # Apply time range filter
+        if time_start is not None or time_end is not None:
+            pub_date = item.get("publish_date")
+            if pub_date:
+                if isinstance(pub_date, str):
+                    try:
+                        pub_date = datetime.fromisoformat(pub_date)
+                    except ValueError:
+                        continue
+                if not isinstance(pub_date, datetime):
+                    continue
+                if time_start is not None and pub_date < time_start:
+                    continue
+                if time_end is not None and pub_date > time_end:
+                    continue
+
         # format datetime objects as strings for json serialization
         if isinstance(item.get("publish_date"), datetime):
             item["publish_date"] = item["publish_date"].strftime("%Y-%m-%d %H:%M:%S")
@@ -106,11 +154,18 @@ async def _collect_queue_results(
 
 
 async def _async_scrape_to_list(
-    keywords: str,
-    start_date: str,
+    keywords: str | None,
+    start_date: str | None,
     scrapers: str = "auto",
     verbose: bool = False,
     timeout: int = 300,
+    method: str = "search",
+    limit: int | None = None,
+    max_pages: int | None = None,
+    *,
+    scraper_timeout: int | None = None,
+    time_range: str | None = None,
+    dedup_file: str | None = None,
 ) -> List[Dict]:
     """
     Internal async function to scrape and return results as list.
@@ -126,27 +181,31 @@ async def _async_scrape_to_list(
         logging.disable(logging.CRITICAL)
 
     # validate inputs
-    try:
-        start_date_obj = datetime.strptime(start_date, "%Y-%m-%d")
-    except ValueError:
+    if method not in {"search", "latest"}:
         raise ValidationError(
-            f"Invalid date format: {start_date}. Use YYYY-MM-DD format."
+            f"Invalid method: {method}. Use 'search' or 'latest'."
         )
 
-    if not keywords.strip():
-        raise ValidationError("Keywords cannot be empty.")
+    if method == "search":
+        if not start_date:
+            raise ValidationError("Start date is required for search method.")
+        try:
+            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d")
+        except ValueError:
+            raise ValidationError(
+                f"Invalid date format: {start_date}. Use YYYY-MM-DD format."
+            )
+
+        if not keywords or not keywords.strip():
+            raise ValidationError("Keywords cannot be empty.")
+    else:
+        start_date_obj = None
 
     # get available scrapers and validate selection
-    scraper_classes, linux_excluded_scrapers = get_available_scrapers()
+    scraper_classes, _linux_excluded = get_available_scrapers(method=method)
     if scrapers not in ["auto", "all"] and scrapers:
-        import platform
-
-        scraper_list = [name.strip().lower() for name in scrapers.split(",")]
-
         allowed_scrapers = dict(scraper_classes)
-        if platform.system().lower() == "linux":
-            # Allow explicit selection of Linux-excluded scrapers.
-            allowed_scrapers.update(linux_excluded_scrapers)
+        scraper_list = [name.strip().lower() for name in scrapers.split(",")]
 
         invalid_scrapers = [s for s in scraper_list if s not in allowed_scrapers]
         if invalid_scrapers:
@@ -154,49 +213,30 @@ async def _async_scrape_to_list(
                 f"Invalid scrapers: {invalid_scrapers}. Available: {list(allowed_scrapers.keys())}"
             )
 
-    # create queue for collecting results and event for coordination
+    # Process dedup and time range parameters
+    dedup_links = None
+    if dedup_file:
+        try:
+            dedup_links = _load_dedup_links(dedup_file)
+        except Exception as e:
+            raise ValidationError(f"Failed to load dedup file: {e}") from e
+
+    parsed_tr = None
+    if time_range:
+        try:
+            parsed_tr = _parse_time_range(time_range)
+        except Exception as e:
+            raise ValidationError(f"Failed to parse time range: {e}") from e
+
+    # create queue for collecting results and events for coordination
     queue = asyncio.Queue()
     scrapers_done_event = asyncio.Event()
-
-    # start collector task (runs concurrently with scrapers)
-    collector_task = asyncio.create_task(
-        _collect_queue_results(queue, scrapers_done_event)
-    )
-
-    # determine which scrapers to run
-    force_all_scrapers = scrapers.lower() == "all"
-
-    if force_all_scrapers:
-        import platform
-
-        if platform.system().lower() == "linux":
-            scraper_classes.update(linux_excluded_scrapers)
-            logging.warning(
-                f"Forcing all scrapers on Linux - may cause errors: {', '.join(linux_excluded_scrapers.keys())}"
-            )
+    limit_reached_event = asyncio.Event()
 
     if scrapers.lower() in ["all", "auto"]:
         scrapers_to_run = list(scraper_classes.keys())
     else:
         scrapers_to_run = [name.strip().lower() for name in scrapers.split(",")]
-
-    # If the caller explicitly requested Linux-excluded scrapers, enable them.
-    import platform
-
-    if platform.system().lower() == "linux":
-        requested_excluded = [
-            s
-            for s in scrapers_to_run
-            if s in linux_excluded_scrapers and s not in scraper_classes
-        ]
-        if requested_excluded:
-            scraper_classes.update(
-                {name: linux_excluded_scrapers[name] for name in requested_excluded}
-            )
-            logging.warning(
-                "Using Linux-excluded scrapers (may fail due to WAF/Cloudflare/anti-bot): %s",
-                ", ".join(requested_excluded),
-            )
 
     # instantiate scrapers
     scraper_instances = []
@@ -206,15 +246,35 @@ async def _async_scrape_to_list(
             scraper_class = scraper_info["class"]
             scraper_params = scraper_info["params"]
             scraper_instance = scraper_class(
-                keywords, start_date=start_date_obj, queue_=queue, **scraper_params
+                keywords or "latest",
+                start_date=start_date_obj,
+                queue_=queue,
+                **scraper_params,
             )
+            # Apply max_pages limit for latest mode
+            if max_pages is not None:
+                scraper_instance.max_latest_pages = max_pages
+            # Wire dedup and time window to scraper for pre-fetch filtering
+            if dedup_links is not None:
+                scraper_instance.dedup_links = dedup_links
+            if parsed_tr is not None:
+                scraper_instance.start_datetime = parsed_tr[0]
+                scraper_instance.end_datetime = parsed_tr[1]
             scraper_instances.append(scraper_instance)
         else:
             logging.warning(f"scraper '{scraper_name}' is not recognized.")
 
     if not scraper_instances:
         logging.error("no valid scrapers selected.")
-        scrapers_done_event.set()  # signal completion even with no scrapers
+        scrapers_done_event.set()
+        parsed_tr = None
+        if time_range:
+            parsed_tr = _parse_time_range(time_range)
+        collector_task = asyncio.create_task(
+            _collect_queue_results(queue, scrapers_done_event, limit=limit,
+                                   limit_reached_event=limit_reached_event,
+                                   dedup_links=dedup_links, time_range=parsed_tr)
+        )
         collector_task.cancel()
         try:
             await collector_task
@@ -228,40 +288,92 @@ async def _async_scrape_to_list(
         f"Starting {total_scrapers} scrapers: {[type(s).__name__ for s in scraper_instances]}"
     )
 
-    # run all scrapers concurrently with timeout
-    scraper_tasks = []
+    # run all scrapers concurrently with per-scraper timeout isolation
+    scraper_stats: Dict[str, Dict] = {}
+
+    async def _run_with_timeout(scraper, timeout_val):
+        scraper_name = type(scraper).__name__
+        try:
+            if timeout_val:
+                await asyncio.wait_for(scraper.scrape(method=method), timeout=timeout_val)
+            else:
+                await scraper.scrape(method=method)
+            scraper_stats[scraper_name] = {"status": "ok"}
+        except asyncio.TimeoutError:
+            logging.warning(
+                f"Scraper {scraper_name} timed out after {timeout_val}s"
+            )
+            scraper_stats[scraper_name] = {"status": "timeout"}
+        except Exception as e:
+            logging.error(f"Scraper {scraper_name} failed: {e}")
+            scraper_stats[scraper_name] = {"status": "error"}
+
+    scraper_tasks = [
+        asyncio.create_task(_run_with_timeout(scraper, scraper_timeout))
+        for scraper in scraper_instances
+    ]
+
+    # start collector task (runs concurrently with scrapers)
+    # collector signals limit_reached_event instead of cancelling tasks
+    collector_task = asyncio.create_task(
+        _collect_queue_results(queue, scrapers_done_event, limit=limit,
+                               limit_reached_event=limit_reached_event,
+                               dedup_links=dedup_links, time_range=parsed_tr)
+    )
+
+    # race scraper completion against limit being reached
     try:
-        scraper_tasks = [
-            asyncio.create_task(scraper.scrape()) for scraper in scraper_instances
-        ]
-        # respect caller-provided timeout for overall scrape
-        await asyncio.wait_for(asyncio.gather(*scraper_tasks), timeout=timeout)
-        logging.debug(f"All {total_scrapers} scrapers completed successfully")
+        all_scrapers_done = asyncio.gather(*scraper_tasks)
+        limit_hit = asyncio.create_task(limit_reached_event.wait())
+
+        done, pending = await asyncio.wait(
+            [all_scrapers_done, limit_hit], timeout=timeout,
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+
+        if not done:
+            all_scrapers_done.cancel()
+            for t in scraper_tasks:
+                if not t.done():
+                    t.cancel()
+            logging.warning(
+                f"Scraping took too long and was stopped after {timeout} seconds. {total_scrapers} scrapers were running."
+            )
+        elif limit_hit in done:
+            # Limit reached — cancel remaining scraper work
+            all_scrapers_done.cancel()
+            for t in scraper_tasks:
+                if not t.done():
+                    t.cancel()
+            # Allow cancelled tasks to resolve without propagating CancelledError
+            for t in scraper_tasks:
+                if not t.done():
+                    try:
+                        await t
+                    except BaseException:
+                        pass
+            logging.debug("Limit reached, cancelled remaining scrapers")
+        else:
+            # Scrapers finished — clean up limit watcher
+            limit_hit.cancel()
     except asyncio.TimeoutError:
         logging.warning(
             f"Scraping took too long and was stopped after {timeout} seconds. {total_scrapers} scrapers were running."
         )
+        for t in scraper_tasks:
+            if not t.done():
+                t.cancel()
     except Exception as e:
         logging.error(f"Error during scraping: {e}")
+        for t in scraper_tasks:
+            if not t.done():
+                t.cancel()
     finally:
-        # cancel any remaining scraper tasks
-        cancelled_count = 0
-        for task in scraper_tasks:
-            if not task.done():
-                task.cancel()
-                cancelled_count += 1
-
-        if cancelled_count > 0:
-            logging.debug(f"Cancelled {cancelled_count} unfinished scraper tasks")
-
-        # wait for cancelled tasks to complete
+        # Wait for any remaining tasks to resolve cleanly
         if scraper_tasks:
-            try:
-                await asyncio.gather(*scraper_tasks, return_exceptions=True)
-            except Exception:
-                pass
+            await asyncio.gather(*scraper_tasks, return_exceptions=True)
 
-        # important: signal that all scrapers are done BEFORE sending sentinel
+        # signal that all scrapers are done BEFORE sending sentinel
         scrapers_done_event.set()
         logging.debug("Scrapers completion event set")
 
@@ -283,22 +395,34 @@ async def _async_scrape_to_list(
 
 
 def scrape(
-    keywords: str,
-    start_date: str,
+    keywords: str | None = None,
+    start_date: str | None = None,
     scrapers: str = "auto",
     verbose: bool = False,
     timeout: int = 300,
+    method: str = "search",
+    limit: int | None = None,
+    max_pages: int | None = None,
+    *,
+    scraper_timeout: int | None = None,
+    time_range: str | None = None,
+    dedup_file: str | None = None,
     **kwargs,
 ) -> List[Dict]:
     """
     Scrape news articles and return as list of dictionaries.
 
     Args:
-        keywords (str): Comma-separated keywords to search for
-        start_date (str): Start date in YYYY-MM-DD format
+        keywords (str | None): Comma-separated keywords to search for
+        start_date (str | None): Start date in YYYY-MM-DD format
         scrapers (str): Scrapers to use - "auto", "all", or comma-separated list
         verbose (bool): Enable verbose logging
         timeout (int): Maximum time in seconds for scraping operation
+        method (str): Retrieval method - "search" or "latest"
+        limit (int | None): Maximum number of articles to collect (latest mode)
+        max_pages (int | None): Maximum pages to fetch per scraper (latest mode)
+        time_range (str | None): Filter articles by time range. Format: ISO8601/ISO8601.
+        dedup_file (str | None): Path to previous output file for deduplication.
         **kwargs: Additional parameters (for future compatibility)
 
     Returns:
@@ -318,7 +442,11 @@ def scrape(
     """
     try:
         return asyncio.run(
-            _async_scrape_to_list(keywords, start_date, scrapers, verbose, timeout)
+            _async_scrape_to_list(
+                keywords, start_date, scrapers, verbose, timeout, method, limit, max_pages,
+                scraper_timeout=scraper_timeout,
+                time_range=time_range, dedup_file=dedup_file,
+            )
         )
     except KeyboardInterrupt:
         logging.info("Scraping interrupted by user")
@@ -331,11 +459,18 @@ def scrape(
 
 
 def scrape_to_dataframe(
-    keywords: str,
-    start_date: str,
+    keywords: str | None = None,
+    start_date: str | None = None,
     scrapers: str = "auto",
     verbose: bool = False,
     timeout: int = 300,
+    method: str = "search",
+    limit: int | None = None,
+    max_pages: int | None = None,
+    *,
+    scraper_timeout: int | None = None,
+    time_range: str | None = None,
+    dedup_file: str | None = None,
     **kwargs,
 ) -> pd.DataFrame:
     """
@@ -347,6 +482,11 @@ def scrape_to_dataframe(
         scrapers (str): Scrapers to use - "auto", "all", or comma-separated list
         verbose (bool): Enable verbose logging
         timeout (int): Maximum time in seconds for scraping operation
+        method (str): Retrieval method - "search" or "latest"
+        limit (int | None): Maximum number of articles to collect (latest mode)
+        max_pages (int | None): Maximum pages to fetch per scraper (latest mode)
+        time_range (str | None): Filter articles by time range. Format: ISO8601/ISO8601.
+        dedup_file (str | None): Path to previous output file for deduplication.
         **kwargs: Additional parameters (for future compatibility)
 
     Returns:
@@ -357,7 +497,10 @@ def scrape_to_dataframe(
         NewsWatchError: For other newswatch-related errors
     """
     try:
-        results = scrape(keywords, start_date, scrapers, verbose, timeout, **kwargs)
+        results = scrape(
+            keywords, start_date, scrapers, verbose, timeout, method, limit, max_pages,
+            scraper_timeout=scraper_timeout, time_range=time_range, dedup_file=dedup_file, **kwargs
+        )
 
         # define column order
         columns = [
@@ -390,13 +533,20 @@ def scrape_to_dataframe(
 
 
 def scrape_to_file(
-    keywords: str,
-    start_date: str,
+    keywords: str | None,
+    start_date: str | None,
     output_path: Union[str, Path],
     output_format: str = "xlsx",
     scrapers: str = "auto",
     verbose: bool = False,
     timeout: int = 300,
+    method: str = "search",
+    limit: int | None = None,
+    max_pages: int | None = None,
+    *,
+    scraper_timeout: int | None = None,
+    time_range: str | None = None,
+    dedup_file: str | None = None,
     **kwargs,
 ) -> None:
     """
@@ -406,10 +556,15 @@ def scrape_to_file(
         keywords (str): Comma-separated keywords to search for
         start_date (str): Start date in YYYY-MM-DD format
         output_path (Union[str, Path]): Path to save the output file
-        output_format (str): Output format - "xlsx", "csv", or "json"
+        output_format (str): Output format - "xlsx", "csv", "json", or "jsonl"
         scrapers (str): Scrapers to use - "auto", "all", or comma-separated list
         verbose (bool): Enable verbose logging
         timeout (int): Maximum time in seconds for scraping operation
+        method (str): Retrieval method - "search" or "latest"
+        limit (int | None): Maximum number of articles to collect (latest mode)
+        max_pages (int | None): Maximum pages to fetch per scraper (latest mode)
+        time_range (str | None): Filter articles by time range. Format: ISO8601/ISO8601.
+        dedup_file (str | None): Path to previous output file for deduplication.
         **kwargs: Additional parameters (for future compatibility)
 
     Raises:
@@ -417,9 +572,9 @@ def scrape_to_file(
         NewsWatchError: For other newswatch-related errors
     """
     # validate output format
-    if output_format.lower() not in ["csv", "xlsx", "json"]:
+    if output_format.lower() not in ["csv", "xlsx", "json", "jsonl"]:
         raise ValidationError(
-            f"Invalid output format: {output_format}. Use 'csv', 'xlsx', or 'json'."
+            f"Invalid output format: {output_format}. Use 'csv', 'xlsx', 'json', or 'jsonl'."
         )
 
     # ensure output path has correct extension
@@ -434,7 +589,8 @@ def scrape_to_file(
     try:
         # get results as dataframe
         df = scrape_to_dataframe(
-            keywords, start_date, scrapers, verbose, timeout, **kwargs
+            keywords, start_date, scrapers, verbose, timeout, method, limit, max_pages,
+            scraper_timeout=scraper_timeout, time_range=time_range, dedup_file=dedup_file, **kwargs
         )
 
         if df.empty:
@@ -449,6 +605,15 @@ def scrape_to_file(
                 df["publish_date"] = df["publish_date"].dt.strftime("%Y-%m-%d %H:%M:%S")
             # convert dataframe to json with proper formatting
             df.to_json(output_path, orient="records", indent=2, force_ascii=False)
+        elif output_format.lower() == "jsonl":
+            # JSONL: write each record as a single JSON line (no pandas support)
+            tmp_path = output_path.with_suffix(output_path.suffix + ".tmp")
+            with open(tmp_path, mode="w", encoding="utf-8") as f:
+                for _, row in df.iterrows():
+                    record = row.to_dict()
+                    f.write(json.dumps(record, ensure_ascii=False) + "\n")
+                    f.flush()
+            tmp_path.replace(output_path)
         else:
             df.to_csv(output_path, index=False, encoding="utf-8")
 
@@ -460,14 +625,14 @@ def scrape_to_file(
         raise NewsWatchError(f"Error saving to file: {e}") from e
 
 
-def list_scrapers() -> List[str]:
+def list_scrapers(method: str = "search") -> List[str]:
     """
     Get list of available scrapers.
 
     Returns:
         List[str]: List of available scraper names
     """
-    scraper_classes, _ = get_available_scrapers()
+    scraper_classes, _ = get_available_scrapers(method=method)
     return list(scraper_classes.keys())
 
 
@@ -490,3 +655,78 @@ def quick_scrape(
 
     start_date = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
     return scrape_to_dataframe(keywords, start_date, scrapers)
+
+
+def latest(
+    scrapers: str = "auto", verbose: bool = False, timeout: int = 300,
+    limit: int | None = None, max_pages: int | None = None,
+    *, scraper_timeout: int | None = None,
+    time_range: str | None = None, dedup_file: str | None = None,
+) -> List[Dict]:
+    """Fetch latest articles for monitoring workflows."""
+    return scrape(
+        keywords=None,
+        start_date=None,
+        scrapers=scrapers,
+        verbose=verbose,
+        timeout=timeout,
+        method="latest",
+        limit=limit,
+        max_pages=max_pages,
+        scraper_timeout=scraper_timeout,
+        time_range=time_range,
+        dedup_file=dedup_file,
+    )
+
+
+def latest_to_dataframe(
+    scrapers: str = "auto", verbose: bool = False, timeout: int = 300,
+    limit: int | None = None, max_pages: int | None = None,
+    *, scraper_timeout: int | None = None,
+    time_range: str | None = None, dedup_file: str | None = None,
+) -> pd.DataFrame:
+    """Fetch latest articles and return them as a DataFrame."""
+    return scrape_to_dataframe(
+        keywords=None,
+        start_date=None,
+        scrapers=scrapers,
+        verbose=verbose,
+        timeout=timeout,
+        method="latest",
+        limit=limit,
+        max_pages=max_pages,
+        scraper_timeout=scraper_timeout,
+        time_range=time_range,
+        dedup_file=dedup_file,
+    )
+
+
+def latest_to_file(
+    output_path: Union[str, Path],
+    output_format: str = "xlsx",
+    scrapers: str = "auto",
+    verbose: bool = False,
+    timeout: int = 300,
+    limit: int | None = None,
+    max_pages: int | None = None,
+    *,
+    scraper_timeout: int | None = None,
+    time_range: str | None = None,
+    dedup_file: str | None = None,
+) -> None:
+    """Fetch latest articles and save them directly to a file."""
+    scrape_to_file(
+        keywords=None,
+        start_date=None,
+        output_path=output_path,
+        output_format=output_format,
+        scrapers=scrapers,
+        verbose=verbose,
+        timeout=timeout,
+        method="latest",
+        limit=limit,
+        max_pages=max_pages,
+        scraper_timeout=scraper_timeout,
+        time_range=time_range,
+        dedup_file=dedup_file,
+    )

@@ -95,3 +95,14 @@ class SurabayaPagiScraper(BaseScraper):
             "link": link,
         }
         await self.queue_.put(item)
+
+    async def build_latest_url(self, page):
+        if page == 1:
+            return await self.fetch(self.base_url, timeout=30)
+        else:
+            return await self.fetch(f"{self.base_url}/?page={page}", timeout=30)
+
+    def parse_latest_article_links(self, response_text):
+        if not response_text:
+            return None
+        return self.parse_article_links(response_text)

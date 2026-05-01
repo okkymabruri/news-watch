@@ -111,3 +111,17 @@ class RmidScraper(BaseScraper):
             "link": link,
         }
         await self.queue_.put(item)
+
+    async def build_latest_url(self, page):
+        return await self.fetch(f"{self.base_url}/page/{page}/", timeout=30)
+
+    def parse_latest_article_links(self, response_text):
+        if not response_text:
+            return None
+        soup = BeautifulSoup(response_text, "html.parser")
+        links = set()
+        for a in soup.select("a[href]"):
+            href = a.get("href", "")
+            if self._article_re.match(href):
+                links.add(href)
+        return links or None

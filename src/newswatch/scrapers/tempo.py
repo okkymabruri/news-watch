@@ -153,3 +153,46 @@ class TempoScraper(BaseScraper):
             await self.queue_.put(item)
         except Exception as e:
             logging.error("Error parsing article %s: %s", link, e)
+
+    async def build_latest_url(self, page):
+        params = {"x-algolia-agent": "Algolia for JavaScript (4.24.0); Browser"}
+        query_string = urlencode(params)
+        url = f"{self.algolia_url}?{query_string}"
+        body = {
+            "query": "",
+            "filters": "NOT unpublished_at",
+            "hitsPerPage": 20,
+            "page": page - 1,
+        }
+        return await self.fetch(
+            url,
+            method="POST",
+            data=json.dumps(body),
+            headers={
+                "Content-Type": "application/json",
+                "User-Agent": "Mozilla/5.0",
+                "x-algolia-api-key": "a74cdcfcc2c69b5dabb4d13c4ce52788",
+                "x-algolia-application-id": "U2CIAZRCAD",
+                "Referer": "https://www.tempo.co/",
+            },
+            timeout=45,
+        )
+
+    def parse_latest_article_links(self, response_text):
+        if not response_text:
+            return None
+        try:
+            response_json = json.loads(response_text)
+        except Exception:
+            return None
+        hits = response_json.get("hits", [])
+        if not hits:
+            return None
+        filtered_hrefs = set()
+        for hit in hits:
+            url = hit.get("canonical_url", "")
+            if url:
+                if not url.startswith("http"):
+                    url = f"{self.base_url}/{url}"
+                filtered_hrefs.add(url)
+        return filtered_hrefs or None

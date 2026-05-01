@@ -23,6 +23,16 @@ class KompasScraper(BaseScraper):
             },
         )
 
+    async def build_latest_url(self, page):
+        return await self.fetch(
+            f"https://indeks.kompas.com/?page={page}",
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+                )
+            },
+        )
+
     def parse_article_links(self, response_text):
         soup = BeautifulSoup(response_text, "html.parser")
 
@@ -43,6 +53,19 @@ class KompasScraper(BaseScraper):
             if a.get("href") and "video.kompas.com" not in a.get("href")
         }
         return filtered_hrefs
+
+    def parse_latest_article_links(self, response_text):
+        soup = BeautifulSoup(response_text, "html.parser")
+        articles = soup.select(".articleItem a.article-link[href]")
+        if not articles:
+            return None
+
+        filtered_hrefs = [
+            a.get("href")
+            for a in articles
+            if a.get("href") and "video.kompas.com" not in a.get("href")
+        ]
+        return filtered_hrefs[:20] or None
 
     async def get_article(self, link, keyword):
         response_text = await self.fetch(

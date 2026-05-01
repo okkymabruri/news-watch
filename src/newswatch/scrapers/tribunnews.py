@@ -129,4 +129,24 @@ class TribunnewsScraper(BaseScraper):
         return None
 
     async def get_article(self, link, keyword):
-        pass
+        await self._process_article(link, keyword)
+
+    async def build_latest_url(self, page):
+        if page > 1:
+            return None
+        return await self.fetch(
+            f"{self.base_url}/sitemap-news.xml",
+            headers=self.headers,
+            timeout=30,
+        )
+
+    def parse_latest_article_links(self, response_text):
+        if not response_text:
+            return None
+        soup = BeautifulSoup(response_text, "xml")
+        links = set()
+        for loc in soup.find_all("loc"):
+            url = loc.text.strip()
+            if url and "tribunnews.com" in url:
+                links.add(url)
+        return links or None

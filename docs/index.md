@@ -4,7 +4,7 @@
 [![Build Status](https://github.com/okkymabruri/news-watch/actions/workflows/test.yml/badge.svg)](https://github.com/okkymabruri/news-watch/actions)
 [![PyPI Downloads](https://static.pepy.tech/badge/news-watch)](https://pepy.tech/projects/news-watch)
 
-news-watch scrapes structured news data from Indonesia's top news websites with keyword and date filtering.
+news-watch scrapes structured news data from Indonesia's top news websites with keyword/date search and latest-news monitoring.
 
 The current stable release supports 40 query-backed Indonesian news scrapers. No investigating or quarantined sources remain.
 
@@ -26,6 +26,7 @@ Development setup: https://okky.dev/news-watch/getting-started/
 
 ```bash
 newswatch --keywords ihsg --start_date 2025-01-01
+newswatch --method latest --scrapers "antaranews,kompas,viva"
 ```
 
 ```python
@@ -33,6 +34,9 @@ import newswatch as nw
 
 df = nw.scrape_to_dataframe("ihsg", "2025-01-01")
 print(len(df))
+
+latest = nw.latest_to_dataframe(scrapers="antaranews,kompas,viva")
+print(len(latest))
 ```
 
 ## Docs
@@ -97,3 +101,5 @@ print(len(df))
 **Performance**: Works best in local environments. Cloud platforms may experience reduced performance due to anti-bot measures.
 
 **Strict search policy**: Every listed source passes real keyword search checks.
+
+**Latest mode rollout**: latest monitoring starts with a smaller subset of sources and expands over time.

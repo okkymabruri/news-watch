@@ -13,6 +13,7 @@ nw.scrape_to_file("bank", "2025-01-01", "output.xlsx")       # Saves to file
 # Convenience functions
 scrapers = nw.list_scrapers()                                # Get available scrapers
 recent_df = nw.quick_scrape("politik", days_back=3)          # Recent articles
+latest_df = nw.latest_to_dataframe(scrapers="antaranews,kompas")
 ```
 
 ## Core Functions
@@ -22,20 +23,21 @@ recent_df = nw.quick_scrape("politik", days_back=3)          # Recent articles
 The foundation function that returns raw article data.
 
 ```python
-def scrape(keywords, start_date, scrapers="auto", verbose=False, timeout=300, **kwargs):
+def scrape(keywords=None, start_date=None, scrapers="auto", verbose=False, timeout=300, method="search", **kwargs):
     ...
 ```
 
 **Parameters:**
 
-- `keywords` (str): What to search for. Use commas for multiple terms: `"bank,kredit,fintech"`
-- `start_date` (str): When to start looking, in YYYY-MM-DD format: `"2025-01-01"`
+- `keywords` (str, optional): What to search for. Required in `method="search"`, optional in `method="latest"`
+- `start_date` (str, optional): When to start looking, in YYYY-MM-DD format. Required in `method="search"`, ignored in `method="latest"`
 - `scrapers` (str, optional): Which sites to scrape:
   - `"auto"` (default) - Let news-watch pick based on your platform
   - `"all"` - Try every scraper (might fail on some systems)
   - `"kompas,tempo"` - Pick specific sites by name
 - `verbose` (bool, optional): Show progress details (default: False)
 - `timeout` (int, optional): Max seconds to wait (default: 300)
+- `method` (str, optional): `"search"` (default) for keyword/date research, or `"latest"` for latest-news monitoring
 
 **Returns:**
 
@@ -57,6 +59,10 @@ import newswatch as nw
 # Basic search
 articles = nw.scrape("bank", "2025-01-01")
 print(f"Found {len(articles)} articles")
+
+# Latest monitoring
+latest_articles = nw.scrape(method="latest", scrapers="antaranews,kompas")
+print(f"Found {len(latest_articles)} latest articles")
 
 # More specific search
 financial_articles = nw.scrape(
@@ -111,6 +117,10 @@ df['word_count'] = df['content'].str.split().str.len()
 avg_length = df.groupby('source')['word_count'].mean()
 print("Average article length by source:")
 print(avg_length.sort_values(ascending=False))
+
+# Latest articles as a DataFrame
+latest_df = nw.scrape_to_dataframe(method="latest", scrapers="antaranews,kompas")
+print(latest_df[["source", "title"]].head())
 ```
 
 ### scrape_to_file()
@@ -161,6 +171,13 @@ nw.scrape_to_file(
     scrapers="tempo,kompas",
     verbose=True
 )
+
+# Save latest articles directly
+nw.latest_to_file(
+    output_path="latest_articles.json",
+    output_format="json",
+    scrapers="antaranews,kompas"
+)
 ```
 
 ## Utility Functions
@@ -170,12 +187,12 @@ nw.scrape_to_file(
 Find out which Indonesian news sites are available.
 
 ```python
-def list_scrapers():
+def list_scrapers(method="search"):
     ...
 ```
 
 **Returns:**
-List of scraper names you can use with the `scrapers` parameter.
+List of scraper names you can use with the `scrapers` parameter for the selected method.
 
 **Example:**
 ```python
@@ -188,6 +205,24 @@ print("Available news sources:", available)
 # Use specific ones for financial news
 financial_sources = ["bisnis", "kontan", "cnbcindonesia"]
 df = nw.scrape_to_dataframe("saham", "2025-01-01", scrapers=",".join(financial_sources))
+```
+
+### latest()
+
+Fetch newest articles without requiring keywords.
+
+```python
+def latest(scrapers="auto", verbose=False, timeout=300):
+    ...
+```
+
+### latest_to_dataframe()
+
+Fetch newest articles and return them as a pandas DataFrame.
+
+```python
+def latest_to_dataframe(scrapers="auto", verbose=False, timeout=300):
+    ...
 ```
 
 ### quick_scrape()

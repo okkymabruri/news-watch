@@ -8,11 +8,14 @@ Scrape structured news data from Indonesian news portals using true keyword sear
 
 ```mermaid
 flowchart TD
-    A[CLI / API] --> B[main.py]
-    B --> C[registry.py]
-    C --> D[scrapers]
-    D --> E[queue]
-    E --> F[output]
+    A[CLI / API] --> B{method}
+    B -->|search| C[search flow]
+    B -->|latest| D[latest flow]
+    C --> E[registry.py]
+    D --> E
+    E --> F[scrapers]
+    F --> G[queue]
+    G --> H[output]
 ```
 
 ## Key Files
@@ -25,6 +28,13 @@ flowchart TD
 | `cli.py` | CLI entry point |
 | `scrapers/basescraper.py` | Abstract contract — `build_search_url`, `parse_article_links`, `get_article` |
 | `utils.py` | `AsyncScraper` — concurrency, WAF fallback (aiohttp → rnet → Playwright) |
+
+## Retrieval Methods
+
+| Method | Meaning |
+|---|---|
+| `search` | keyword/date search for research workflows |
+| `latest` | newest-article collection for monitoring workflows |
 
 ## Scraper States
 

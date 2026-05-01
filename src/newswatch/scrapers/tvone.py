@@ -136,3 +136,26 @@ class TVOneScraper(BaseScraper):
             await self.queue_.put(item)
         except Exception as e:
             logging.error(f"Error parsing article {link}: {e}")
+
+    async def build_latest_url(self, page):
+        if page > 1:
+            return None
+        return await self.fetch(
+            f"https://www.{self.base_url}/",
+            headers=self.headers,
+            timeout=30,
+        )
+
+    def parse_latest_article_links(self, response_text):
+        if not response_text:
+            return None
+        soup = BeautifulSoup(response_text, "html.parser")
+        pattern = re.compile(
+            r"tvonenews\.com/(ekonomi|nasional|internasional|daerah|sport|lifestyle|opini|investigasi|channel/news)/\d+-"
+        )
+        filtered_hrefs = set()
+        for a in soup.find_all("a", href=True):
+            href = a["href"]
+            if pattern.search(href):
+                filtered_hrefs.add(href)
+        return filtered_hrefs or None

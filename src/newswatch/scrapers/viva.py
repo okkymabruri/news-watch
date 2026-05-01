@@ -22,6 +22,13 @@ class VivaScraper(BaseScraper):
         payload = {"keyword": keyword, "ctype": "art", "page": page, "record_count": 12}
         return await self.fetch(url, method="POST", data=payload)
 
+    async def build_latest_url(self, page):
+        return await self.fetch(
+            f"{self.base_url}/indeks?page={page}",
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=30,
+        )
+
     def parse_article_links(self, response_text):
         soup = BeautifulSoup(response_text, "html.parser")
         articles = soup.select(".article-list-row a")
@@ -34,6 +41,12 @@ class VivaScraper(BaseScraper):
             if a.get("href") and self.href_pattern.match(a.get("href"))
         }
         return filtered_hrefs
+
+    def parse_latest_article_links(self, response_text):
+        links = self.parse_article_links(response_text)
+        if not links:
+            return None
+        return list(links)[:30]
 
     async def get_article(self, link, keyword):
         response_text = await self.fetch(f"{link}?page=all")

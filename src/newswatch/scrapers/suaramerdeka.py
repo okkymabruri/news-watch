@@ -94,3 +94,19 @@ class SuaraMerdekaScraper(BaseScraper):
             "link": link,
         }
         await self.queue_.put(item)
+
+    async def build_latest_url(self, page):
+        params = {"page": page}
+        url = f"{self.base_url}/search?{urlencode(params)}" if page > 1 else f"{self.base_url}/"
+        return await self.fetch(url, timeout=30)
+
+    def parse_latest_article_links(self, response_text):
+        if not response_text:
+            return None
+        soup = BeautifulSoup(response_text, "html.parser")
+        links = set()
+        for h in soup.select("h2 a[href], h3 a[href]"):
+            href = h.get("href", "")
+            if self._article_re.match(href):
+                links.add(href)
+        return links or None

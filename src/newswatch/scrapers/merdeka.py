@@ -82,3 +82,63 @@ class MerdekaScraper(BaseScraper):
     async def get_article(self, link, keyword):
         # Not used — articles processed via RSS
         pass
+
+    async def build_latest_url(self, page):
+        if page > 1:
+            return None
+        return await self.fetch(self.rss_url, headers=self.headers, timeout=30)
+
+    def parse_latest_article_links(self, response_text):
+        if not response_text:
+            return None
+        soup = BeautifulSoup(response_text, "xml")
+        links = set()
+        for item in soup.find_all("item"):
+            link_el = item.find("link")
+            if link_el:
+                links.add(link_el.get_text(strip=True))
+        return links or None
+
+    async def fetch_latest_results(self):
+        """Override to process RSS items directly without keyword filtering."""
+        response_text = await self.build_latest_url(1)
+        if not response_text:
+            logging.info(f"No latest news found on {self.base_url}")
+            return
+
+        soup = BeautifulSoup(response_text, "xml")
+        found = False
+        for item in soup.find_all("item"):
+            title_el = item.find("title")
+            desc_el = item.find("description")
+            link_el = item.find("link")
+            pub_el = item.find("pubDate")
+
+            title = title_el.get_text(strip=True) if title_el else ""
+            desc = desc_el.get_text(strip=True) if desc_el else ""
+            link = link_el.get_text(strip=True) if link_el else ""
+            pub_date_str = pub_el.get_text(strip=True) if pub_el else ""
+
+            publish_date = self.parse_date(pub_date_str)
+            if not publish_date:
+                continue
+
+            if self.start_date and publish_date < self.start_date:
+                self.continue_scraping = False
+                continue
+
+            found = True
+            article = {
+                "title": title,
+                "publish_date": publish_date,
+                "author": "Unknown",
+                "content": desc,
+                "keyword": "latest",
+                "category": "Unknown",
+                "source": "merdeka.com",
+                "link": link,
+            }
+            await self.queue_.put(article)
+
+        if not found:
+            logging.info(f"No latest news found on {self.base_url}")

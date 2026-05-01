@@ -21,6 +21,11 @@ class AntaranewsScraper(BaseScraper):
         url = f"{self.base_url}/search?{urlencode(query_params)}"
         return await self.fetch(url, headers={"User-Agent": "Mozilla/5.0"})
 
+    async def build_latest_url(self, page):
+        query_params = {"page": page}
+        url = f"{self.base_url}/terkini?{urlencode(query_params)}"
+        return await self.fetch(url, headers={"User-Agent": "Mozilla/5.0"})
+
     def parse_article_links(self, response_text):
         soup = BeautifulSoup(response_text, "html.parser")
         articles = soup.select(
@@ -37,6 +42,12 @@ class AntaranewsScraper(BaseScraper):
             }
         )
         return filtered_hrefs
+
+    def parse_latest_article_links(self, response_text):
+        links = self.parse_article_links(response_text)
+        if not links:
+            return None
+        return list(links)[:30]
 
     async def get_article(self, link, keyword):
         response_text = await self.fetch(f"{link}")

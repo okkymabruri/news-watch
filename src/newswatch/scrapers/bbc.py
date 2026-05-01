@@ -14,7 +14,6 @@ class BBCNewsScraper(BaseScraper):
         self.base_url = "https://www.bbc.com"
         self.start_date = start_date
         self.continue_scraping = True
-        self.max_pages = 10
 
     async def build_search_url(self, keyword, page):
         url = f"{self.base_url}/search?{urlencode({'q': keyword, 'page': page})}"
@@ -187,3 +186,22 @@ class BBCNewsScraper(BaseScraper):
                             if name:
                                 names.append(name)
         return names
+
+    async def build_latest_url(self, page):
+        if page > 1:
+            return None
+        return await self.fetch(
+            "https://feeds.bbci.co.uk/news/world/asia/rss.xml",
+            timeout=30,
+        )
+
+    def parse_latest_article_links(self, response_text):
+        if not response_text:
+            return None
+        soup = BeautifulSoup(response_text, "xml")
+        links = set()
+        for item in soup.find_all("item"):
+            link_el = item.find("link")
+            if link_el:
+                links.add(link_el.get_text(strip=True))
+        return links or None

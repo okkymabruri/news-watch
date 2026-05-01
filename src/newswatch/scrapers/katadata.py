@@ -132,3 +132,40 @@ class KatadataScraper(BaseScraper):
             await self.queue_.put(item)
         except Exception as e:
             logging.error(f"Error parsing article {link}: {e}")
+
+    async def build_latest_url(self, page):
+        payload = {
+            "q": "",
+            "source": "katadata",
+            "sort": "newest",
+            "limit": 10,
+            "page": page,
+        }
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0",
+        }
+        return await self.fetch(
+            self.api_url,
+            method="POST",
+            data=json.dumps(payload),
+            headers=headers,
+            timeout=30,
+        )
+
+    def parse_latest_article_links(self, response_text):
+        if not response_text:
+            return None
+        try:
+            response_json = json.loads(response_text)
+        except Exception:
+            return None
+        articles = response_json.get("results", [])
+        if not articles:
+            return None
+        filtered_hrefs = set()
+        for article in articles:
+            url = article.get("url", "")
+            if url:
+                filtered_hrefs.add(url)
+        return filtered_hrefs if filtered_hrefs else None

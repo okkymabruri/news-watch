@@ -210,3 +210,30 @@ class SuaraScraper(BaseScraper):
     def _get_soup(self, text):
         from bs4 import BeautifulSoup
         return BeautifulSoup(text, "html.parser")
+
+    async def build_latest_url(self, page):
+        if page > 1:
+            return None
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            try:
+                context = await browser.new_context(
+                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                )
+                pg = await context.new_page()
+                await pg.goto(self.base_url, wait_until="load", timeout=20000)
+                await pg.wait_for_timeout(3000)
+                return await pg.content()
+            finally:
+                await browser.close()
+
+    def parse_latest_article_links(self, response_text):
+        if not response_text:
+            return None
+        soup = self._get_soup(response_text)
+        links = set()
+        for a in soup.select("a[href]"):
+            href = a.get("href", "")
+            if self._article_href.match(href):
+                links.add(href)
+        return links or None

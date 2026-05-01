@@ -32,6 +32,16 @@ class BloombergTechnozScraper(BaseScraper):
         filtered_hrefs = {a.get("href") for a in articles if a.get("href")}
         return filtered_hrefs
 
+    async def build_latest_url(self, page):
+        if page > 1:
+            return None
+        return await self.fetch(f"{self.base_url}/")
+
+    def parse_latest_article_links(self, response_text):
+        if not response_text:
+            return None
+        return self.parse_article_links(response_text)
+
     async def get_article(self, link, keyword):
         response_text = await self.fetch(link)
         if not response_text:
