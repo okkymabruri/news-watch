@@ -49,10 +49,10 @@ def cli():
     parser.add_argument(
         "--output_format",
         "-of",
-        choices=["csv", "xlsx", "json"],
+        choices=["csv", "xlsx", "json", "jsonl"],
         default="csv",
         type=str,
-        help="Output file format. Options are csv, xlsx, or json. Default is csv.",
+        help="Output file format. Options are csv, xlsx, json, or jsonl. Default is csv.",
     )
     parser.add_argument(
         "--output_path",
@@ -83,6 +83,29 @@ def cli():
         default=None,
         help="Maximum number of pages to fetch per scraper in latest mode.",
     )
+    parser.add_argument(
+        "--scraper-timeout",
+        type=int,
+        default=None,
+        help="Per-scraper timeout in seconds. Scrapers exceeding this are cancelled.",
+    )
+    parser.add_argument(
+        "--progress",
+        action="store_true",
+        help="Print per-scraper progress lines (implies some verbosity).",
+    )
+    parser.add_argument(
+        "--time-range",
+        type=str,
+        default=None,
+        help="Filter articles by time range. Format: ISO8601/ISO8601, e.g. '2026-04-30T16:30:00/2026-05-01T08:00:00'.",
+    )
+    parser.add_argument(
+        "--dedup-file",
+        type=str,
+        default=None,
+        help="Path to a previous output file (JSON/JSONL/CSV). Articles with matching links are skipped.",
+    )
     args = parser.parse_args()
 
     scraper_classes, _linux_excluded = get_available_scrapers(
@@ -98,8 +121,8 @@ def cli():
         )
         return
 
-    # By default, suppress all logging unless verbose is specified
-    if not args.verbose:
+    # By default, suppress all logging unless verbose or progress is specified
+    if not args.verbose and not args.progress:
         logging.disable(logging.CRITICAL)
 
     asyncio.run(run_main(args))

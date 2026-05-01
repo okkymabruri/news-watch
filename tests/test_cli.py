@@ -86,3 +86,46 @@ def test_cli_list_latest_scrapers(monkeypatch, capsys):
         captured = capsys.readouterr()
         assert "Supported latest scrapers:" in captured.out
         mock_main.assert_not_called()
+
+
+def test_cli_latest_with_limit_and_max_pages(monkeypatch, capsys):
+    """Test that --limit and --max-pages are parsed in latest mode."""
+    monkeypatch.setattr(
+        sys, "argv", ["cli.py", "--method", "latest", "--limit", "5", "--max-pages", "2"]
+    )
+
+    with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main:
+        cli()
+        capsys.readouterr()
+
+        mock_main.assert_called_once()
+        args = mock_main.call_args[0][0]
+        assert args.method == "latest"
+        assert args.limit == 5
+        assert args.max_pages == 2
+
+
+def test_cli_scraper_timeout_arg(monkeypatch, capsys):
+    """Test that --scraper-timeout is parsed."""
+    monkeypatch.setattr(sys, "argv", ["cli.py", "--scraper-timeout", "30"])
+
+    with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main:
+        cli()
+        capsys.readouterr()
+
+        mock_main.assert_called_once()
+        args = mock_main.call_args[0][0]
+        assert args.scraper_timeout == 30
+
+
+def test_cli_progress_flag(monkeypatch, capsys):
+    """Test that --progress flag is parsed."""
+    monkeypatch.setattr(sys, "argv", ["cli.py", "--progress"])
+
+    with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main:
+        cli()
+        capsys.readouterr()
+
+        mock_main.assert_called_once()
+        args = mock_main.call_args[0][0]
+        assert args.progress is True

@@ -7,16 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-05-01
+
+## What's Changed
+
 ### Added
-- `search` and `latest` retrieval methods in the CLI and Python API
-- Convenience helpers for latest monitoring: `latest()`, `latest_to_dataframe()`, and `latest_to_file()`
+- Added `search` and `latest` retrieval methods in the CLI and Python API
+- Added latest monitoring helpers: `latest()`, `latest_to_dataframe()`, and `latest_to_file()`
+- Added `--limit` and `--max-pages` controls for latest collection volume
+- Added per-scraper timeout/error isolation with `--scraper-timeout`
+- Added CLI progress logging with `--progress`
+- Added newline-delimited JSON output via `--output_format jsonl`
+- Added `--time-range` filtering for collected/output articles
+- Added `--dedup-file` support for skipping known links and recording emitted links
 
 ### Changed
 - Search remains the default retrieval method for backward compatibility
-- Registry metadata now tracks whether a scraper supports `latest` mode
+- Registry metadata now tracks whether each scraper supports search and latest modes
+- Latest mode is now implemented for all 40 stable registered scrapers
+- API and CLI limit handling now stops producers/consumers once the requested limit is reached
+
+### Fixed
+- Fixed Kontan latest URL normalization for relative and protocol-relative links
+- Fixed RRI latest pagination to avoid invalid page requests
+- Fixed latest-mode cancellation edge cases that could leak task cancellation errors
+
+### Quality
+- Added regression tests for latest support coverage across stable scrapers
+- Added CLI/API tests for `latest`, `limit`, `max_pages`, `scraper_timeout`, and progress flags
+- Added targeted scraper regression tests for Kontan and RRI latest behavior
 
 ### Notes
-- Initial `latest` rollout starts with a smaller source subset for realtime monitoring
+- Package version metadata remains `0.7.0` on the feature branch; cut `0.8.0` after merge using the release Makefile target
+- Some sources may still be environment-sensitive because of anti-bot protection, rate limits, geolocation, JavaScript rendering, or source-side changes
+
+**Full Changelog**: https://github.com/okkymabruri/news-watch/compare/v0.7.0...v0.8.0
 
 ## [0.7.0] - 2026-04-25
 

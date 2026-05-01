@@ -7,7 +7,16 @@ from ..utils import AsyncScraper
 
 
 class BaseScraper(AsyncScraper, ABC):
-    def __init__(self, keywords, concurrency=10, queue_=None, max_latest_pages=None):
+    def __init__(
+        self,
+        keywords,
+        concurrency=10,
+        queue_=None,
+        max_latest_pages=None,
+        dedup_links=None,
+        start_datetime=None,
+        end_datetime=None,
+    ):
         super().__init__(concurrency)
         self.keywords = (
             [keyword.strip() for keyword in keywords.split(",") if keyword.strip()]
@@ -17,6 +26,10 @@ class BaseScraper(AsyncScraper, ABC):
         self.queue_ = queue_
         self.continue_scraping = True
         self.max_latest_pages = max_latest_pages if max_latest_pages is not None else 1
+        self.dedup_links = dedup_links or set()
+        self.start_datetime = start_datetime
+        self.end_datetime = end_datetime
+        self._articles_collected = 0
 
     def parse_date(self, date_string, **kwargs):
         parsed_date = dateparser.parse(date_string, **kwargs)
@@ -66,9 +79,18 @@ class BaseScraper(AsyncScraper, ABC):
             logging.info(f"No news found on {self.base_url} for keyword: '{keyword}'")
 
     async def process_page(self, filtered_hrefs, keyword):
-        tasks = [self.get_article(href, keyword) for href in filtered_hrefs]
+        links = self._filter_links(filtered_hrefs)
+        if not links:
+            return self.continue_scraping
+        tasks = [self.get_article(href, keyword) for href in links]
         await self.run(tasks)
         return self.continue_scraping
+
+    def _filter_links(self, links):
+        """Filter links by dedup set before fetching articles."""
+        if not self.dedup_links:
+            return links
+        return [link for link in links if link not in self.dedup_links]
 
     async def fetch_latest_results(self):
         page = 1

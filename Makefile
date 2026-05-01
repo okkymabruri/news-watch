@@ -1,4 +1,4 @@
-.PHONY: test lint format release release-patch release-minor release-major
+.PHONY: test lint format release-notes release release-patch release-minor release-major
 
 test:
 	@uv run --extra dev pytest
@@ -8,6 +8,9 @@ lint:
 
 format:
 	@uv run --extra dev ruff format
+
+release-notes:
+	@uv run python scripts/release_notes.py $(VERSION)
 
 release-patch:
 	@uv run python scripts/version.py release

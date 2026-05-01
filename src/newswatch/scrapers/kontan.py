@@ -1,6 +1,6 @@
 import logging
 import re
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urljoin
 
 from bs4 import BeautifulSoup, Comment
 
@@ -30,13 +30,11 @@ class KontanScraper(BaseScraper):
         if not articles:
             return None
 
+        hrefs = (urljoin(self.base_url, a.get("href")) for a in articles if a.get("href"))
         filtered_hrefs = {
-            f"http:{a.get('href')}"
-            for a in articles
-            if a.get("href")
-            and self.href_pattern.match(a.get("href"))
-            and "insight.kontan.co.id"  # FIX ME: dev pattern for insight.kontan.co.id
-            not in a.get("href")
+            href
+            for href in hrefs
+            if self.href_pattern.match(href) and "insight.kontan.co.id" not in href
         }
         return filtered_hrefs
 
@@ -131,7 +129,7 @@ class KontanScraper(BaseScraper):
             return None
         soup = BeautifulSoup(response_text, "html.parser")
         filtered_hrefs = {
-            f"http:{a.get('href')}"
+            urljoin(self.base_url, a.get("href"))
             for a in soup.select(".list-berita ul li a, .main-headline a, .box-terbaru ul li a")
             if a.get("href")
             and self.href_pattern.match(a.get("href"))
