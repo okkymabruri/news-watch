@@ -38,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added targeted scraper regression tests for Kontan and RRI latest behavior
 
 ### Notes
-- Package version metadata remains `0.7.0` on the feature branch; cut `0.8.0` after merge using the release Makefile target
+- Package version metadata is `0.8.0` for this release
 - Some sources may still be environment-sensitive because of anti-bot protection, rate limits, geolocation, JavaScript rendering, or source-side changes
 
 **Full Changelog**: https://github.com/okkymabruri/news-watch/compare/v0.7.0...v0.8.0
