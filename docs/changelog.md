@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added Pantau.com (`pantau`) scraper with search and latest support
+- Added VOI.id (`voi`) scraper with search and latest support
+- Total stable scrapers: 42
+
+### Notes
+- Pantau.com uses Next.js `__NEXT_DATA__` parsing with `/search?q=` endpoint
+- VOI.id uses `/en/artikel/cari?q=` endpoint with HTML parsing and JSON-LD metadata
+- Both portals passed strict keyword search validation (zero results for nonsense keywords)
+
 ## [0.8.0] - 2026-05-01
 
 ## What's Changed
