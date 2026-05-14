@@ -108,7 +108,7 @@ def git_commit_and_tag(version):
         subprocess.run(["git", "commit", "-m", f"Bump version to {version}"], check=True)
         print("Committed version changes")
 
-    subprocess.run(["git", "tag", tag], check=True)
+    subprocess.run(["git", "tag", "-a", tag, "-m", f"Release {tag}"], check=True)
     print(f"Created tag {tag}")
 
     response = input(f"Push tag {tag} to remote? (y/n): ")
