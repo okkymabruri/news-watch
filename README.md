@@ -128,7 +128,7 @@ The output file contains the following columns:
 - `latest` is intended for latest-news monitoring and does not require keywords.
 - Latest mode currently starts with a smaller subset of sources than the full search catalog.
 
-## Supported Websites (40)
+## Supported Websites (42)
 
 [Antara News](https://antaranews.com),
 [BBC News](https://bbc.com),
@@ -155,6 +155,7 @@ The output file contains the following columns:
 [Metro TV News](https://metrotvnews.com),
 [Mongabay Indonesia](https://mongabay.co.id),
 [Okezone](https://okezone.com),
+[Pantau.com](https://www.pantau.com),
 [Pikiran Rakyat](https://pikiran-rakyat.com),
 [Poskota](https://poskota.co.id),
 [Republika](https://republika.co.id),
@@ -169,6 +170,7 @@ The output file contains the following columns:
 [Tribunnews](https://tribunnews.com),
 [TVOne](https://tvonenews.com),
 [TVRI News](https://tvrinews.id),
+[VOI.id](https://voi.id),
 [Viva](https://viva.co.id)
 
 > **Notes:**
