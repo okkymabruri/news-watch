@@ -6,7 +6,7 @@
 
 news-watch scrapes structured news data from Indonesia's top news websites with keyword/date search and latest-news monitoring.
 
-The current stable release supports 40 query-backed Indonesian news scrapers. No investigating or quarantined sources remain.
+The current stable release supports 42 query-backed Indonesian news scrapers. No investigating or quarantined sources remain.
 
 ## Installation
 

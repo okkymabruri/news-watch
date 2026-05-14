@@ -206,7 +206,7 @@ tech_df = nw.scrape_to_dataframe(
 
 The `auto` setting picks reliable scrapers based on your platform. Use `all` only if you need maximum coverage and don't mind potential errors.
 
-The stable release currently exposes 40 supported query-backed scrapers. No investigating or quarantined sources remain.
+The stable release currently exposes 42 supported query-backed scrapers. No investigating or quarantined sources remain.
 
 Latest mode starts with a smaller rollout and is best treated as a monitoring capability that expands source by source.
 
