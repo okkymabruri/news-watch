@@ -63,6 +63,31 @@ def update_version_files(new_version):
         print(f"Updated CITATION.cff to v{new_version}")
 
 
+def files_already_at_version(version):
+    """Check if version markers already match target version."""
+    # Check pyproject.toml
+    pyproject = Path("pyproject.toml").read_text()
+    pyproject_match = re.search(r'^version\s*=\s*"([^"]+)"', pyproject, re.MULTILINE)
+    if not pyproject_match or pyproject_match.group(1) != version:
+        return False
+
+    # Check __init__.py
+    init_content = Path("src/newswatch/__init__.py").read_text()
+    init_match = re.search(r'__version__\s*=\s*"([^"]+)"', init_content)
+    if not init_match or init_match.group(1) != version:
+        return False
+
+    # Check CITATION.cff if exists
+    citation_path = Path("CITATION.cff")
+    if citation_path.exists():
+        citation_content = citation_path.read_text()
+        citation_match = re.search(r"^version:\s*(.+)$", citation_content, re.MULTILINE)
+        if not citation_match or citation_match.group(1).strip() != version:
+            return False
+
+    return True
+
+
 def git_commit_and_tag(version):
     """Commit version change, create tag, and push."""
     tag = f"v{version}"
@@ -72,21 +97,26 @@ def git_commit_and_tag(version):
         print(f"Tag {tag} already exists")
         return
 
-    to_add = ["pyproject.toml", "src/newswatch/__init__.py"]
-    if Path("CITATION.cff").exists():
-        to_add.append("CITATION.cff")
-    subprocess.run(["git", "add", *to_add], check=True)
-    subprocess.run(["git", "commit", "-m", f"Bump version to {version}"], check=True)
-    print("Committed version changes")
+    # If files already at target version (e.g. after PR merge), skip commit
+    if files_already_at_version(version):
+        print("Version files already updated. Creating tag on current HEAD.")
+    else:
+        to_add = ["pyproject.toml", "src/newswatch/__init__.py", "uv.lock"]
+        if Path("CITATION.cff").exists():
+            to_add.append("CITATION.cff")
+        subprocess.run(["git", "add", *to_add], check=True)
+        subprocess.run(["git", "commit", "-m", f"Bump version to {version}"], check=True)
+        print("Committed version changes")
 
     subprocess.run(["git", "tag", tag], check=True)
     print(f"Created tag {tag}")
 
-    response = input(f"Push commit and tag {tag} to remote? (y/n): ")
+    response = input(f"Push tag {tag} to remote? (y/n): ")
     if response.lower() == "y":
         subprocess.run(["git", "push"], check=True)
         subprocess.run(["git", "push", "origin", tag], check=True)
-        print(f"Pushed commit and tag {tag}")
+        print(f"Pushed tag {tag}")
+        print("GitHub Actions will now publish to PyPI automatically.")
 
 
 def main():
@@ -108,7 +138,7 @@ def main():
     else:
         new_version = sys.argv[2]
 
-    print(f"New version: {new_version}")
+    print(f"Target version: {new_version}")
     response = input("Continue? (y/n): ")
     if response.lower() != "y":
         print("Cancelled")
@@ -117,7 +147,6 @@ def main():
     update_version_files(new_version)
     git_commit_and_tag(new_version)
     print(f"\nDone! Version {new_version} released.")
-    print("GitHub Actions will publish to PyPI automatically.")
 
 
 if __name__ == "__main__":
