@@ -14,12 +14,18 @@ Each entry declares:
   - supports_search: whether search mode is supported
   - supports_latest: whether latest mode is supported
   - note: free-text context for devs
+
+Registry is built from a tuple of ScraperEntry via build_registry().
+This prevents silent duplicate-key overwrites that raw dict literals allow.
 """
 
 import importlib
 import logging
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+# ── Data model ───────────────────────────────────────────────────────────────
 
 
 @dataclass(frozen=True)
@@ -38,148 +44,87 @@ class ScraperEntry:
     note: str = ""
 
 
-# ── Registry ──────────────────────────────────────────────────────────────────
+# ── Entry list (not a dict — dicts silently overwrite duplicate keys) ─────────
 
-SCRAPERS: Dict[str, ScraperEntry] = {
-    # ── Stable scrapers (26 in 0.6.0) ────────────────────────────────────────
-    "antaranews": ScraperEntry(
-        slug="antaranews",
-        name="Antara News",
-        module="antaranews",
-        class_name="AntaranewsScraper",
+_SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
+    # ── Stable scrapers ──────────────────────────────────────────────────────
+    ScraperEntry(
+        "antaranews",
+        "Antara News",
+        "antaranews", "AntaranewsScraper",
         concurrency=7,
         smoke_keyword="ihsg",
         supports_latest=True,
     ),
-    "bisnis": ScraperEntry(
-        slug="bisnis",
-        name="Bisnis.com",
-        module="bisnis",
-        class_name="BisnisScraper",
-        concurrency=5,
+    ScraperEntry(
+        "bbc", "BBC News", "bbc", "BBCNewsScraper", smoke_keyword="election", supports_latest=True
+    ),
+    ScraperEntry(
+        "beritajatim",
+        "Berita Jatim",
+        "beritajatim", "BeritaJatimScraper",
+        status="stable",
+        strict_search=True,
+        smoke_keyword="ekonomi",
+        note="promoted to stable; /tag/{keyword} endpoint; 2026-04-24",
+        supports_latest=True,
+    ),
+    ScraperEntry(
+        "bisnis",
+        "Bisnis.com",
+        "bisnis", "BisnisScraper",
         smoke_keyword="ihsg",
         browser_required=True,
         supports_latest=True,
     ),
-    "bloombergtechnoz": ScraperEntry(
-        slug="bloombergtechnoz",
-        name="Bloomberg Technoz",
-        module="bloombergtechnoz",
-        class_name="BloombergTechnozScraper",
-        concurrency=3,
+    ScraperEntry(
+        "bloombergtechnoz",
+        "Bloomberg Technoz",
+        "bloombergtechnoz", "BloombergTechnozScraper",
         smoke_keyword="teknologi",
         supports_latest=True,
     ),
-    "cnbcindonesia": ScraperEntry(
-        slug="cnbcindonesia",
-        name="CNBC Indonesia",
-        module="cnbcindonesia",
-        class_name="CNBCScraper",
-        concurrency=5,
+    ScraperEntry(
+        "cnbcindonesia",
+        "CNBC Indonesia",
+        "cnbcindonesia", "CNBCScraper",
         smoke_keyword="ekonomi",
         supports_latest=True,
     ),
-    "cnnindonesia": ScraperEntry(
-        slug="cnnindonesia",
-        name="CNN Indonesia",
-        module="cnnindonesia",
-        class_name="CNNIndonesiaScraper",
-        concurrency=5,
+    ScraperEntry(
+        "cnnindonesia",
+        "CNN Indonesia",
+        "cnnindonesia", "CNNIndonesiaScraper",
         status="stable",
         strict_search=True,
         smoke_keyword="ihsg",
-        supports_latest=True,
         note="promoted to stable; rebuilt with RSS keyword filtering; 2026-04-18",
-    ),
-    "detik": ScraperEntry(
-        slug="detik",
-        name="Detik",
-        module="detik",
-        class_name="DetikScraper",
-        concurrency=5,
-        status="stable",
-        strict_search=True,
-        smoke_keyword="ekonomi",
-        supports_latest=True,
-        note="promoted to stable; rebuilt with sitemap keyword filtering; 2026-04-18",
-    ),
-    "idntimes": ScraperEntry(
-        slug="idntimes",
-        name="IDN Times",
-        module="idntimes",
-        class_name="IDNTimesScraper",
-        concurrency=5,
-        status="stable",
-        strict_search=True,
-        browser_required=True,
-        smoke_keyword="ihsg",
-        note="promoted to stable; rebuilt with Playwright tag page + keyword URL filter; 2026-04-18",
         supports_latest=True,
     ),
-    "inews": ScraperEntry(
-        slug="inews",
-        name="iNews",
-        module="inews",
-        class_name="INewsScraper",
-        concurrency=5,
-        smoke_keyword="ihsg",
-        supports_latest=True,
-    ),
-    "jawapos": ScraperEntry(
-        slug="jawapos",
-        name="Jawa Pos",
-        module="jawapos",
-        class_name="JawaposScraper",
-        concurrency=5,
-        smoke_keyword="ihsg",
-        supports_latest=True,
-    ),
-    "katadata": ScraperEntry(
-        slug="katadata",
-        name="Katadata",
-        module="katadata",
-        class_name="KatadataScraper",
-        concurrency=5,
-        smoke_keyword="ihsg",
-        supports_latest=True,
-    ),
-    "kompas": ScraperEntry(
-        slug="kompas",
-        name="Kompas",
-        module="kompas",
-        class_name="KompasScraper",
-        concurrency=7,
-        smoke_keyword="ihsg",
-        supports_latest=True,
-    ),
-    "kontan": ScraperEntry(
-        slug="kontan",
-        name="Kontan",
-        module="kontan",
-        class_name="KontanScraper",
-        concurrency=3,
-        smoke_keyword="ihsg",
-        note="max 50 pages",
-        supports_latest=True,
-    ),
-    "kumparan": ScraperEntry(
-        slug="kumparan",
-        name="Kumparan",
-        module="kumparan",
-        class_name="KumparanScraper",
-        concurrency=5,
+    ScraperEntry(
+        "detik",
+        "Detik",
+        "detik", "DetikScraper",
         status="stable",
         strict_search=True,
         smoke_keyword="ekonomi",
         note="promoted to stable; rebuilt with sitemap keyword filtering; 2026-04-18",
         supports_latest=True,
     ),
-    "liputan6": ScraperEntry(
-        slug="liputan6",
-        name="Liputan6",
-        module="liputan6",
-        class_name="Liputan6Scraper",
-        concurrency=5,
+    ScraperEntry(
+        "galamedia",
+        "Galamedia",
+        "galamedia", "GalamediaScraper",
+        status="stable",
+        strict_search=True,
+        smoke_keyword="ekonomi",
+        note="promoted to stable; /search?q= endpoint + div.latest__item + keyword-in-title filtering; 2026-04-24",
+        supports_latest=True,
+    ),
+    ScraperEntry(
+        "idntimes",
+        "IDN Times",
+        "idntimes", "IDNTimesScraper",
         status="stable",
         strict_search=True,
         browser_required=True,
@@ -187,140 +132,21 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         note="promoted to stable; rebuilt with Playwright tag page + keyword URL filter; 2026-04-18",
         supports_latest=True,
     ),
-    "mediaindonesia": ScraperEntry(
-        slug="mediaindonesia",
-        name="Media Indonesia",
-        module="mediaindonesia",
-        class_name="MediaIndonesiaScraper",
-        concurrency=5,
-        smoke_keyword="ihsg",
-        supports_latest=True,
-    ),
-    "merdeka": ScraperEntry(
-        slug="merdeka",
-        name="Merdeka",
-        module="merdeka",
-        class_name="MerdekaScraper",
-        concurrency=5,
-        status="stable",
-        strict_search=True,
-        smoke_keyword="ekonomi",
-        note="promoted to stable; rebuilt with RSS keyword filtering; 2026-04-18",
-        supports_latest=True,
-    ),
-    "metrotvnews": ScraperEntry(
-        slug="metrotvnews",
-        name="MetroTV News",
-        module="metrotvnews",
-        class_name="MetrotvnewsScraper",
-        concurrency=2,
-        smoke_keyword="prabowo",
-        note="flaky for finance terms",
-        supports_latest=True,
-    ),
-    "okezone": ScraperEntry(
-        slug="okezone",
-        name="Okezone",
-        module="okezone",
-        class_name="OkezoneScraper",
-        concurrency=5,
+    ScraperEntry("inews", "iNews", "inews", "INewsScraper", smoke_keyword="ihsg", supports_latest=True),
+    ScraperEntry(
+        "investor",
+        "Investor.id",
+        "investor", "InvestorScraper",
         status="stable",
         strict_search=True,
         smoke_keyword="ihsg",
-        note="promoted to stable; rebuilt with /tag/{keyword} endpoint; 2026-04-18",
+        note="promoted to stable; no-result gate added 2026-04-18",
         supports_latest=True,
     ),
-    "republika": ScraperEntry(
-        slug="republika",
-        name="Republika",
-        module="republika",
-        class_name="RepublikaScraper",
-        concurrency=5,
-        status="stable",
-        strict_search=True,
-        browser_required=True,
-        smoke_keyword="ekonomi",
-        note="promoted to stable; rebuilt with Playwright tag page + keyword URL filter; 2026-04-18",
-        supports_latest=True,
-    ),
-    "sindonews": ScraperEntry(
-        slug="sindonews",
-        name="SINDOnews",
-        module="sindonews",
-        class_name="SindonewsScraper",
-        concurrency=5,
-        smoke_keyword="ihsg",
-        supports_latest=True,
-    ),
-    "suara": ScraperEntry(
-        slug="suara",
-        name="Suara",
-        module="suara",
-        class_name="SuaraScraper",
-        concurrency=12,
-        smoke_keyword="prabowo",
-        browser_required=True,
-        supports_latest=True,
-    ),
-    "tempo": ScraperEntry(
-        slug="tempo",
-        name="Tempo",
-        module="tempo",
-        class_name="TempoScraper",
-        concurrency=1,
-        smoke_keyword="ihsg",
-        supports_latest=True,
-    ),
-    "tirto": ScraperEntry(
-        slug="tirto",
-        name="Tirto",
-        module="tirto",
-        class_name="TirtoScraper",
-        concurrency=5,
-        status="stable",
-        strict_search=True,
-        browser_required=True,
-        smoke_keyword="prabowo",
-        note="promoted to stable; rebuilt with Playwright CSE capture; 2026-04-18",
-        supports_latest=True,
-    ),
-    "tribunnews": ScraperEntry(
-        slug="tribunnews",
-        name="Tribunnews",
-        module="tribunnews",
-        class_name="TribunnewsScraper",
-        concurrency=5,
-        status="stable",
-        strict_search=True,
-        smoke_keyword="ekonomi",
-        note="promoted to stable; rebuilt with sitemap keyword filtering; 2026-04-23",
-        supports_latest=True,
-    ),
-    "tvone": ScraperEntry(
-        slug="tvone",
-        name="TVOne",
-        module="tvone",
-        class_name="TVOneScraper",
-        concurrency=5,
-        smoke_keyword="ekonomi",
-        supports_latest=True,
-    ),
-    "viva": ScraperEntry(
-        slug="viva",
-        name="Viva",
-        module="viva",
-        class_name="VivaScraper",
-        concurrency=7,
-        smoke_keyword="ihsg",
-        supports_latest=True,
-    ),
-    # ── Quarantined scrapers ─────────────────────────────────────────────────
-    "jakartapost": ScraperEntry(
-        slug="jakartapost",
-        name="The Jakarta Post",
-        module="jakartapost",
-        class_name="JakartaPostScraper",
-        concurrency=5,
+    ScraperEntry(
+        "jakartapost",
+        "The Jakarta Post",
+        "jakartapost", "JakartaPostScraper",
         status="stable",
         strict_search=True,
         browser_required=True,
@@ -328,37 +154,119 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         note="rebuilt with Playwright CSE bootstrap; 2026-04-18",
         supports_latest=True,
     ),
-    "investor": ScraperEntry(
-        slug="investor",
-        name="Investor.id",
-        module="investor",
-        class_name="InvestorScraper",
-        concurrency=5,
+    ScraperEntry(
+        "jawapos", "Jawa Pos", "jawapos", "JawaposScraper", smoke_keyword="ihsg", supports_latest=True
+    ),
+    ScraperEntry(
+        "jpnn",
+        "JPNN (Jawa Pos News Network)",
+        "jpnn", "JpnnScraper",
         status="stable",
         strict_search=True,
-        smoke_keyword="ihsg",
-        note="promoted to stable; no-result gate added 2026-04-18",
+        smoke_keyword="ekonomi",
+        note="promoted to stable; /tag/{keyword} + meta[name=jpnncom_news_pubdate] date extraction; 2026-04-24",
         supports_latest=True,
     ),
-    "tvrinews": ScraperEntry(
-        slug="tvrinews",
-        name="TVRI News",
-        module="tvrinews",
-        class_name="TVRINewsScraper",
-        concurrency=5,
+    ScraperEntry(
+        "katadata", "Katadata", "katadata", "KatadataScraper", smoke_keyword="ihsg", supports_latest=True
+    ),
+    ScraperEntry(
+        "kompas",
+        "Kompas",
+        "kompas", "KompasScraper",
+        concurrency=7,
+        smoke_keyword="ihsg",
+        supports_latest=True,
+    ),
+    ScraperEntry(
+        "kontan",
+        "Kontan",
+        "kontan", "KontanScraper",
+        smoke_keyword="ihsg",
+        note="max 50 pages",
+        supports_latest=True,
+    ),
+    ScraperEntry(
+        "kumparan",
+        "Kumparan",
+        "kumparan", "KumparanScraper",
         status="stable",
         strict_search=True,
         smoke_keyword="ekonomi",
         note="promoted to stable; rebuilt with sitemap keyword filtering; 2026-04-18",
         supports_latest=True,
     ),
-    # ── Investigating / new targets ──────────────────────────────────────────
-    "pikiranrakyat": ScraperEntry(
-        slug="pikiranrakyat",
-        name="Pikiran Rakyat",
-        module="pikiranrakyat",
-        class_name="PikiranRakyatScraper",
-        concurrency=5,
+    ScraperEntry(
+        "liputan6",
+        "Liputan6",
+        "liputan6", "Liputan6Scraper",
+        status="stable",
+        strict_search=True,
+        browser_required=True,
+        smoke_keyword="ihsg",
+        note="promoted to stable; rebuilt with Playwright tag page + keyword URL filter; 2026-04-18",
+        supports_latest=True,
+    ),
+    ScraperEntry(
+        "mediaindonesia",
+        "Media Indonesia",
+        "mediaindonesia", "MediaIndonesiaScraper",
+        smoke_keyword="ihsg",
+        supports_latest=True,
+    ),
+    ScraperEntry(
+        "merdeka",
+        "Merdeka",
+        "merdeka", "MerdekaScraper",
+        status="stable",
+        strict_search=True,
+        smoke_keyword="ekonomi",
+        note="promoted to stable; rebuilt with RSS keyword filtering; 2026-04-18",
+        supports_latest=True,
+    ),
+    ScraperEntry(
+        "metrotvnews",
+        "MetroTV News",
+        "metrotvnews", "MetrotvnewsScraper",
+        concurrency=2,
+        smoke_keyword="prabowo",
+        note="flaky for finance terms",
+        supports_latest=True,
+    ),
+    ScraperEntry(
+        "mongabay",
+        "Mongabay Indonesia",
+        "mongabay", "MongabayScraper",
+        status="stable",
+        strict_search=True,
+        smoke_keyword="deforestasi",
+        note="promoted to stable; WordPress REST API /wp-json/wp/v2/posts?search=; 2026-04-18",
+        supports_latest=True,
+    ),
+    ScraperEntry(
+        "okezone",
+        "Okezone",
+        "okezone", "OkezoneScraper",
+        status="stable",
+        strict_search=True,
+        smoke_keyword="ihsg",
+        note="promoted to stable; rebuilt with /tag/{keyword} endpoint; 2026-04-18",
+        supports_latest=True,
+    ),
+    ScraperEntry(
+        "pantau",
+        "Pantau.com",
+        "pantau", "PantauScraper",
+        status="stable",
+        strict_search=True,
+        smoke_keyword="ekonomi",
+        note="promoted to stable; /search?q= endpoint + Next.js __NEXT_DATA__ parsing; 2026-05-13",
+        supports_latest=True,
+    ),
+    ScraperEntry(
+        "pikiranrakyat",
+        "Pikiran Rakyat",
+        "pikiranrakyat", "PikiranRakyatScraper",
         status="stable",
         strict_search=True,
         browser_required=True,
@@ -366,166 +274,151 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         note="promoted to stable; Playwright CSE bypass CF 1015; 2026-04-23",
         supports_latest=True,
     ),
-    "poskota": ScraperEntry(
-        slug="poskota",
-        name="Poskota",
-        module="poskota",
-        class_name="PoskotaScraper",
-        concurrency=5,
+    ScraperEntry(
+        "poskota",
+        "Poskota",
+        "poskota", "PoskotaScraper",
         status="stable",
         strict_search=True,
         smoke_keyword="ekonomi",
         note="promoted to stable; /tag/{keyword} endpoint with URL date pre-filter; 2026-04-23",
         supports_latest=True,
     ),
-    "rmid": ScraperEntry(
-        slug="rmid",
-        name="RM.ID (Rakyat Merdeka)",
-        module="rmid",
-        class_name="RmidScraper",
-        concurrency=5,
+    ScraperEntry(
+        "republika",
+        "Republika",
+        "republika", "RepublikaScraper",
         status="stable",
         strict_search=True,
+        browser_required=True,
         smoke_keyword="ekonomi",
-        note="promoted to stable; /?s= search + title filtering + div.content-berita; 2026-04-23",
+        note="promoted to stable; rebuilt with Playwright tag page + keyword URL filter; 2026-04-18",
         supports_latest=True,
     ),
-    "suaramerdeka": ScraperEntry(
-        slug="suaramerdeka",
-        name="Suara Merdeka",
-        module="suaramerdeka",
-        class_name="SuaraMerdekaScraper",
-        concurrency=5,
-        status="stable",
-        strict_search=True,
-        smoke_keyword="ekonomi",
-        note="promoted to stable; /search?q= endpoint with content_PublishedDate; 2026-04-23",
-        supports_latest=True,
-    ),
-    "bbc": ScraperEntry(
-        slug="bbc",
-        name="BBC News",
-        module="bbc",
-        class_name="BBCNewsScraper",
-        concurrency=5,
-        smoke_keyword="election",
-        supports_latest=True,
-    ),
-    "mongabay": ScraperEntry(
-        slug="mongabay",
-        name="Mongabay Indonesia",
-        module="mongabay",
-        class_name="MongabayScraper",
-        concurrency=5,
-        status="stable",
-        strict_search=True,
-        smoke_keyword="deforestasi",
-        note="promoted to stable; WordPress REST API /wp-json/wp/v2/posts?search=; 2026-04-18",
-        supports_latest=True,
-    ),
-    "beritajatim": ScraperEntry(
-        slug="beritajatim",
-        name="Berita Jatim",
-        module="beritajatim",
-        class_name="BeritaJatimScraper",
-        concurrency=5,
-        status="stable",
-        strict_search=True,
-        smoke_keyword="ekonomi",
-        note="promoted to stable; /tag/{keyword} endpoint; 2026-04-24",
-        supports_latest=True,
-    ),
-    "pantau": ScraperEntry(
-        slug="pantau",
-        name="Pantau.com",
-        module="pantau",
-        class_name="PantauScraper",
-        concurrency=5,
-        status="stable",
-        strict_search=True,
-        smoke_keyword="ekonomi",
-        note="promoted to stable; /search?q= endpoint + Next.js __NEXT_DATA__ parsing; 2026-05-13",
-        supports_latest=True,
-    ),
-    "voi": ScraperEntry(
-        slug="voi",
-        name="VOI.id",
-        module="voi",
-        class_name="VOIScraper",
-        concurrency=5,
-        status="stable",
-        strict_search=True,
-        smoke_keyword="ekonomi",
-        note="promoted to stable; /en/artikel/cari?q= endpoint + HTML parsing; 2026-05-13",
-        supports_latest=True,
-    ),
-    "voaindonesia": ScraperEntry(
-        slug="voaindonesia",
-        name="VOA Indonesia",
-        module="voaindonesia",
-        class_name="VOAIndonesiaScraper",
-        concurrency=5,
-        status="stable",
-        strict_search=True,
-        smoke_keyword="ekonomi",
-        note="promoted to stable; /s?k= endpoint + HTML parsing; 2026-05-15",
-        supports_latest=True,
-    ),
-    "galamedia": ScraperEntry(
-        slug="galamedia",
-        name="Galamedia",
-        module="galamedia",
-        class_name="GalamediaScraper",
-        concurrency=5,
-        status="stable",
-        strict_search=True,
-        smoke_keyword="ekonomi",
-        note="promoted to stable; /search?q= endpoint + div.latest__item + keyword-in-title filtering; 2026-04-24",
-        supports_latest=True,
-    ),
-    "jpnn": ScraperEntry(
-        slug="jpnn",
-        name="JPNN (Jawa Pos News Network)",
-        module="jpnn",
-        class_name="JpnnScraper",
-        concurrency=5,
-        status="stable",
-        strict_search=True,
-        smoke_keyword="ekonomi",
-        note="promoted to stable; /tag/{keyword} + meta[name=jpnncom_news_pubdate] date extraction; 2026-04-24",
-        supports_latest=True,
-    ),
-    "surabayapagi": ScraperEntry(
-        slug="surabayapagi",
-        name="Surabaya Pagi",
-        module="surabayapagi",
-        class_name="SurabayaPagiScraper",
-        concurrency=3,
-        status="stable",
-        strict_search=True,
-        smoke_keyword="ekonomi",
-        note="promoted to stable; /tag/{keyword} + article:published_time; concurrency=3 for rate limiting; 2026-04-24",
-        supports_latest=True,
-    ),
-    "rri": ScraperEntry(
-        slug="rri",
-        name="RRI (RRI.co.id)",
-        module="rri",
-        class_name="RRIScraper",
-        concurrency=5,
+    ScraperEntry(
+        "rri",
+        "RRI (RRI.co.id)",
+        "rri", "RRIScraper",
         status="stable",
         strict_search=True,
         smoke_keyword="ekonomi",
         note="promoted to stable; /search?q= endpoint with plain HTTP; 2026-04-18",
         supports_latest=True,
     ),
+    ScraperEntry(
+        "rmid",
+        "RM.ID (Rakyat Merdeka)",
+        "rmid", "RmidScraper",
+        status="stable",
+        strict_search=True,
+        smoke_keyword="ekonomi",
+        note="promoted to stable; /?s= search + title filtering + div.content-berita; 2026-04-23",
+        supports_latest=True,
+    ),
+    ScraperEntry(
+        "sindonews",
+        "SINDOnews",
+        "sindonews", "SindonewsScraper",
+        smoke_keyword="ihsg",
+        supports_latest=True,
+    ),
+    ScraperEntry(
+        "suara",
+        "Suara",
+        "suara", "SuaraScraper",
+        concurrency=12,
+        smoke_keyword="prabowo",
+        browser_required=True,
+        supports_latest=True,
+    ),
+    ScraperEntry(
+        "suaramerdeka",
+        "Suara Merdeka",
+        "suaramerdeka", "SuaraMerdekaScraper",
+        status="stable",
+        strict_search=True,
+        smoke_keyword="ekonomi",
+        note="promoted to stable; /search?q= endpoint with content_PublishedDate; 2026-04-23",
+        supports_latest=True,
+    ),
+    ScraperEntry(
+        "surabayapagi",
+        "Surabaya Pagi",
+        "surabayapagi", "SurabayaPagiScraper",
+        status="stable",
+        strict_search=True,
+        smoke_keyword="ekonomi",
+        note="promoted to stable; /tag/{keyword} + article:published_time; concurrency=3 for rate limiting; 2026-04-24",
+        supports_latest=True,
+    ),
+    ScraperEntry("tempo", "Tempo", "tempo", "TempoScraper", smoke_keyword="ihsg", supports_latest=True),
+    ScraperEntry(
+        "tirto",
+        "Tirto",
+        "tirto", "TirtoScraper",
+        status="stable",
+        strict_search=True,
+        browser_required=True,
+        smoke_keyword="prabowo",
+        note="promoted to stable; rebuilt with Playwright CSE capture; 2026-04-18",
+        supports_latest=True,
+    ),
+    ScraperEntry(
+        "tribunnews",
+        "Tribunnews",
+        "tribunnews", "TribunnewsScraper",
+        status="stable",
+        strict_search=True,
+        smoke_keyword="ekonomi",
+        note="promoted to stable; rebuilt with sitemap keyword filtering; 2026-04-23",
+        supports_latest=True,
+    ),
+    ScraperEntry(
+        "tvone", "TVOne", "tvone", "TVOneScraper", smoke_keyword="ekonomi", supports_latest=True
+    ),
+    ScraperEntry(
+        "tvrinews",
+        "TVRI News",
+        "tvrinews", "TVRINewsScraper",
+        status="stable",
+        strict_search=True,
+        smoke_keyword="ekonomi",
+        note="promoted to stable; rebuilt with sitemap keyword filtering; 2026-04-18",
+        supports_latest=True,
+    ),
+    ScraperEntry(
+        "viva",
+        "Viva",
+        "viva", "VivaScraper",
+        concurrency=7,
+        smoke_keyword="ihsg",
+        supports_latest=True,
+    ),
+    ScraperEntry(
+        "voi",
+        "VOI.id",
+        "voi", "VOIScraper",
+        status="stable",
+        strict_search=True,
+        smoke_keyword="ekonomi",
+        note="promoted to stable; /en/artikel/cari?q= endpoint + HTML parsing; 2026-05-13",
+        supports_latest=True,
+    ),
     # ── New batch: 2026-05-batch2 ────────────────────────────────────────────
-    "balipost": ScraperEntry(
-        slug="balipost",
-        name="Bali Post",
-        module="balipost",
-        class_name="BaliPostScraper",
-        concurrency=5,
+    ScraperEntry(
+        "voaindonesia",
+        "VOA Indonesia",
+        "voaindonesia", "VOAIndonesiaScraper",
+        status="stable",
+        strict_search=True,
+        smoke_keyword="ekonomi",
+        note="promoted to stable; /s?k= endpoint + HTML parsing; 2026-05-15",
+        supports_latest=True,
+    ),
+    ScraperEntry(
+        "balipost",
+        "Bali Post",
+        "balipost", "BaliPostScraper",
         status="stable",
         strict_search=False,
         smoke_keyword="ekonomi",
@@ -533,58 +426,132 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         supports_search=False,
         supports_latest=True,
     ),
-    "dailysocial": ScraperEntry(
-        slug="dailysocial",
-        name="DailySocial",
-        module="dailysocial",
-        class_name="DailySocialScraper",
-        concurrency=5,
+    ScraperEntry(
+        "dailysocial",
+        "DailySocial",
+        "dailysocial", "DailySocialScraper",
         status="stable",
         strict_search=True,
         smoke_keyword="ekonomi",
         note="new; WordPress /?s= search + wp-block-post containers; 2026-05-15",
         supports_latest=True,
     ),
-    "gatra": ScraperEntry(
-        slug="gatra",
-        name="Gatra",
-        module="gatra",
-        class_name="GatraScraper",
-        concurrency=5,
+    ScraperEntry(
+        "gatra",
+        "Gatra",
+        "gatra", "GatraScraper",
         status="stable",
         strict_search=True,
         smoke_keyword="ekonomi",
         note="new; WordPress /?s= search + title keyword filtering (search returns all); 2026-05-15",
         supports_latest=True,
     ),
-    "kaltimpost": ScraperEntry(
-        slug="kaltimpost",
-        name="Kaltim Post (Borneo24)",
-        module="kaltimpost",
-        class_name="KaltimPostScraper",
-        concurrency=5,
+    ScraperEntry(
+        "kaltimpost",
+        "Kaltim Post (Borneo24)",
+        "kaltimpost", "KaltimPostScraper",
         status="stable",
         strict_search=True,
         smoke_keyword="ekonomi",
         note="new; WordPress /?s= search + path-based article filtering; 2026-05-15",
         supports_latest=True,
     ),
-    "projectmultatuli": ScraperEntry(
-        slug="projectmultatuli",
-        name="Project Multatuli",
-        module="projectmultatuli",
-        class_name="ProjectMultatuliScraper",
-        concurrency=5,
+    ScraperEntry(
+        "projectmultatuli",
+        "Project Multatuli",
+        "projectmultatuli", "ProjectMultatuliScraper",
         status="stable",
         strict_search=True,
         smoke_keyword="ekonomi",
         note="new; Elementor /en/search/{keyword} + e-loop-item containers; 2026-05-15",
         supports_latest=True,
     ),
-}
+)
+
+
+# ── Registry builder with guardrails ─────────────────────────────────────────
+
+
+def build_registry(entries: Tuple[ScraperEntry, ...]) -> Dict[str, ScraperEntry]:
+    """Build SCRAPERS dict from entry tuple with duplicate/consistency checks.
+
+    Raises ValueError on:
+    - duplicate slug
+    - duplicate module
+    - duplicate class_name
+    - supports_search=False with strict_search=True
+    """
+    seen_slugs: set = set()
+    seen_modules: set = set()
+    seen_classes: set = set()
+    result: Dict[str, ScraperEntry] = {}
+
+    for e in entries:
+        if e.slug in seen_slugs:
+            raise ValueError(f"Duplicate scraper slug: '{e.slug}'")
+        if e.module in seen_modules:
+            raise ValueError(f"Duplicate scraper module: '{e.module}'")
+        if e.class_name in seen_classes:
+            raise ValueError(f"Duplicate scraper class_name: '{e.class_name}'")
+        if not e.supports_search and e.strict_search:
+            raise ValueError(
+                f"Scraper '{e.slug}' has strict_search=True but supports_search=False. "
+                "Set strict_search=False when search is unsupported."
+            )
+        seen_slugs.add(e.slug)
+        seen_modules.add(e.module)
+        seen_classes.add(e.class_name)
+        result[e.slug] = e
+
+    return result
+
+
+SCRAPERS: Dict[str, ScraperEntry] = build_registry(_SCRAPER_ENTRIES)
+
+
+# ── Runtime validation ───────────────────────────────────────────────────────
+
+_SCRAPER_IGNORE = {"__init__", "basescraper"}
+
+
+def validate_registry() -> List[str]:
+    """Validate registry integrity. Returns list of issues (empty = OK)."""
+    issues: List[str] = []
+
+    # Check all registry modules have files
+    scraper_dir = Path(__file__).parent / "scrapers"
+    registry_modules = {e.module for e in _SCRAPER_ENTRIES}
+
+    for mod in sorted(registry_modules):
+        if not (scraper_dir / f"{mod}.py").exists():
+            issues.append(f"Registry module '{mod}' has no file at scrapers/{mod}.py")
+
+    # Check all scraper files have registry entries
+    file_modules = {
+        p.stem for p in scraper_dir.glob("*.py") if p.stem not in _SCRAPER_IGNORE
+    }
+    orphan_files = file_modules - registry_modules
+    for f in sorted(orphan_files):
+        issues.append(f"Scraper file '{f}.py' has no registry entry")
+
+    # Check all registry classes import
+    for slug, entry in SCRAPERS.items():
+        try:
+            mod = importlib.import_module(
+                f".scrapers.{entry.module}", package="newswatch"
+            )
+            if not hasattr(mod, entry.class_name):
+                issues.append(
+                    f"Scraper '{slug}': class '{entry.class_name}' not found in module"
+                )
+        except ImportError as e:
+            issues.append(f"Scraper '{slug}': module import failed — {e}")
+
+    return issues
 
 
 # ── Convenience functions ────────────────────────────────────────────────────
+
 
 def get_stable_scrapers() -> Dict[str, ScraperEntry]:
     """Return only scrapers with status 'stable'."""
@@ -643,11 +610,15 @@ def get_available_scrapers_from_registry(method: str = "search"):
 
     for slug, entry in entries.items():
         try:
-            module = importlib.import_module(f".scrapers.{entry.module}", package="newswatch")
+            module = importlib.import_module(
+                f".scrapers.{entry.module}", package="newswatch"
+            )
             scraper_class = getattr(module, entry.class_name)
             scraper_classes[slug] = {
                 "class": scraper_class,
-                "params": {"concurrency": entry.concurrency} if entry.concurrency else {},
+                "params": {"concurrency": entry.concurrency}
+                if entry.concurrency
+                else {},
             }
         except (ImportError, AttributeError) as e:
             logging.warning(f"Failed to load scraper '{slug}': {e}")
