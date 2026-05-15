@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added VOA Indonesia (`voaindonesia`) scraper with search and latest support
+- Total stable scrapers: 43
+
+### Notes
+- VOA Indonesia uses `/s?k=` endpoint with HTML parsing
+- Passed strict keyword search validation (zero results for nonsense keywords)
+- Passed latest-mode live smoke testing
+
 ## [0.8.1] - 2026-05-14
 
 ### Added

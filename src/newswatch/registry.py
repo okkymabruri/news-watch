@@ -459,6 +459,18 @@ SCRAPERS: Dict[str, ScraperEntry] = {
         note="promoted to stable; /en/artikel/cari?q= endpoint + HTML parsing; 2026-05-13",
         supports_latest=True,
     ),
+    "voaindonesia": ScraperEntry(
+        slug="voaindonesia",
+        name="VOA Indonesia",
+        module="voaindonesia",
+        class_name="VOAIndonesiaScraper",
+        concurrency=5,
+        status="stable",
+        strict_search=True,
+        smoke_keyword="ekonomi",
+        note="promoted to stable; /s?k= endpoint + HTML parsing; 2026-05-15",
+        supports_latest=True,
+    ),
     "galamedia": ScraperEntry(
         slug="galamedia",
         name="Galamedia",
