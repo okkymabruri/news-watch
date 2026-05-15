@@ -9,12 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added VOA Indonesia (`voaindonesia`) scraper with search and latest support
-- Total stable scrapers: 43
+- Added Gatra (`gatra`) scraper with search and latest support
+- Added Project Multatuli (`projectmultatuli`) scraper with search and latest support
+- Added DailySocial (`dailysocial`) scraper with search and latest support
+- Added Kaltim Post (`kaltimpost`) scraper with search and latest support
+- Added Bali Post (`balipost`) scraper (latest-only)
+- Total stable scrapers: 48
 
 ### Notes
 - VOA Indonesia uses `/s?k=` endpoint with HTML parsing
-- Passed strict keyword search validation (zero results for nonsense keywords)
-- Passed latest-mode live smoke testing
+- Gatra uses `/?s=` WordPress search with title keyword filtering
+- Project Multatuli uses WordPress search with HTML parsing
+- DailySocial uses WordPress search on news.dailysocial.id
+- Kaltim Post uses WordPress search on kaltimkece.borneo24.com
+- Bali Post supports latest mode via homepage only; search endpoint returns cached empty page
+- All new portals passed strict keyword search validation where applicable
+- All new portals passed latest-mode live smoke testing
 
 ## [0.8.1] - 2026-05-14
 
