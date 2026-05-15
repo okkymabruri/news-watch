@@ -128,23 +128,28 @@ The output file contains the following columns:
 - `latest` is intended for latest-news monitoring and does not require keywords.
 - Latest mode currently starts with a smaller subset of sources than the full search catalog.
 
-## Supported Websites (43)
+## Supported Websites (48)
 
 [Antara News](https://antaranews.com),
+[Bali Post](https://www.balipost.com),
 [BBC News](https://bbc.com),
 [Berita Jatim](https://beritajatim.com),
 [Bisnis.com](https://bisnis.com),
 [Bloomberg Technoz](https://bloombergtechnoz.com),
 [CNBC Indonesia](https://cnbcindonesia.com),
 [CNN Indonesia](https://cnnindonesia.com),
+[DailySocial](https://news.dailysocial.id),
 [Detik](https://detik.com),
 [Galamedia](https://galamedia.pikiran-rakyat.com),
+[Gatra](https://www.gatra.net),
+[Hukumonline](https://www.hukumonline.com),
 [IDN Times](https://idntimes.com),
 [iNews](https://inews.id),
 [Investor Daily](https://investor.id),
 [Jawapos](https://jawapos.com),
 [Jakarta Post](https://thejakartapost.com),
 [JPNN](https://jpnn.com),
+[Kaltim Post](https://kaltimkece.borneo24.com),
 [Katadata](https://katadata.co.id),
 [Kompas](https://kompas.com),
 [Kontan](https://kontan.co.id),
@@ -158,6 +163,7 @@ The output file contains the following columns:
 [Pantau.com](https://www.pantau.com),
 [Pikiran Rakyat](https://pikiran-rakyat.com),
 [Poskota](https://poskota.co.id),
+[Project Multatuli](https://projectmultatuli.org),
 [Republika](https://republika.co.id),
 [RM.ID](https://rm.id),
 [RRI](https://rri.co.id),
