@@ -23,10 +23,15 @@ class HipweeScraper(BaseScraper):
         self.max_pages = 10
         self._skip_paths = [
             "/wp-", "/search/", "/tag/", "/author/", "/feed/",
-            "/xmlrpc", "/category/", "/kmm",
+            "/xmlrpc", "/category/", "/kmm", "/cdn-cgi/",
+            "/dashboard/", "/login/", "/register/", "/profile/",
+            "/settings/", "/admin/", "/api/", "/user/",
+            "/top/", "/editors-pick/", "/community/", "/redaksi/",
+            "/contact/", "/privacy-policy/", "/term-and-condition",
+            "/ebook/", "/panduan-wisata/",
         ]
         self._article_re = re.compile(
-            r"^https?://www\.hipwee\.com/[a-z0-9-]+/.+$"
+            r"^https?://www\.hipwee\.com/[a-z0-9-]+/[^/]+/?$"
         )
 
     async def build_search_url(self, keyword, page):

@@ -364,7 +364,7 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
     ),
     ScraperEntry(
         "rmol",
-        "RM.ID (Rakyat Merdeka)",
+        "RMOL",
         "rmol", "RMOLScraper",
         status="stable",
         strict_search=False,

@@ -157,7 +157,7 @@ class RMOLScraper(BaseScraper):
     async def build_latest_url(self, page):
         if page == 1:
             return await self.fetch(self.base_url)
-        return await self.fetch(f"{self.base_url}/indeksberita")
+        return None
 
     def parse_latest_article_links(self, response_text):
         if not response_text:
