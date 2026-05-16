@@ -128,12 +128,13 @@ The output file contains the following columns:
 - `latest` is intended for latest-news monitoring and does not require keywords.
 - Latest mode currently starts with a smaller subset of sources than the full search catalog.
 
-## Supported Websites (48)
+## Supported Websites (52)
 
 [Antara News](https://antaranews.com),
 [Bali Post](https://www.balipost.com),
 [BBC News](https://bbc.com),
 [Berita Jatim](https://beritajatim.com),
+[BeritaSatu](https://www.beritasatu.com),
 [Bisnis.com](https://bisnis.com),
 [Bloomberg Technoz](https://bloombergtechnoz.com),
 [CNBC Indonesia](https://cnbcindonesia.com),
@@ -142,15 +143,16 @@ The output file contains the following columns:
 [Detik](https://detik.com),
 [Galamedia](https://galamedia.pikiran-rakyat.com),
 [Gatra](https://www.gatra.net),
-[Hukumonline](https://www.hukumonline.com),
+[Harian Jogja](https://www.harianjogja.com),
 [IDN Times](https://idntimes.com),
 [iNews](https://inews.id),
 [Investor Daily](https://investor.id),
-[Jawapos](https://jawapos.com),
 [Jakarta Post](https://thejakartapost.com),
+[Jawapos](https://jawapos.com),
 [JPNN](https://jpnn.com),
 [Kaltim Post](https://kaltimkece.borneo24.com),
 [Katadata](https://katadata.co.id),
+[KBR](https://kbr.id),
 [Kompas](https://kompas.com),
 [Kontan](https://kontan.co.id),
 [Kumparan](https://kumparan.com),
@@ -171,6 +173,7 @@ The output file contains the following columns:
 [Suara](https://suara.com),
 [Suara Merdeka](https://suaramerdeka.com),
 [Surabaya Pagi](https://surabayapagi.com),
+[SWA](https://swa.co.id),
 [Tempo](https://tempo.co),
 [Tirto](https://tirto.id),
 [Tribunnews](https://tribunnews.com),
