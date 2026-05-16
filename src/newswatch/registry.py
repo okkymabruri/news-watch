@@ -485,6 +485,28 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         note="new; custom CMS /search?q= endpoint; r-{id} URL pattern; 2026-05-16",
         supports_latest=True,
     ),
+    ScraperEntry(
+        "kbr",
+        "KBR",
+        "kbr", "KBRScraper",
+        status="stable",
+        strict_search=True,
+        concurrency=5,
+        smoke_keyword="ekonomi",
+        note="new; Next.js 14+ App Router /search?q= endpoint; /articles/indeks for latest; 2026-05-16",
+        supports_latest=True,
+    ),
+    ScraperEntry(
+        "beritasatu",
+        "BeritaSatu",
+        "beritasatu", "BeritaSatuScraper",
+        status="stable",
+        strict_search=True,
+        concurrency=5,
+        smoke_keyword="ekonomi",
+        supports_latest=True,
+        note="new; custom CMS /search/{keyword} path param; Chrome UA required; 2026-05-16",
+    ),
 )
 
 
