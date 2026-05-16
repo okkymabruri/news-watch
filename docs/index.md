@@ -6,7 +6,7 @@
 
 news-watch scrapes structured news data from Indonesia's top news websites with keyword/date search and latest-news monitoring.
 
-The current stable release supports 48 query-backed Indonesian news scrapers. No investigating or quarantined sources remain.
+The current stable release supports 52 query-backed Indonesian news scrapers. No investigating or quarantined sources remain.
 
 ## Installation
 
@@ -54,21 +54,28 @@ print(len(latest))
 | Source | Domain |
 |--------|--------|
 | Antara News | antaranews.com |
+| Bali Post (latest only) | balipost.com |
 | BBC News | bbc.com |
 | BeritaJatim | beritajatim.com |
+| BeritaSatu | beritasatu.com |
 | Bisnis.com | bisnis.com |
 | Bloomberg Technoz | bloombergtechnoz.com |
 | CNBC Indonesia | cnbcindonesia.com |
 | CNN Indonesia | cnnindonesia.com |
+| DailySocial | news.dailysocial.id |
 | Detik | detik.com |
 | Galamedia | galamedia.pikiran-rakyat.com |
+| Gatra | gatra.net |
+| Harian Jogja | harianjogja.com |
 | IDN Times | idntimes.com |
 | iNews | inews.id |
 | Investor Daily | investor.id |
-| Jawapos | jawapos.com |
 | Jakarta Post | thejakartapost.com |
+| Jawapos | jawapos.com |
 | JPNN | jpnn.com |
+| Kaltim Post (Borneo24) | kaltimkece.borneo24.com |
 | Katadata | katadata.co.id |
+| KBR | kbr.id |
 | Kompas | kompas.com |
 | Kontan | kontan.co.id |
 | Kumparan | kumparan.com |
@@ -78,8 +85,10 @@ print(len(latest))
 | Metro TV News | metrotvnews.com |
 | Mongabay Indonesia | mongabay.co.id |
 | Okezone | okezone.com |
+| Pantau.com | pantau.com |
 | Pikiran Rakyat | pikiran-rakyat.com |
 | Poskota | poskota.co.id |
+| Project Multatuli | projectmultatuli.org |
 | Republika | republika.co.id |
 | RM.ID | rm.id |
 | RRI | rri.co.id |
@@ -87,11 +96,14 @@ print(len(latest))
 | Suara | suara.com |
 | Suara Merdeka | suaramerdeka.com |
 | Surabaya Pagi | surabayapagi.com |
+| SWA | swa.co.id |
 | Tempo | tempo.co |
 | Tirto | tirto.id |
 | Tribunnews | tribunnews.com |
 | TVOne | tvonenews.com |
 | TVRI News | tvrinews.id |
+| VOA Indonesia | voaindonesia.com |
+| VOI.id | voi.id |
 | Viva | viva.co.id |
 
 ## Important Considerations
