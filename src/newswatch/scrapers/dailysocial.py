@@ -71,6 +71,7 @@ class DailySocialScraper(BaseScraper):
             h1 = soup.select_one("h1")
             title = h1.get_text(strip=True) if h1 else ""
         if not title:
+            logging.error("DailySocial title not found for %s", link)
             return
 
         # Content — use entry-content / wp-block-post-content
