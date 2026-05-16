@@ -85,7 +85,7 @@ class ProjectMultatuliScraper(BaseScraper):
         for tag in content_div.find_all(
             ["section", "div"],
             class_=re.compile(
-                r"related|popular|most|sidebar|see-also|widget|navigation",
+                r"related|popular|most|sidebar|see-also|navigation",
                 re.IGNORECASE,
             ),
         ):
@@ -146,7 +146,7 @@ class ProjectMultatuliScraper(BaseScraper):
                 except (json.JSONDecodeError, AttributeError):
                     continue
 
-        logging.debug("Project Multatuli date parse failed | url: %s", link)
+        logging.debug("ProjectMultatuli date parse failed | url: %s", link)
         return None
 
     def _extract_author(self, soup):

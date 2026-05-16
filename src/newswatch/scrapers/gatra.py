@@ -8,8 +8,8 @@ NOTE: Gatra's WordPress search returns all articles regardless of query.
 Articles are filtered by keyword presence in the visible title text.
 """
 
+import logging                           # logging first
 import json
-import logging
 import re
 from urllib.parse import urlencode, urljoin
 
@@ -34,6 +34,7 @@ class GatraScraper(BaseScraper):
         if page > 1:
             params["paged"] = page
         url = f"{self.base_url}/?{urlencode(params)}"
+        self._current_keyword = keyword.lower()  # store for parse_article_links
         return await self.fetch(url)
 
     def parse_article_links(self, response_text):
@@ -44,7 +45,7 @@ class GatraScraper(BaseScraper):
         # Gatra search returns all articles regardless of query;
         # filter strictly by keyword presence in the visible title text.
         links = set()
-        kw = self.keywords[0].lower() if self.keywords else ""
+        kw = self._current_keyword  # set by build_search_url with active keyword
         for a in soup.select("a[href]"):
             href = a["href"]
             full_url = urljoin(self.base_url, href) if not href.startswith("http") else href
