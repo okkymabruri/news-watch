@@ -351,6 +351,15 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         note="promoted to stable; /tag/{keyword} + article:published_time; concurrency=3 for rate limiting; 2026-04-24",
         supports_latest=True,
     ),
+    ScraperEntry(
+        "swa",
+        "SWA",
+        "swa", "SWAScraper",
+        status="stable",
+        strict_search=True,
+        concurrency=5,
+        supports_latest=True,
+    ),
     ScraperEntry("tempo", "Tempo", "tempo", "TempoScraper", smoke_keyword="ihsg", supports_latest=True),
     ScraperEntry(
         "tirto",
@@ -464,6 +473,16 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         strict_search=True,
         smoke_keyword="ekonomi",
         note="new; Elementor /en/search/{keyword} + e-loop-item containers; 2026-05-15",
+        supports_latest=True,
+    ),
+    ScraperEntry(
+        "harianjogja",
+        "Harian Jogja",
+        "harianjogja", "HarianJogjaScraper",
+        status="stable",
+        strict_search=True,
+        smoke_keyword="ekonomi",
+        note="new; custom CMS /search?q= endpoint; r-{id} URL pattern; 2026-05-16",
         supports_latest=True,
     ),
 )
