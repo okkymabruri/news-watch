@@ -25,9 +25,10 @@ class MojokScraper(BaseScraper):
             "/author/", "/page/", "/tag/", "/feed/", "/xmlrpc",
             "/kirim-artikel/", "/kru-mojok/", "/kontak/",
             "/tentang/", "/pedoman-media-siber/", "/kebijakan-privasi/",
+            "/cdn-cgi/", "/login/", "/wp-", "/kmm",
         ]
         self._article_re = re.compile(
-            r"^https?://mojok\.co/.+/.+$"
+            r"^https?://mojok\.co/[a-z0-9-]+/[a-z0-9-]+/.+$"
         )
 
     async def build_search_url(self, keyword, page):

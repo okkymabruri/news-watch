@@ -98,10 +98,11 @@ class FajarScraper(BaseScraper):
         # Author
         author = self._extract_author(soup)
 
-        # Category from URL path
-        path = link.replace(self.base_url, "").strip("/")
-        parts = path.split("/")
-        category = parts[0] if len(parts) > 3 else "Unknown"
+        # Category: try meta first, fallback to "Unknown" (URL is /{year}/{month}/{day}/{slug}/)
+        category = "Unknown"
+        section_meta = soup.select_one('meta[property="article:section"]')
+        if section_meta and section_meta.get("content"):
+            category = section_meta["content"].strip()
 
         item = {
             "title": title,
