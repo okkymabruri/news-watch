@@ -1,4 +1,4 @@
-__version__ = "0.8.1"
+__version__ = "0.8.5"
 
 # main api functions
 from .api import latest as latest
