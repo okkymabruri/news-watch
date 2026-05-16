@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.5] - 2026-05-16
+
 ### Added
 - Added VOA Indonesia (`voaindonesia`) scraper with search and latest support
 - Added Gatra (`gatra`) scraper with search and latest support
@@ -14,17 +16,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added DailySocial (`dailysocial`) scraper with search and latest support
 - Added Kaltim Post (`kaltimpost`) scraper with search and latest support
 - Added Bali Post (`balipost`) scraper (latest-only)
-- Total stable scrapers: 48
+- Added Harian Jogja (`harianjogja`) scraper with search and latest support
+- Added SWA (`swa`) scraper with search and latest support
+- Added BeritaSatu (`beritasatu`) scraper with search and latest support
+- Added KBR (`kbr`) scraper with search and latest support
+- Total stable scrapers: 52
+
+### Changed
+- Replaced raw dict literal registry with tuple-based `_SCRAPER_ENTRIES` + `build_registry()` builder
+- Added registry validation guardrails (duplicate slug/module/class_name detection, missing-file checks)
+- Added `tests/test_registry.py` with 8 integrity tests
 
 ### Notes
 - VOA Indonesia uses `/s?k=` endpoint with HTML parsing
-- Gatra uses `/?s=` WordPress search with title keyword filtering
-- Project Multatuli uses WordPress search with HTML parsing
+- Gatra uses `/?s=` WordPress search with active-keyword title filtering
+- Project Multatuli uses Elementor search endpoint
 - DailySocial uses WordPress search on news.dailysocial.id
-- Kaltim Post uses WordPress search on kaltimkece.borneo24.com
+- Kaltim Post uses WordPress search on borneo24.com
 - Bali Post supports latest mode via homepage only; search endpoint returns cached empty page
+- Harian Jogja uses custom CMS search across multiple subdomains
+- SWA uses SvelteKit CMS, server-rendered search
+- BeritaSatu uses custom CMS with Chrome UA required for 403 bypass
+- KBR uses Next.js SSR, `/articles/indeks` for latest
 - All new portals passed strict keyword search validation where applicable
 - All new portals passed latest-mode live smoke testing
+- Coherence audit fixed keyword filtering bug, content cleanup regex, missing error logs, pagination support, and import order across new scrapers
 
 ## [0.8.1] - 2026-05-14
 
