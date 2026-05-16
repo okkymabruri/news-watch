@@ -128,7 +128,7 @@ The output file contains the following columns:
 - `latest` is intended for latest-news monitoring and does not require keywords.
 - Latest mode currently starts with a smaller subset of sources than the full search catalog.
 
-## Supported Websites (52)
+## Supported Websites (59)
 
 [Antara News](https://antaranews.com),
 [Bali Post](https://www.balipost.com),
@@ -137,16 +137,21 @@ The output file contains the following columns:
 [BeritaSatu](https://www.beritasatu.com),
 [Bisnis.com](https://bisnis.com),
 [Bloomberg Technoz](https://bloombergtechnoz.com),
+[CNA Indonesia](https://www.cna.id),
 [CNBC Indonesia](https://cnbcindonesia.com),
 [CNN Indonesia](https://cnnindonesia.com),
 [DailySocial](https://news.dailysocial.id),
 [Detik](https://detik.com),
+[Fajar](https://fajar.co.id),
 [Galamedia](https://galamedia.pikiran-rakyat.com),
 [Gatra](https://www.gatra.net),
+[Grid](https://www.grid.id),
 [Harian Jogja](https://www.harianjogja.com),
+[Hipwee](https://www.hipwee.com),
 [IDN Times](https://idntimes.com),
 [iNews](https://inews.id),
 [Investor Daily](https://investor.id),
+[Jakarta Globe](https://jakartaglobe.id),
 [Jakarta Post](https://thejakartapost.com),
 [Jawapos](https://jawapos.com),
 [JPNN](https://jpnn.com),
@@ -160,6 +165,7 @@ The output file contains the following columns:
 [Media Indonesia](https://mediaindonesia.com),
 [Merdeka](https://merdeka.com),
 [Metro TV News](https://metrotvnews.com),
+[Mojok](https://mojok.co),
 [Mongabay Indonesia](https://mongabay.co.id),
 [Okezone](https://okezone.com),
 [Pantau.com](https://www.pantau.com),
@@ -169,6 +175,7 @@ The output file contains the following columns:
 [Republika](https://republika.co.id),
 [RM.ID](https://rm.id),
 [RRI](https://rri.co.id),
+[RMOL](https://rmol.id),
 [SINDOnews](https://sindonews.com),
 [Suara](https://suara.com),
 [Suara Merdeka](https://suaramerdeka.com),

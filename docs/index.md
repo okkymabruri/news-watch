@@ -6,7 +6,7 @@
 
 news-watch scrapes structured news data from Indonesia's top news websites with keyword/date search and latest-news monitoring.
 
-The current stable release supports 52 query-backed Indonesian news scrapers. No investigating or quarantined sources remain.
+The current stable release supports 59 query-backed Indonesian news scrapers. No investigating or quarantined sources remain.
 
 ## Installation
 
@@ -60,16 +60,21 @@ print(len(latest))
 | BeritaSatu | beritasatu.com |
 | Bisnis.com | bisnis.com |
 | Bloomberg Technoz | bloombergtechnoz.com |
+| CNA Indonesia (latest only) | cna.id |
 | CNBC Indonesia | cnbcindonesia.com |
 | CNN Indonesia | cnnindonesia.com |
 | DailySocial | news.dailysocial.id |
 | Detik | detik.com |
+| Fajar | fajar.co.id |
 | Galamedia | galamedia.pikiran-rakyat.com |
 | Gatra | gatra.net |
+| Grid | grid.id |
 | Harian Jogja | harianjogja.com |
+| Hipwee | hipwee.com |
 | IDN Times | idntimes.com |
 | iNews | inews.id |
 | Investor Daily | investor.id |
+| Jakarta Globe | jakartaglobe.id |
 | Jakarta Post | thejakartapost.com |
 | Jawapos | jawapos.com |
 | JPNN | jpnn.com |
@@ -83,6 +88,7 @@ print(len(latest))
 | Media Indonesia | mediaindonesia.com |
 | Merdeka | merdeka.com |
 | Metro TV News | metrotvnews.com |
+| Mojok | mojok.co |
 | Mongabay Indonesia | mongabay.co.id |
 | Okezone | okezone.com |
 | Pantau.com | pantau.com |
@@ -91,6 +97,7 @@ print(len(latest))
 | Project Multatuli | projectmultatuli.org |
 | Republika | republika.co.id |
 | RM.ID | rm.id |
+| RMOL | rmol.id |
 | RRI | rri.co.id |
 | SINDOnews | sindonews.com |
 | Suara | suara.com |
