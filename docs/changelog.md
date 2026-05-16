@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.6] - 2026-05-16
+
+### Added
+- Added Fajar (`fajar`) scraper with search and latest support
+- Added Mojok (`mojok`) scraper with search and latest support
+- Added Grid (`grid`) scraper with search and latest support
+- Added Hipwee (`hipwee`) scraper with search and latest support
+- Added Jakarta Globe (`jakartaglobe`) scraper with search and latest support
+- Added RMOL (`rmol`) scraper with tag-based search and latest support
+- Added CNA Indonesia (`cnaindonesia`) scraper (latest-only; search uses Algolia JS)
+- Total stable scrapers: 59
+
+### Notes
+- Fajar: WordPress search on fajar.co.id; Sulawesi regional gap
+- Mojok: WordPress search on mojok.co; satire/opinion/youth angle
+- Grid: /search?q= endpoint; grid.id; lifestyle/pop culture gap
+- Hipwee: WordPress search on hipwee.com; youth demographic angle
+- Jakarta Globe: /search/{keyword} custom endpoint; English coverage alternative
+- RMOL: /tag/{keyword} tag-based search; political commentary/analysis
+- CNA Indonesia: Drupal + Algolia JS; latest-only via /terbaru; international SE Asia perspective
+
 ## [0.8.5] - 2026-05-16
 
 ### Added
