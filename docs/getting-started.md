@@ -63,7 +63,7 @@ Test that everything works:
 # Check available scrapers
 newswatch --list_scrapers
 
-# Should show 59 stable scrapers
+# Should show 60 stable scrapers
 ```
 
 ## Your First Scraping Session

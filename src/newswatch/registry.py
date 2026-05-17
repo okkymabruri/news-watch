@@ -289,6 +289,17 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         note="new; WordPress /?s= search; satire/opinion/youth angle; 2026-05-16",
     ),
     ScraperEntry(
+        "niagaasia",
+        "Niaga.Asia",
+        "niagaasia", "NiagaAsiaScraper",
+        status="stable",
+        strict_search=True,
+        concurrency=5,
+        smoke_keyword="ekonomi",
+        supports_latest=True,
+        note="new; WordPress /?s= search; business/economy; Kalimantan coverage; 2026-05-17",
+    ),
+    ScraperEntry(
         "mongabay",
         "Mongabay Indonesia",
         "mongabay", "MongabayScraper",
