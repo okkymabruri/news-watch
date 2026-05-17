@@ -300,6 +300,17 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         note="new; WordPress /?s= search; business/economy; Kalimantan coverage; 2026-05-17",
     ),
     ScraperEntry(
+        "jakartaselarascoid",
+        "Jakarta Selaras",
+        "jakartaselarascoid", "JakartaSelarasScraper",
+        status="stable",
+        strict_search=False,
+        concurrency=5,
+        smoke_keyword="ekonomi",
+        supports_latest=True,
+        note="new; custom CMS; RSS/sitemap keyword filtering; /detail/{id}/{slug} articles; 2026-05-17",
+    ),
+    ScraperEntry(
         "mongabay",
         "Mongabay Indonesia",
         "mongabay", "MongabayScraper",
