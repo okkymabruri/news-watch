@@ -33,6 +33,7 @@ from .liputan6 import Liputan6Scraper as Liputan6Scraper
 from .mediaindonesia import MediaIndonesiaScraper as MediaIndonesiaScraper
 from .merdeka import MerdekaScraper as MerdekaScraper
 from .metrotvnews import MetrotvnewsScraper as MetrotvnewsScraper
+from .niagaasia import NiagaAsiaScraper as NiagaAsiaScraper
 from .mojok import MojokScraper as MojokScraper
 from .mongabay import MongabayScraper as MongabayScraper
 from .okezone import OkezoneScraper as OkezoneScraper
@@ -94,6 +95,7 @@ __all__ = [
     "MediaIndonesiaScraper",
     "MerdekaScraper",
     "MetrotvnewsScraper",
+    "NiagaAsiaScraper",
     "MojokScraper",
     "MongabayScraper",
     "OkezoneScraper",

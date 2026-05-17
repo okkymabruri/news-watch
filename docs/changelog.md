@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Jakarta Globe (`jakartaglobe`) scraper with search and latest support
 - Added RMOL (`rmol`) scraper with tag-based search and latest support
 - Added CNA Indonesia (`cnaindonesia`) scraper (latest-only; search uses Algolia JS)
-- Total stable scrapers: 59
+- Total stable scrapers: 60
 
 ### Notes
 - Fajar: WordPress search on fajar.co.id; Sulawesi regional gap
@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Jakarta Globe: /search/{keyword} custom endpoint; English coverage alternative
 - RMOL: /tag/{keyword} tag-based search; political commentary/analysis
 - CNA Indonesia: Drupal + Algolia JS; latest-only via /terbaru; international SE Asia perspective
+- Niaga.Asia: WordPress /?s= search; business/economy focus; Kalimantan coverage
 
 ## [0.8.5] - 2026-05-16
 
