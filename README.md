@@ -128,7 +128,7 @@ The output file contains the following columns:
 - `latest` is intended for latest-news monitoring and does not require keywords.
 - Latest mode currently starts with a smaller subset of sources than the full search catalog.
 
-## Supported Websites (60)
+## Supported Websites (61)
 
 [Antara News](https://antaranews.com),
 [Bali Post](https://www.balipost.com),
@@ -153,6 +153,7 @@ The output file contains the following columns:
 [Investor Daily](https://investor.id),
 [Jakarta Globe](https://jakartaglobe.id),
 [Jakarta Post](https://thejakartapost.com),
+[Jakarta Selaras](https://jakarta.selaras.co.id),
 [Jawapos](https://jawapos.com),
 [JPNN](https://jpnn.com),
 [Kaltim Post](https://kaltimkece.borneo24.com),

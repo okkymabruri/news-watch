@@ -24,6 +24,7 @@ from .jakartapost import JakartaPostScraper as JakartaPostScraper
 from .jawapos import JawaposScraper as JawaposScraper
 from .jpnn import JpnnScraper as JpnnScraper
 from .kaltimpost import KaltimPostScraper as KaltimPostScraper
+from .jakartaselarascoid import JakartaSelarasScraper as JakartaSelarasScraper
 from .kbr import KBRScraper as KBRScraper
 from .katadata import KatadataScraper as KatadataScraper
 from .kompas import KompasScraper as KompasScraper
@@ -85,6 +86,7 @@ __all__ = [
     "JakartaPostScraper",
     "JawaposScraper",
     "JpnnScraper",
+    "JakartaSelarasScraper",
     "KaltimPostScraper",
     "KBRScraper",
     "KatadataScraper",
