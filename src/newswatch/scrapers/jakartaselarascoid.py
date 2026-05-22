@@ -32,11 +32,13 @@ class JakartaSelarasScraper(BaseScraper):
 
     async def build_search_url(self, keyword, page):
         # Native search not validated; use RSS for discovery
+        self._current_keyword = keyword
         return await self.fetch(f"{self.base_url}/rss")
 
     def parse_article_links(self, response_text):
         if not response_text:
             return None
+        keyword = getattr(self, "_current_keyword", "")
         # Parse RSS and filter by keyword in title/link
         links = set()
         try:
@@ -44,7 +46,7 @@ class JakartaSelarasScraper(BaseScraper):
             for item in root.iter("item"):
                 title = item.findtext("title", "")
                 link = item.findtext("link", "")
-                if self._article_re.match(link) and self._match_keyword(title, self.current_keyword):
+                if self._article_re.match(link) and self._match_keyword(title, keyword):
                     links.add(link)
         except ET.ParseError:
             soup = BeautifulSoup(response_text, "html.parser")
@@ -53,7 +55,7 @@ class JakartaSelarasScraper(BaseScraper):
                 full_url = urljoin(self.base_url, href) if not href.startswith("http") else href
                 if self._article_re.match(full_url) and not any(skip in full_url for skip in self._skip_paths):
                     title = a.get_text(" ", strip=True)
-                    if self._match_keyword(title, self.current_keyword):
+                    if self._match_keyword(title, keyword):
                         links.add(full_url)
         return links or None
 

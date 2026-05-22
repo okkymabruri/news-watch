@@ -7,6 +7,7 @@ that can be filtered by keyword presence.
 
 import logging
 import re
+from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 
@@ -104,11 +105,10 @@ class TVRINewsScraper(BaseScraper):
                 self.continue_scraping = False
                 return
 
-            category = "Unknown"
-            path = link.replace(self.base_url, "").strip("/")
-            parts = path.split("/")
-            if parts:
-                category = parts[0]
+            # Extract category from subdomain (e.g. ekonomi.tvrinews.com → "ekonomi")
+            parsed_url = urlparse(link)
+            subdomain = parsed_url.hostname.split(".")[0] if parsed_url.hostname else ""
+            category = subdomain if subdomain and subdomain != "tvrinews" else "Unknown"
 
             item = {
                 "title": title,
@@ -178,11 +178,10 @@ class TVRINewsScraper(BaseScraper):
                 self.continue_scraping = False
                 return
 
-            category = "Unknown"
-            path = link.replace(self.base_url, "").strip("/")
-            parts = path.split("/")
-            if parts:
-                category = parts[0]
+            # Extract category from subdomain (e.g. ekonomi.tvrinews.com → "ekonomi")
+            parsed_url = urlparse(link)
+            subdomain = parsed_url.hostname.split(".")[0] if parsed_url.hostname else ""
+            category = subdomain if subdomain and subdomain != "tvrinews" else "Unknown"
 
             item = {
                 "title": title,

@@ -23,6 +23,7 @@ class RmidScraper(BaseScraper):
         self._article_re = re.compile(r"https?://rm\.id/baca-berita/")
 
     async def build_search_url(self, keyword, page):
+        self._current_keyword = keyword
         if page == 1:
             return await self.fetch(f"{self.base_url}/?s={quote(keyword, safe='')}", timeout=30)
         else:
@@ -34,13 +35,11 @@ class RmidScraper(BaseScraper):
 
         # RM.ID search returns general articles regardless of query;
         # filter strictly by keyword presence in the visible title.
+        kw = getattr(self, "_current_keyword", self.keywords[0] if self.keywords else "").lower()
         for a in soup.select("a[href]"):
             href = a.get("href", "")
             if self._article_re.match(href):
                 title = a.get_text(strip=True)
-                # Use self.keywords from the parent class (set in fetch_search_results caller)
-                # For now, use the first keyword from the scraper's keywords list
-                kw = self.keywords[0].lower() if self.keywords else ""
                 if title and kw and kw in title.lower():
                     links.add(href)
 

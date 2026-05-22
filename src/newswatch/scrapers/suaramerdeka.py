@@ -96,8 +96,7 @@ class SuaraMerdekaScraper(BaseScraper):
         await self.queue_.put(item)
 
     async def build_latest_url(self, page):
-        params = {"page": page}
-        url = f"{self.base_url}/search?{urlencode(params)}" if page > 1 else f"{self.base_url}/"
+        url = f"{self.base_url}/page/{page}/" if page > 1 else f"{self.base_url}/"
         return await self.fetch(url, timeout=30)
 
     def parse_latest_article_links(self, response_text):

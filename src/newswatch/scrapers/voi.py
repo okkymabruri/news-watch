@@ -175,7 +175,7 @@ class VOIScraper(BaseScraper):
         links = set()
         for title_elem in soup.select(".section-item-title a"):
             href = title_elem.get("href", "")
-            if href and "/en/" in href and "/artikel/" not in href:
-                # Filter to article pages only
+            if href and "/en/artikel/" in href and "/cari" not in href and "/indeks" not in href:
+                # Filter to article pages only, exclude search/index listing pages
                 links.add(href)
         return links or None

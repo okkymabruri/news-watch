@@ -37,13 +37,13 @@ class SuaraScraper(BaseScraper):
                 page = await context.new_page()
 
                 search_url = f"{self.base_url}/search?q={keyword}"
+                seen_urls = set()
 
                 for pg in range(1, self.max_pages + 1):
                     if not self.continue_scraping:
                         break
 
                     cse_body = []
-                    seen_urls = set()
 
                     async def handle_route(route):
                         response = await route.fetch()
