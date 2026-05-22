@@ -55,17 +55,20 @@ class VivaScraper(BaseScraper):
             return
         soup = BeautifulSoup(response_text, "html.parser")
         try:
-            # FIX ME: change to select_one
-            category = soup.find(
-                "a", {"class": "breadcrumb-step content_center"}
-            ).get_text(strip=True)
-            title = soup.find("h1", {"class": "main-content-title"}).get_text(
-                strip=True
-            )
-            publish_date_str = soup.find(
-                "div", {"class": "main-content-date"}
-            ).get_text(strip=True)
-            author_elem = soup.find("div", {"class": "main-content-author"})
+            category_el = soup.select_one("a.breadcrumb-step.content_center")
+            category = category_el.get_text(strip=True) if category_el else "Unknown"
+
+            title_el = soup.select_one("h1.main-content-title")
+            title = title_el.get_text(strip=True) if title_el else ""
+            if not title:
+                return
+
+            date_el = soup.select_one("div.main-content-date")
+            if not date_el:
+                return
+            publish_date_str = date_el.get_text(strip=True)
+
+            author_elem = soup.select_one("div.main-content-author")
             author = author_elem.get_text(strip=True) if author_elem else "Unknown"
 
             publish_date = self.parse_date(publish_date_str)
@@ -78,7 +81,9 @@ class VivaScraper(BaseScraper):
                 self.continue_scraping = False
                 return
 
-            content_div = soup.find("div", {"class": "main-content-detail"})
+            content_div = soup.select_one("div.main-content-detail")
+            if not content_div:
+                return
             for elem in content_div.select(
                 "div.recommended-article, div.widget-other-article"
             ):
