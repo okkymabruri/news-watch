@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.8.6] - 2026-05-16
+## [0.8.9] - 2026-05-23
 
 ### Added
 - Added Fajar (`fajar`) scraper with search and latest support
@@ -17,17 +17,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Jakarta Globe (`jakartaglobe`) scraper with search and latest support
 - Added RMOL (`rmol`) scraper with tag-based search and latest support
 - Added CNA Indonesia (`cnaindonesia`) scraper (latest-only; search uses Algolia JS)
-- Total stable scrapers: 60
+- Added Niaga.Asia (`niagaasia`) scraper with search and latest support
+- Added Jakarta Selaras (`jakartaselarascoid`) scraper with search and latest support
+- Total stable scrapers: 61
+- Docs: replaced 2-column table with Source|Slug|Search|Latest|Notes support matrix
 
-### Notes
-- Fajar: WordPress search on fajar.co.id; Sulawesi regional gap
-- Mojok: WordPress search on mojok.co; satire/opinion/youth angle
-- Grid: /search?q= endpoint; grid.id; lifestyle/pop culture gap
-- Hipwee: WordPress search on hipwee.com; youth demographic angle
-- Jakarta Globe: /search/{keyword} custom endpoint; English coverage alternative
-- RMOL: /tag/{keyword} tag-based search; political commentary/analysis
-- CNA Indonesia: Drupal + Algolia JS; latest-only via /terbaru; international SE Asia perspective
-- Niaga.Asia: WordPress /?s= search; business/economy focus; Kalimantan coverage
+### Fixed
+- Mojok link filtering: added /cdn-cgi/, /login/, /wp- skips; tightened regex
+- Hipwee link filtering: added /cdn-cgi/, /dashboard/, /profile/, /login/ skips
+- Fajar category extraction: use meta article:section not URL year
+- RMOL latest pagination: returns None after page 1 to avoid repeated pages
+- RMOL registry name: changed to "RMOL" (was "RM.ID" conflicting with rmid)
+- Jakarta Selaras: fixed AttributeError on undefined current_keyword
+- VOI latest: fixed parse_latest_article_links excluding all article URLs
+- Viva: added null guards for unguarded .find().get_text() calls
+- Suara Merdeka: fixed build_latest_url page>1 using search endpoint with no query
+- TVRI News: fixed category extraction for subdomain URLs
+- RM.ID: fixed keyword filter using only first keyword for multi-keyword searches
+- Suara: fixed cross-page deduplication (seen_urls reset inside loop)
 
 ## [0.8.5] - 2026-05-16
 
