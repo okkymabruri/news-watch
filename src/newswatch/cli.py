@@ -5,7 +5,7 @@ from datetime import datetime
 
 from .main import get_available_scrapers
 from .main import main as run_main
-from .health import health_report, print_health_summary, health_report_to_file
+from .health import health_report, health_report_to_file, _print_health_summary
 
 
 def cli():
@@ -136,7 +136,7 @@ def cli():
             max_pages=args.max_pages or 1,
             limit=args.limit or 1,
         )
-        print_health_summary(report)
+        _print_health_summary(report)
         if args.output_path:
             health_report_to_file(report, args.output_path, args.output_format)
             print(f"Health report written to {args.output_path}")

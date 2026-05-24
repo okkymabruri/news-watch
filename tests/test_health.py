@@ -1,11 +1,10 @@
 """Tests for the health report module."""
 
-import asyncio
 import csv
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pandas as pd
 import pytest
@@ -14,7 +13,7 @@ from newswatch.health import (
     health_report,
     health_report_to_dataframe,
     health_report_to_file,
-    print_health_summary,
+    _print_health_summary,
 )
 
 
@@ -101,7 +100,7 @@ class TestPrintHealthSummary:
     """Test stdout summary table."""
 
     def test_empty_report(self, capsys):
-        print_health_summary([])
+        _print_health_summary([])
         captured = capsys.readouterr()
         assert "No health data." in captured.out
 
@@ -112,7 +111,7 @@ class TestPrintHealthSummary:
             {"slug": "detik", "status": "error", "article_count": 0, "elapsed_seconds": 5.1, "error_message": "Connection failed"},
             {"slug": "bbc", "status": "no_results", "article_count": 0, "elapsed_seconds": 1.2, "error_message": None},
         ]
-        print_health_summary(report)
+        _print_health_summary(report)
         captured = capsys.readouterr()
         assert "SOURCE" in captured.out
         assert "kompas" in captured.out

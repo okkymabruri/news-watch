@@ -1,16 +1,15 @@
 """
-Al Jazeera scraper — uses /search/{keyword} for keyword search, /news/ for latest.
+Al Jazeera scraper — latest-only via RSS feed.
 
-https://www.aljazeera.com/search/{keyword}
+The search page is JS-rendered and not easily scrapable.
+Uses RSS feed for latest: https://www.aljazeera.com/xml/rss/all.xml
 Article pattern: /{year}/{month}/{day}/{slug}
-Latest: https://www.aljazeera.com/news/
 """
 
 import json
 import logging
 import re
 from datetime import datetime
-from urllib.parse import quote, urljoin
 
 from bs4 import BeautifulSoup
 
@@ -23,35 +22,24 @@ class AlJazeeraScraper(BaseScraper):
         self.base_url = "https://www.aljazeera.com"
         self.start_date = start_date
         self.continue_scraping = True
-        self.max_pages = 3
+        self.max_latest_pages = 1
         self._article_re = re.compile(
-            r"^https?://(?:www\.)?aljazeera\.com/\d{4}/\d{1,2}/\d{1,2}/.+$"
+            r"^https?://(?:www\.)?aljazeera\.com/[^/]+/\d{4}/\d{1,2}/\d{1,2}/.+$"
         )
         self._skip_paths = frozenset(
             ["/liveblog/", "/video/", "/podcast/", "/gallery/", "/program/", "/where/"]
         )
 
     async def build_search_url(self, keyword, page):
-        safe_kw = quote(keyword)
-        if page > 1:
-            url = f"{self.base_url}/search/{page}/{safe_kw}"
-        else:
-            url = f"{self.base_url}/search/{safe_kw}"
-        return await self.fetch(url, timeout=30)
+        # Search is JS-rendered and not feasible without Playwright.
+        # Return None to signal unsupported.
+        logging.info("Al Jazeera search mode not supported (JS-rendered). Use latest mode.")
+        self.continue_scraping = False
+        return None
 
     def parse_article_links(self, response_text):
-        if not response_text:
-            return None
-        soup = BeautifulSoup(response_text, "html.parser")
-
-        links = set()
-        for a in soup.select("a[href]"):
-            href = a.get("href", "")
-            full_url = urljoin(self.base_url, href) if not href.startswith("http") else href
-            if self._article_re.match(full_url):
-                if not any(p in full_url for p in self._skip_paths):
-                    links.add(full_url)
-        return links or None
+        # Not used in latest-only mode
+        return None
 
     async def get_article(self, link, keyword):
         response_text = await self.fetch(link, timeout=30)
@@ -119,7 +107,7 @@ class AlJazeeraScraper(BaseScraper):
         await self.queue_.put(item)
 
     def _extract_date(self, soup, link):
-        # Try JSON-LD first — Al Jazeera uses this consistently
+        # Try JSON-LD first
         for script in soup.find_all("script", type="application/ld+json"):
             if script and script.string:
                 try:
@@ -182,20 +170,20 @@ class AlJazeeraScraper(BaseScraper):
         return "Unknown"
 
     async def build_latest_url(self, page):
-        if page == 1:
-            return await self.fetch(f"{self.base_url}/news/", timeout=30)
-        # Al Jazeera uses /news/page/{N} pattern
-        return await self.fetch(f"{self.base_url}/news/page/{page}/", timeout=30)
+        if page > 1:
+            return None
+        return await self.fetch(f"{self.base_url}/xml/rss/all.xml", timeout=30)
 
     def parse_latest_article_links(self, response_text):
         if not response_text:
             return None
-        soup = BeautifulSoup(response_text, "html.parser")
+        soup = BeautifulSoup(response_text, "xml")
         links = set()
-        for a in soup.select("a[href]"):
-            href = a.get("href", "")
-            full_url = urljoin(self.base_url, href) if not href.startswith("http") else href
-            if self._article_re.match(full_url):
-                if not any(p in full_url for p in self._skip_paths):
-                    links.add(full_url)
+        for item in soup.find_all("item"):
+            link_el = item.find("link")
+            if link_el:
+                link = link_el.get_text(strip=True)
+                if self._article_re.match(link):
+                    if not any(p in link for p in self._skip_paths):
+                        links.add(link)
         return links or None

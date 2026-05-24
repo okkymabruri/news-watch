@@ -136,10 +136,9 @@ def test_cli_health_report_flag(monkeypatch, capsys):
 
     with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main, \
          patch("newswatch.cli.health_report") as mock_health, \
-         patch("newswatch.cli.print_health_summary") as mock_summary:
+         patch("newswatch.cli._print_health_summary") as mock_summary:
         mock_health.return_value = [{"slug": "test", "status": "ok"}]
         cli()
-        captured = capsys.readouterr()
 
         mock_main.assert_not_called()
         mock_health.assert_called_once()
@@ -156,11 +155,10 @@ def test_cli_health_report_with_output(monkeypatch, capsys, tmp_path):
 
     with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main, \
          patch("newswatch.cli.health_report") as mock_health, \
-         patch("newswatch.cli.print_health_summary") as mock_summary, \
+         patch("newswatch.cli._print_health_summary") as mock_summary, \
          patch("newswatch.cli.health_report_to_file") as mock_to_file:
         mock_health.return_value = [{"slug": "kompas", "status": "ok"}]
         cli()
-        captured = capsys.readouterr()
 
         mock_main.assert_not_called()
         mock_health.assert_called_once_with(
@@ -170,3 +168,4 @@ def test_cli_health_report_with_output(monkeypatch, capsys, tmp_path):
         mock_to_file.assert_called_once_with(
             mock_health.return_value, outfile, "csv",
         )
+        mock_summary.assert_called_once()

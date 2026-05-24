@@ -3,12 +3,14 @@ AP News scraper — uses /hub/{topic} topic pages for search, homepage/latest fo
 
 AP robots.txt disallows /search?q=*, so we use /hub/{keyword} for keyword queries.
 Article pattern: /article/{slug}
+
+Note: AP hub pages return unfiltered results, so we filter by keyword in title/link text.
 """
 
 import json
 import logging
 import re
-from urllib.parse import quote, urljoin
+from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
@@ -22,17 +24,15 @@ class APNewsScraper(BaseScraper):
         self.start_date = start_date
         self.continue_scraping = True
         self.max_pages = 3
+        self._current_keyword = None
         self._article_re = re.compile(
             r"^https?://(?:www\.)?apnews\.com/article/.+$"
         )
-        # AP uses topic hubs for keyword queries
-        self._skip_paths = frozenset(
-            ["/hub/", "/podcasts/", "/newsletters/", "/photo-gallery/", "/buyline"]
-        )
 
     async def build_search_url(self, keyword, page):
-        # AP /hub/{keyword} serves as topic search
-        safe_kw = quote(keyword.replace(" ", "-").lower())
+        # Store keyword for filtering in parse_article_links
+        self._current_keyword = keyword
+        safe_kw = keyword.replace(" ", "-").lower()
         if page > 1:
             url = f"{self.base_url}/hub/{safe_kw}/page-{page}"
         else:
@@ -44,19 +44,32 @@ class APNewsScraper(BaseScraper):
             return None
         soup = BeautifulSoup(response_text, "html.parser")
 
-        # No results check
-        no_results = soup.find(string=re.compile(r"No results found", re.IGNORECASE))
-        if no_results:
-            return None
-
-        links = set()
+        all_links = set()
         for a in soup.select("a[href]"):
             href = a.get("href", "")
             full_url = urljoin(self.base_url, href) if not href.startswith("http") else href
             if self._article_re.match(full_url):
                 if not any(p in full_url for p in ["/podcast", "/newsletter", "/photo", "/buyline"]):
-                    links.add(full_url)
-        return links or None
+                    all_links.add(full_url)
+
+        # AP hub pages are unfiltered — filter by keyword in URL or title text
+        kw = self._current_keyword
+        if kw:
+            kw_lower = kw.lower()
+            title_map = {}
+            for a in soup.select("a[href]"):
+                href = a.get("href", "")
+                full_url = urljoin(self.base_url, href) if not href.startswith("http") else href
+                if full_url in all_links:
+                    title_map[full_url] = a.get_text(" ", strip=True).lower()
+
+            filtered = set()
+            for url in all_links:
+                if kw_lower in url.lower() or kw_lower in title_map.get(url, ""):
+                    filtered.add(url)
+            return filtered or None
+
+        return all_links or None
 
     async def get_article(self, link, keyword):
         response_text = await self.fetch(link, timeout=30)
@@ -76,9 +89,11 @@ class APNewsScraper(BaseScraper):
             return
 
         # Content
-        content_div = soup.select_one("div.Article") or soup.select_one("div[class*='article']")
+        content_div = soup.select_one("div.RichTextStoryBody")
         if not content_div:
-            content_div = soup.select_one("div.RichTextStoryBody")
+            content_div = soup.select_one("div.Article")
+        if not content_div:
+            content_div = soup.select_one("div[class*='article-body']")
         if not content_div:
             return
 
@@ -124,14 +139,12 @@ class APNewsScraper(BaseScraper):
         await self.queue_.put(item)
 
     def _extract_date(self, soup, link):
-        # Try meta article:published_time
         date_meta = soup.select_one('meta[property="article:published_time"]')
         if date_meta and date_meta.get("content"):
             parsed = self.parse_date(date_meta["content"])
             if parsed:
                 return parsed
 
-        # Try JSON-LD
         for script in soup.find_all("script", type="application/ld+json"):
             if script and script.string:
                 try:
@@ -144,7 +157,6 @@ class APNewsScraper(BaseScraper):
                 except (json.JSONDecodeError, AttributeError):
                     continue
 
-        # Try time element with datetime
         time_el = soup.select_one("time[datetime]")
         if time_el:
             parsed = self.parse_date(time_el["datetime"])
@@ -159,7 +171,6 @@ class APNewsScraper(BaseScraper):
         if author_meta and author_meta.get("content"):
             return author_meta["content"].strip()
 
-        # Try JSON-LD
         for script in soup.find_all("script", type="application/ld+json"):
             if script and script.string:
                 try:
