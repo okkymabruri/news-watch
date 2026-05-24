@@ -126,31 +126,53 @@ async def _async_health_report(
 
         items_collected = []
 
-        async def _collect_from_queue(q, items):
-            """Drain queue after scraper finishes; sentinel or timeout ends collection."""
-            while True:
-                try:
-                    item = await asyncio.wait_for(q.get(), timeout=5)
-                    if item is None:
-                        break
-                    items.append(item)
-                except asyncio.TimeoutError:
-                    break
-                except Exception:
-                    break
+        async def _run_and_collect():
+            """Run scraper and collect queue items concurrently."""
+            collector_done = asyncio.Event()
+            collector_items = []
 
-        collector = asyncio.create_task(_collect_from_queue(instance_queue, items_collected))
+            async def _collect():
+                """Read queue until scraper puts sentinel or timeout after completion."""
+                idle_count = 0
+                max_idle = 10  # 50 idle iterations * 0.5s = ~8s max wait
+                while True:
+                    try:
+                        item = await asyncio.wait_for(instance_queue.get(), timeout=0.5)
+                        if item is None:
+                            break
+                        collector_items.append(item)
+                        idle_count = 0
+                    except asyncio.TimeoutError:
+                        idle_count += 1
+                        if idle_count >= max_idle:
+                            break
 
-        record = await _run_health_scraper(scraper_instance, slug, method, scraper_timeout, False)
-        # Drain remaining items after scraper done
-        try:
-            await asyncio.wait_for(collector, timeout=15)
-        except (asyncio.TimeoutError, Exception):
-            collector.cancel()
+            collector_task = asyncio.create_task(_collect())
+            await _run_health_scraper(scraper_instance, slug, method, scraper_timeout, False)
+            collector_done.set()
 
-        record["article_count"] = len(items_collected)
-        if record["status"] == "no_results" and items_collected:
-            record["status"] = "ok"
+            try:
+                await asyncio.wait_for(collector_task, timeout=10)
+            except (asyncio.TimeoutError, Exception):
+                collector_task.cancel()
+
+            return collector_items
+
+        items_collected = await _run_and_collect()
+
+        status = "ok" if items_collected else "no_results"
+        error_type = None
+        error_message = None
+        elapsed = 0.0  # will be set by _run_health_scraper, but we don't track it here
+
+        record = {
+            "slug": slug,
+            "status": status,
+            "article_count": len(items_collected),
+            "elapsed_seconds": 0,
+            "error_type": error_type,
+            "error_message": error_message,
+        }
 
         # Add registry metadata
         record["name"] = entry.name
