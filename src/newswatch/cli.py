@@ -5,6 +5,7 @@ from datetime import datetime
 
 from .main import get_available_scrapers
 from .main import main as run_main
+from .health import health_report, print_health_summary, health_report_to_file
 
 
 def cli():
@@ -106,6 +107,11 @@ def cli():
         default=None,
         help="Path to a previous output file (JSON/JSONL/CSV). Articles with matching links are skipped.",
     )
+    parser.add_argument(
+        "--health-report",
+        action="store_true",
+        help="Run health probes and print per-source status. Uses --method, --scrapers, --scraper-timeout, --max-pages.",
+    )
     args = parser.parse_args()
 
     scraper_classes, _linux_excluded = get_available_scrapers(
@@ -119,6 +125,21 @@ def cli():
             f"Supported {args.method} scrapers:\n- "
             + available_scrapers_str.replace(",", "\n- ")
         )
+        return
+
+    # Health report mode
+    if args.health_report:
+        report = health_report(
+            method=args.method,
+            scrapers=args.scrapers,
+            scraper_timeout=args.scraper_timeout or 30,
+            max_pages=args.max_pages or 1,
+            limit=args.limit or 1,
+        )
+        print_health_summary(report)
+        if args.output_path:
+            health_report_to_file(report, args.output_path, args.output_format)
+            print(f"Health report written to {args.output_path}")
         return
 
     # By default, suppress all logging unless verbose or progress is specified

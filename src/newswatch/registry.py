@@ -607,6 +607,29 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         supports_latest=True,
         note="new; custom CMS /search/{keyword} path param; Chrome UA required; 2026-05-16",
     ),
+    # ── Global sources (batch3) ──────────────────────────────────────────────
+    ScraperEntry(
+        "apnews",
+        "AP News",
+        "apnews", "APNewsScraper",
+        status="stable",
+        strict_search=False,
+        concurrency=3,
+        smoke_keyword="indonesia",
+        supports_latest=True,
+        note="new; /hub/{topic} topic pages for search (robots disallows /search?q=*); /hub/apf-topnews for latest; 2026-05-24",
+    ),
+    ScraperEntry(
+        "aljazeera",
+        "Al Jazeera",
+        "aljazeera", "AlJazeeraScraper",
+        status="stable",
+        strict_search=True,
+        concurrency=3,
+        smoke_keyword="indonesia",
+        supports_latest=True,
+        note="new; /search/{keyword} for search; /news/ for latest; English; global coverage; 2026-05-24",
+    ),
 )
 
 
