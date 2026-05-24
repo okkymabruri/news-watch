@@ -78,6 +78,9 @@ async def _async_health_report(
     """Run health probes and return list of report records."""
     from .registry import get_stable_scrapers
 
+    # Suppress logging during health probes
+    logging.disable(logging.CRITICAL)
+
     scraper_classes, _ = get_available_scrapers(method=method)
 
     if scrapers.lower() in ("all", "auto"):
@@ -199,6 +202,8 @@ def health_report(
     except Exception as e:
         logger.error(f"Health report failed: {e}")
         return []
+    finally:
+        logging.disable(logging.NOTSET)
 
 
 def health_report_to_dataframe(report: List[Dict]) -> pd.DataFrame:
