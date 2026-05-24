@@ -4,7 +4,6 @@ __version__ = "0.8.9"
 from .health import health_report as health_report
 from .health import health_report_to_dataframe as health_report_to_dataframe
 from .health import health_report_to_file as health_report_to_file
-from .health import print_health_summary as print_health_summary
 
 # main api functions
 from .api import latest as latest
@@ -26,7 +25,6 @@ __all__ = [
     "health_report",
     "health_report_to_dataframe",
     "health_report_to_file",
-    "print_health_summary",
     "latest",
     "latest_to_dataframe",
     "latest_to_file",

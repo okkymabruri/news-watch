@@ -113,14 +113,41 @@ async def _async_health_report(
 
         scraper_class = scraper_info["class"]
         scraper_params = dict(scraper_info.get("params", {}))
-        instance = scraper_class(
+        scraper_instance = scraper_class(
             keywords="latest" if method == "latest" else entry.smoke_keyword,
-            queue_=None,
+            queue_=asyncio.Queue(),
             **scraper_params,
         )
-        instance.max_latest_pages = max_pages
+        scraper_instance.max_latest_pages = max_pages
+        instance_queue = scraper_instance.queue_
 
-        record = await _run_health_scraper(instance, slug, method, scraper_timeout, False)
+        items_collected = []
+
+        async def _collect_from_queue(q, items):
+            """Drain queue after scraper finishes; sentinel or timeout ends collection."""
+            while True:
+                try:
+                    item = await asyncio.wait_for(q.get(), timeout=5)
+                    if item is None:
+                        break
+                    items.append(item)
+                except asyncio.TimeoutError:
+                    break
+                except Exception:
+                    break
+
+        collector = asyncio.create_task(_collect_from_queue(instance_queue, items_collected))
+
+        record = await _run_health_scraper(scraper_instance, slug, method, scraper_timeout, False)
+        # Drain remaining items after scraper done
+        try:
+            await asyncio.wait_for(collector, timeout=15)
+        except (asyncio.TimeoutError, Exception):
+            collector.cancel()
+
+        record["article_count"] = len(items_collected)
+        if record["status"] == "no_results" and items_collected:
+            record["status"] = "ok"
 
         # Add registry metadata
         record["name"] = entry.name
@@ -213,7 +240,7 @@ def health_report_to_file(
         raise ValueError(f"Unsupported format: {fmt}. Use json, csv, or xlsx.")
 
 
-def print_health_summary(report: List[Dict]) -> None:
+def _print_health_summary(report: List[Dict]) -> None:
     """Print a human-readable health summary table to stdout."""
     if not report:
         print("No health data.")

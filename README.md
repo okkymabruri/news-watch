@@ -50,6 +50,11 @@ newswatch --method <search|latest> -k <keywords> -sd <start_date> -s [<scrapers>
 | `-o, --output_path` | Custom output file path (optional) |
 | `-v, --verbose` | Show detailed logging output (default: silent) |
 | `--list_scrapers` | List all supported scrapers and exit |
+| `--health-report` | Run source health probes and print status table. JSON/CSV via --output_path |
+| `--limit` | Maximum number of articles to collect in latest mode |
+| `--max-pages` | Maximum pages to fetch per scraper in latest mode |
+| `--scraper-timeout` | Per-scraper timeout in seconds |
+| `--progress` | Print per-scraper progress lines |
 
 
 ### Examples
@@ -128,9 +133,11 @@ The output file contains the following columns:
 - `latest` is intended for latest-news monitoring and does not require keywords.
 - Latest mode currently starts with a smaller subset of sources than the full search catalog.
 
-## Supported Websites (61)
+## Supported Websites (63)
 
 [Antara News](https://antaranews.com),
+[AP News](https://apnews.com),
+[Al Jazeera](https://www.aljazeera.com),
 [Bali Post](https://www.balipost.com),
 [BBC News](https://bbc.com),
 [Berita Jatim](https://beritajatim.com),
@@ -193,6 +200,10 @@ The output file contains the following columns:
 [Viva](https://viva.co.id)
 
 > **Notes:**
+> - 63 total sources: 60 with keyword search, all 63 with latest mode.
+> - AP News uses topic hub pages with keyword-in-title filtering (robots disallows /search?q=*).
+> - Al Jazeera is latest-only via RSS feed (search page is JS-rendered).
+> - Reuters skipped (WAF blocked).
 > - Use `-s all` to force-run all scrapers (may cause errors/timeouts).
 > - Some sources are environment-sensitive and may fail on remote servers even if they work locally.
 > - Limitation: Kontan scraper maximum 50 pages.

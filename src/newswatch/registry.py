@@ -624,11 +624,12 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         "Al Jazeera",
         "aljazeera", "AlJazeeraScraper",
         status="stable",
-        strict_search=True,
+        strict_search=False,
+        supports_search=False,
         concurrency=3,
-        smoke_keyword="indonesia",
+        smoke_keyword="world",
         supports_latest=True,
-        note="new; /search/{keyword} for search; /news/ for latest; English; global coverage; 2026-05-24",
+        note="new; latest-only via RSS /xml/rss/all.xml; JS-rendered search page; English; global coverage; 2026-05-24",
     ),
 )
 
