@@ -129,3 +129,44 @@ def test_cli_progress_flag(monkeypatch, capsys):
         mock_main.assert_called_once()
         args = mock_main.call_args[0][0]
         assert args.progress is True
+
+def test_cli_health_report_flag(monkeypatch, capsys):
+    """Test that --health-report flag runs health report instead of main."""
+    monkeypatch.setattr(sys, "argv", ["cli.py", "--health-report"])
+
+    with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main, \
+         patch("newswatch.cli.health_report") as mock_health, \
+         patch("newswatch.cli.print_health_summary") as mock_summary:
+        mock_health.return_value = [{"slug": "test", "status": "ok"}]
+        cli()
+        captured = capsys.readouterr()
+
+        mock_main.assert_not_called()
+        mock_health.assert_called_once()
+        mock_summary.assert_called_once()
+
+def test_cli_health_report_with_output(monkeypatch, capsys, tmp_path):
+    """Test --health-report with --output_path and --method."""
+    outfile = str(tmp_path / "health.json")
+    monkeypatch.setattr(sys, "argv", [
+        "cli.py", "--health-report", "--method", "latest",
+        "--scrapers", "kompas", "--output_path", outfile,
+        "--scraper-timeout", "20", "--max-pages", "1",
+    ])
+
+    with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main, \
+         patch("newswatch.cli.health_report") as mock_health, \
+         patch("newswatch.cli.print_health_summary") as mock_summary, \
+         patch("newswatch.cli.health_report_to_file") as mock_to_file:
+        mock_health.return_value = [{"slug": "kompas", "status": "ok"}]
+        cli()
+        captured = capsys.readouterr()
+
+        mock_main.assert_not_called()
+        mock_health.assert_called_once_with(
+            method="latest", scrapers="kompas",
+            scraper_timeout=20, max_pages=1, limit=1,
+        )
+        mock_to_file.assert_called_once_with(
+            mock_health.return_value, outfile, "csv",
+        )

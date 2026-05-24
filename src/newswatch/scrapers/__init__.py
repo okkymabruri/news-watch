@@ -1,4 +1,6 @@
 from .antaranews import AntaranewsScraper as AntaranewsScraper
+from .apnews import APNewsScraper as APNewsScraper
+from .aljazeera import AlJazeeraScraper as AlJazeeraScraper
 from .balipost import BaliPostScraper as BaliPostScraper
 from .bbc import BBCNewsScraper as BBCNewsScraper
 from .beritajatim import BeritaJatimScraper as BeritaJatimScraper
@@ -62,6 +64,8 @@ from .voaindonesia import VOAIndonesiaScraper as VOAIndonesiaScraper
 
 __all__ = [
     "AntaranewsScraper",
+    "APNewsScraper",
+    "AlJazeeraScraper",
     "BaliPostScraper",
     "BBCNewsScraper",
     "BeritaJatimScraper",
