@@ -134,38 +134,19 @@ class KatadataScraper(BaseScraper):
             logging.error(f"Error parsing article {link}: {e}")
 
     async def build_latest_url(self, page):
-        payload = {
-            "q": "",
-            "source": "katadata",
-            "sort": "newest",
-            "limit": 10,
-            "page": page,
-        }
-        headers = {
-            "Content-Type": "application/json",
-            "User-Agent": "Mozilla/5.0",
-        }
-        return await self.fetch(
-            self.api_url,
-            method="POST",
-            data=json.dumps(payload),
-            headers=headers,
-            timeout=30,
-        )
+        # Katadata search API rejects empty queries — use HTML page instead
+        if page > 1:
+            return await self.fetch(f"{self.base_url}/berita/indeks?page={page}")
+        return await self.fetch(f"{self.base_url}/berita/indeks")
 
     def parse_latest_article_links(self, response_text):
         if not response_text:
             return None
-        try:
-            response_json = json.loads(response_text)
-        except Exception:
-            return None
-        articles = response_json.get("results", [])
-        if not articles:
-            return None
-        filtered_hrefs = set()
-        for article in articles:
-            url = article.get("url", "")
-            if url:
-                filtered_hrefs.add(url)
-        return filtered_hrefs if filtered_hrefs else None
+        soup = BeautifulSoup(response_text, "html.parser")
+        links = set()
+        for a in soup.select("a[href]"):
+            href = a.get("href", "")
+            if "/berita/" in href and "/read/" in href:
+                full_url = href if href.startswith("http") else f"https://www.{self.base_url}{href}"
+                links.add(full_url)
+        return links or None

@@ -214,6 +214,13 @@ class TirtoScraper(BaseScraper):
             finally:
                 await browser.close()
 
+    async def scrape(self, method="search"):
+        async with self:
+            if method == "latest":
+                await self.fetch_latest_results()
+            else:
+                await self.fetch_search_results(self.keywords[0] if self.keywords else "prabowo")
+
     def build_latest_url(self, page):
         return None
 
