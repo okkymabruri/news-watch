@@ -91,6 +91,16 @@ class TestHealthReportToFile:
             assert len(df) == 1
             Path(f.name).unlink()
 
+    def test_jsonl_output(self):
+        report = [{"slug": "test", "status": "ok"}]
+        with tempfile.NamedTemporaryFile(suffix=".jsonl", delete=False) as f:
+            health_report_to_file(report, f.name, "jsonl")
+            with open(f.name) as fh:
+                lines = [line.strip() for line in fh if line.strip()]
+            assert len(lines) == 1
+            assert json.loads(lines[0]) == report[0]
+            Path(f.name).unlink()
+
     def test_invalid_format(self):
         with pytest.raises(ValueError, match="Unsupported format"):
             health_report_to_file([], "test.xml", "xml")
