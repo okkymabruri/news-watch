@@ -605,6 +605,7 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         concurrency=5,
         smoke_keyword="ekonomi",
         supports_latest=True,
+        browser_required=True,
         note="new; custom CMS /search/{keyword} path param; Chrome UA required; 2026-05-16",
     ),
     # ── Global sources (batch3) ──────────────────────────────────────────────
