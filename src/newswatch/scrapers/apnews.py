@@ -10,7 +10,7 @@ Note: AP hub pages return unfiltered results, so we filter by keyword in title/l
 import json
 import logging
 import re
-from urllib.parse import urljoin
+from urllib.parse import quote, urljoin
 
 from bs4 import BeautifulSoup
 
@@ -32,7 +32,7 @@ class APNewsScraper(BaseScraper):
     async def build_search_url(self, keyword, page):
         # Store keyword for filtering in parse_article_links
         self._current_keyword = keyword
-        safe_kw = keyword.replace(" ", "-").lower()
+        safe_kw = quote(keyword.replace(" ", "-").lower(), safe="")
         if page > 1:
             url = f"{self.base_url}/hub/{safe_kw}/page-{page}"
         else:

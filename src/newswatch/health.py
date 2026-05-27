@@ -133,13 +133,13 @@ async def _async_health_report(
             start = asyncio.get_event_loop().time()
 
             # Phase 1: Run scraper - items go into queue during scraping
-            await _run_health_scraper(scraper_instance, slug, method, scraper_timeout, False)
+            run_result = await _run_health_scraper(scraper_instance, slug, method, scraper_timeout, False)
             elapsed_seconds = round(asyncio.get_event_loop().time() - start, 2)
 
             # Phase 2: Put sentinel (scraper.scrape() doesn't put it, only main.main() does)
             await instance_queue.put(None)
 
-            # Phase 3: Drain queue until sentinel
+            # Phase 3: Drain queue until sentinel or limit
             collector_items = []
             while True:
                 try:
@@ -147,16 +147,24 @@ async def _async_health_report(
                     if item is None:  # sentinel
                         break
                     collector_items.append(item)
+                    if limit is not None and len(collector_items) >= limit:
+                        break
                 except asyncio.TimeoutError:
                     break
 
-            return collector_items
+            return collector_items, run_result
 
-        items_collected = await _run_and_collect()
+        items_collected, run_result = await _run_and_collect()
 
-        status = "ok" if items_collected else "no_results"
-        error_type = None
-        error_message = None
+        # Determine final status: prefer collected count, else preserve timeout/error
+        if items_collected:
+            status = "ok"
+            error_type = None
+            error_message = None
+        else:
+            status = run_result.get("status", "no_results")
+            error_type = run_result.get("error_type")
+            error_message = run_result.get("error_message")
 
         record = {
             "slug": slug,
@@ -241,7 +249,11 @@ def health_report_to_file(
     path = Path(output_path)
     fmt = output_format.lower()
 
-    if fmt == "json":
+    if fmt == "jsonl":
+        with open(path, "w", encoding="utf-8") as f:
+            for item in report:
+                f.write(json.dumps(item, ensure_ascii=False) + "\n")
+    elif fmt == "json":
         with open(path, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2, ensure_ascii=False)
     elif fmt == "csv":
