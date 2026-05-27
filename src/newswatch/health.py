@@ -125,36 +125,30 @@ async def _async_health_report(
         instance_queue = scraper_instance.queue_
 
         items_collected = []
+        elapsed_seconds = 0.0
 
         async def _run_and_collect():
-            """Run scraper and collect queue items concurrently."""
-            collector_done = asyncio.Event()
-            collector_items = []
+            """Run scraper and collect queue items."""
+            nonlocal elapsed_seconds
+            start = asyncio.get_event_loop().time()
 
-            async def _collect():
-                """Read queue until scraper puts sentinel or timeout after completion."""
-                idle_count = 0
-                max_idle = 10  # 50 idle iterations * 0.5s = ~8s max wait
-                while True:
-                    try:
-                        item = await asyncio.wait_for(instance_queue.get(), timeout=0.5)
-                        if item is None:
-                            break
-                        collector_items.append(item)
-                        idle_count = 0
-                    except asyncio.TimeoutError:
-                        idle_count += 1
-                        if idle_count >= max_idle:
-                            break
-
-            collector_task = asyncio.create_task(_collect())
+            # Phase 1: Run scraper - items go into queue during scraping
             await _run_health_scraper(scraper_instance, slug, method, scraper_timeout, False)
-            collector_done.set()
+            elapsed_seconds = round(asyncio.get_event_loop().time() - start, 2)
 
-            try:
-                await asyncio.wait_for(collector_task, timeout=10)
-            except (asyncio.TimeoutError, Exception):
-                collector_task.cancel()
+            # Phase 2: Put sentinel (scraper.scrape() doesn't put it, only main.main() does)
+            await instance_queue.put(None)
+
+            # Phase 3: Drain queue until sentinel
+            collector_items = []
+            while True:
+                try:
+                    item = await asyncio.wait_for(instance_queue.get(), timeout=5)
+                    if item is None:  # sentinel
+                        break
+                    collector_items.append(item)
+                except asyncio.TimeoutError:
+                    break
 
             return collector_items
 
@@ -163,13 +157,12 @@ async def _async_health_report(
         status = "ok" if items_collected else "no_results"
         error_type = None
         error_message = None
-        elapsed = 0.0  # will be set by _run_health_scraper, but we don't track it here
 
         record = {
             "slug": slug,
             "status": status,
             "article_count": len(items_collected),
-            "elapsed_seconds": 0,
+            "elapsed_seconds": elapsed_seconds,
             "error_type": error_type,
             "error_message": error_message,
         }
