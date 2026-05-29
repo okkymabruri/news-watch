@@ -132,9 +132,9 @@ def cli():
         report = health_report(
             method=args.method,
             scrapers=args.scrapers,
-            scraper_timeout=args.scraper_timeout or 30,
-            max_pages=args.max_pages or 1,
-            limit=args.limit or 1,
+            scraper_timeout=args.scraper_timeout if args.scraper_timeout is not None else 30,
+            max_pages=args.max_pages if args.max_pages is not None else 1,
+            limit=args.limit if args.limit is not None else 1,
         )
         _print_health_summary(report)
         if args.output_path:
