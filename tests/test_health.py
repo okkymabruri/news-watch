@@ -82,6 +82,21 @@ class TestHealthReportToFile:
             assert Path(f.name).exists()
             Path(f.name).unlink()
 
+    def test_csv_mixed_rows_preserves_all_fields(self):
+        unsupported_row = {"slug": "badslug", "status": "unsupported", "article_count": 0, "elapsed_seconds": 0, "error_type": None, "error_message": "Not available"}
+        ok_row = {"slug": "apnews", "status": "ok", "article_count": 1, "elapsed_seconds": 2.1, "error_type": None, "error_message": None, "name": "AP News", "method": "latest"}
+        report = [unsupported_row, ok_row]
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as f:
+            health_report_to_file(report, f.name, "csv")
+            with open(f.name) as fh:
+                reader = csv.DictReader(fh)
+                rows = list(reader)
+            assert len(rows) == 2
+            assert rows[0]["slug"] == "badslug"
+            assert rows[1]["slug"] == "apnews"
+            assert "name" in rows[1] and rows[1]["name"] == "AP News"
+            Path(f.name).unlink()
+
     def test_xlsx_output(self):
         report = [{"slug": "test", "status": "ok"}]
         with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as f:

@@ -258,7 +258,7 @@ def health_report_to_file(
             json.dump(report, f, indent=2, ensure_ascii=False)
     elif fmt == "csv":
         if report:
-            fieldnames = list(report[0].keys())
+            fieldnames = list(dict.fromkeys(k for row in report for k in row))
             with open(path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
                 writer.writeheader()
@@ -269,7 +269,7 @@ def health_report_to_file(
         df = health_report_to_dataframe(report)
         df.to_excel(path, index=False)
     else:
-        raise ValueError(f"Unsupported format: {fmt}. Use json, csv, or xlsx.")
+        raise ValueError(f"Unsupported format: {fmt}. Use json, jsonl, csv, or xlsx.")
 
 
 def _print_health_summary(report: List[Dict]) -> None:
