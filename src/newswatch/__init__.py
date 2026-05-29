@@ -1,4 +1,4 @@
-__version__ = "0.8.9"
+__version__ = "0.9.0"
 
 # health report
 from .health import health_report as health_report

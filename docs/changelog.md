@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-05-29
+
+### Added
+- Health report mode via `--health-report` flag
+- Health report API: `health_report()`, `health_report_to_dataframe()`, `health_report_to_file()`
+- JSONL export support for health report
+- AP News scraper (search via topic hub, latest via homepage)
+- Al Jazeera scraper (latest via RSS feed)
+- Registry metadata flags: `supports_search`, `supports_latest`, `browser_required`, `strict_search`
+- Tests for health report module and CLI health mode
+- Total stable scrapers: 63
+
+### Fixed
+- Health report: preserve `timeout` / `error` statuses when no articles collected
+- Health report: CSV export with mixed supported/unsupported rows uses union of all fieldnames
+- Health report: `--scraper-timeout 0` no longer silently overridden to `30`
+- AP News: keyword URL encoding for special characters
+- AP News: URL error message includes `jsonl`
+- Katadata: latest mode rewritten after site removed search
+- Tirto: latest mode override to avoid empty base method results
+- Marked Beritasatu as `browser_required`
+
 ## [0.8.9] - 2026-05-23
 
 ### Added

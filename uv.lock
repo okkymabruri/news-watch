@@ -780,7 +780,7 @@ wheels = [
 
 [[package]]
 name = "news-watch"
-version = "0.8.9"
+version = "0.9.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
