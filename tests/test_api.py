@@ -294,6 +294,42 @@ class TestConvenienceFunctions:
         )
 
 
+class TestProxyEnvRestore:
+    """Regression tests ensuring scrape() does not leak NEWSWATCH_PROXY env."""
+
+    @patch("newswatch.api._async_scrape_to_list", new_callable=AsyncMock)
+    def test_proxy_sets_then_removes_env(self, mock_async, monkeypatch):
+        monkeypatch.delenv("NEWSWATCH_PROXY", raising=False)
+        mock_async.return_value = []
+        scrape("test", "2025-01-01", proxy="http://proxy.example.com:8080")
+        # During call it was set
+        assert mock_async.call_count == 1
+        # After call, env is cleaned up because it was not present before
+        assert "NEWSWATCH_PROXY" not in __import__("os").environ
+
+    @patch("newswatch.api._async_scrape_to_list", new_callable=AsyncMock)
+    def test_proxy_restores_previous_env(self, mock_async, monkeypatch):
+        monkeypatch.setenv("NEWSWATCH_PROXY", "http://old.example.com:8080")
+        mock_async.return_value = []
+        scrape("test", "2025-01-01", proxy="http://new.example.com:8080")
+        assert __import__("os").environ["NEWSWATCH_PROXY"] == "http://old.example.com:8080"
+
+    @patch("newswatch.api._async_scrape_to_list", new_callable=AsyncMock)
+    def test_no_proxy_leaves_env_untouched(self, mock_async, monkeypatch):
+        monkeypatch.setenv("NEWSWATCH_PROXY", "http://existing.example.com:8080")
+        mock_async.return_value = []
+        scrape("test", "2025-01-01")
+        assert __import__("os").environ["NEWSWATCH_PROXY"] == "http://existing.example.com:8080"
+
+    @patch("newswatch.api._async_scrape_to_list", new_callable=AsyncMock)
+    def test_proxy_restored_on_exception(self, mock_async, monkeypatch):
+        monkeypatch.delenv("NEWSWATCH_PROXY", raising=False)
+        mock_async.side_effect = RuntimeError("boom")
+        with pytest.raises(Exception):
+            scrape("test", "2025-01-01", proxy="http://proxy.example.com:8080")
+        assert "NEWSWATCH_PROXY" not in __import__("os").environ
+
+
 class TestMaxPagesPropagation:
     """Test that max_pages is properly forwarded to scrapers in both CLI and API paths."""
 

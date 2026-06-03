@@ -443,6 +443,8 @@ def scrape(
         ValidationError: For invalid input parameters
         NewsWatchError: For other newswatch-related errors
     """
+    proxy_was_set = "NEWSWATCH_PROXY" in os.environ
+    saved_proxy = os.environ.get("NEWSWATCH_PROXY")
     if proxy:
         os.environ["NEWSWATCH_PROXY"] = proxy
     try:
@@ -461,6 +463,14 @@ def scrape(
         raise
     except Exception as e:
         raise NewsWatchError(f"Error during scraping: {e}") from e
+    finally:
+        # Restore prior NEWSWATCH_PROXY so the env does not leak
+        # across API calls in the same process.
+        if proxy:
+            if proxy_was_set:
+                os.environ["NEWSWATCH_PROXY"] = saved_proxy
+            else:
+                os.environ.pop("NEWSWATCH_PROXY", None)
 
 
 def scrape_to_dataframe(
