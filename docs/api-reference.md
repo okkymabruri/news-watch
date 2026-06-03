@@ -49,7 +49,7 @@ def scrape(keywords=None, start_date=None, scrapers="auto", verbose=False, timeo
 - `verbose` (bool, optional): Show progress details (default: False)
 - `timeout` (int, optional): Max seconds to wait (default: 300)
 - `method` (str, optional): `"search"` (default) for keyword/date research, or `"latest"` for latest-news monitoring
-- `proxy` (str, optional): Proxy URL applied to all requests (aiohttp, rnet, Playwright). E.g. `"http://user:pass@proxy.example.com:8080"` or `"socks5://proxy.example.com:1080"`. Sets `NEWSWATCH_PROXY`. Available on all scraping/latest functions.
+- `proxy` (str, optional): Proxy URL applied to all requests (aiohttp, rnet, Playwright). E.g. `"http://proxy.example.com:8080"` or `"socks5://proxy.example.com:1080"`. Sets `NEWSWATCH_PROXY`. Available on all scraping/latest functions.
 
 **Returns:**
 

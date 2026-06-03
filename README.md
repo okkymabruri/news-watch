@@ -36,7 +36,7 @@ When running on a server or behind anti-bot blocks, route requests through a res
 
 ```bash
 # via flag
-newswatch -k ihsg -sd 2025-01-01 --proxy "http://user:pass@proxy.example.com:8080"
+newswatch -k ihsg -sd 2025-01-01 --proxy "http://proxy.example.com:8080"
 
 # via env (also honors standard HTTPS_PROXY / HTTP_PROXY)
 export NEWSWATCH_PROXY="socks5://proxy.example.com:1080"
@@ -45,7 +45,7 @@ newswatch -k ihsg -sd 2025-01-01
 
 ```python
 import newswatch as nw
-df = nw.scrape_to_dataframe("ihsg", "2025-01-01", proxy="http://user:pass@proxy.example.com:8080")
+df = nw.scrape_to_dataframe("ihsg", "2025-01-01", proxy="http://proxy.example.com:8080"
 ```
 
 Other reliability overrides (env vars): `NEWSWATCH_USER_AGENT` (custom User-Agent), `NEWSWATCH_MAX_RETRIES` (retry count, default 3).
