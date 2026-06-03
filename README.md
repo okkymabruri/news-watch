@@ -30,6 +30,26 @@ Development setup: see https://okky.dev/news-watch/getting-started/
 
 Some scrapers may work on a local machine but fail on remote servers, Linux CI, or GitHub Actions. This usually happens because of anti-bot protection, rate limits, geolocation differences, JavaScript rendering differences, or sudden source-side changes.
 
+### Using a proxy
+
+When running on a server or behind anti-bot blocks, route requests through a residential/datacenter proxy. The proxy applies to every layer (aiohttp, rnet, and the Playwright fallback):
+
+```bash
+# via flag
+newswatch -k ihsg -sd 2025-01-01 --proxy "http://user:pass@proxy.example.com:8080"
+
+# via env (also honors standard HTTPS_PROXY / HTTP_PROXY)
+export NEWSWATCH_PROXY="socks5://proxy.example.com:1080"
+newswatch -k ihsg -sd 2025-01-01
+```
+
+```python
+import newswatch as nw
+df = nw.scrape_to_dataframe("ihsg", "2025-01-01", proxy="http://user:pass@proxy.example.com:8080")
+```
+
+Other reliability overrides (env vars): `NEWSWATCH_USER_AGENT` (custom User-Agent), `NEWSWATCH_MAX_RETRIES` (retry count, default 3).
+
 ## Usage
 
 To run the scraper from the command line:
@@ -46,7 +66,7 @@ newswatch --method <search|latest> -k <keywords> -sd <start_date> -s [<scrapers>
 | `-k, --keywords` | Comma-separated keywords to scrape (required for `search`, optional for `latest`) |
 | `-sd, --start_date` | Start date in YYYY-MM-DD format (required for `search`, ignored in `latest`) |
 | `-s, --scrapers` | Scrapers to use: specific names (e.g., `"kompas,viva"`), `"auto"` (default, platform-appropriate), or `"all"` (force all, may fail) |
-| `-of, --output_format` | Output format: `csv`, `xlsx`, or `json` (default: csv) |
+| `-of, --output_format` | Output format: `csv`, `xlsx`, `json`, or `jsonl` (default: csv) |
 | `-o, --output_path` | Custom output file path (optional) |
 | `-v, --verbose` | Show detailed logging output (default: silent) |
 | `--list_scrapers` | List all supported scrapers and exit |
@@ -55,6 +75,9 @@ newswatch --method <search|latest> -k <keywords> -sd <start_date> -s [<scrapers>
 | `--max-pages` | Maximum pages to fetch per scraper in latest mode |
 | `--scraper-timeout` | Per-scraper timeout in seconds |
 | `--progress` | Print per-scraper progress lines |
+| `--time-range` | Filter articles by time window. Format: `ISO8601/ISO8601` (e.g. `2026-04-30T16:30:00/2026-05-01T08:00:00`) |
+| `--dedup-file` | Path to a previous output file (JSON/JSONL/CSV); articles with matching links are skipped |
+| `--proxy` | Proxy URL for all requests (e.g. `http://proxy.example.com:8080` or `socks5://proxy.example.com:1080`). Also via `NEWSWATCH_PROXY` env |
 
 
 ### Examples
@@ -114,7 +137,9 @@ You can run news-watch on Google Colab [![Open In Colab](https://colab.research.
 
 ## Output
 
-The scraped articles are saved as a CSV, XLSX, or JSON file in the current working directory with the format `news-watch-{keywords}-YYYYMMDD_HH`.
+The scraped articles are saved as a CSV, XLSX, JSON, or JSONL file in the current working directory with the format `news-watch-{keywords}-YYYYMMDD_HH`.
+
+Each record has 8 fields: `title`, `publish_date`, `author`, `content`, `keyword`, `category`, `source`, `link`. (`scrape_timestamp` exists on the internal `Article` model but is not emitted to output.)
 
 The output file contains the following columns:
 

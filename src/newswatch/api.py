@@ -11,6 +11,7 @@ maintainer: Okky Mabruri <okkymbrur@gmail.com>
 import asyncio
 import json
 import logging
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Union
@@ -407,6 +408,7 @@ def scrape(
     scraper_timeout: int | None = None,
     time_range: str | None = None,
     dedup_file: str | None = None,
+    proxy: str | None = None,
     **kwargs,
 ) -> List[Dict]:
     """
@@ -423,6 +425,7 @@ def scrape(
         max_pages (int | None): Maximum pages to fetch per scraper (latest mode)
         time_range (str | None): Filter articles by time range. Format: ISO8601/ISO8601.
         dedup_file (str | None): Path to previous output file for deduplication.
+        proxy (str | None): Proxy URL for all requests (e.g. 'http://user:pass@proxy.example.com:8080', 'socks5://proxy.example.com:1080'). Sets NEWSWATCH_PROXY.
         **kwargs: Additional parameters (for future compatibility)
 
     Returns:
@@ -440,6 +443,8 @@ def scrape(
         ValidationError: For invalid input parameters
         NewsWatchError: For other newswatch-related errors
     """
+    if proxy:
+        os.environ["NEWSWATCH_PROXY"] = proxy
     try:
         return asyncio.run(
             _async_scrape_to_list(
@@ -471,6 +476,7 @@ def scrape_to_dataframe(
     scraper_timeout: int | None = None,
     time_range: str | None = None,
     dedup_file: str | None = None,
+    proxy: str | None = None,
     **kwargs,
 ) -> pd.DataFrame:
     """
@@ -485,8 +491,10 @@ def scrape_to_dataframe(
         method (str): Retrieval method - "search" or "latest"
         limit (int | None): Maximum number of articles to collect (latest mode)
         max_pages (int | None): Maximum pages to fetch per scraper (latest mode)
+        scraper_timeout (int | None): Per-scraper timeout in seconds
         time_range (str | None): Filter articles by time range. Format: ISO8601/ISO8601.
         dedup_file (str | None): Path to previous output file for deduplication.
+        proxy (str | None): Proxy URL for all requests. Sets NEWSWATCH_PROXY.
         **kwargs: Additional parameters (for future compatibility)
 
     Returns:
@@ -499,7 +507,7 @@ def scrape_to_dataframe(
     try:
         results = scrape(
             keywords, start_date, scrapers, verbose, timeout, method, limit, max_pages,
-            scraper_timeout=scraper_timeout, time_range=time_range, dedup_file=dedup_file, **kwargs
+            scraper_timeout=scraper_timeout, time_range=time_range, dedup_file=dedup_file, proxy=proxy, **kwargs
         )
 
         # define column order
@@ -547,6 +555,7 @@ def scrape_to_file(
     scraper_timeout: int | None = None,
     time_range: str | None = None,
     dedup_file: str | None = None,
+    proxy: str | None = None,
     **kwargs,
 ) -> None:
     """
@@ -563,8 +572,10 @@ def scrape_to_file(
         method (str): Retrieval method - "search" or "latest"
         limit (int | None): Maximum number of articles to collect (latest mode)
         max_pages (int | None): Maximum pages to fetch per scraper (latest mode)
+        scraper_timeout (int | None): Per-scraper timeout in seconds
         time_range (str | None): Filter articles by time range. Format: ISO8601/ISO8601.
         dedup_file (str | None): Path to previous output file for deduplication.
+        proxy (str | None): Proxy URL for all requests. Sets NEWSWATCH_PROXY.
         **kwargs: Additional parameters (for future compatibility)
 
     Raises:
@@ -590,7 +601,7 @@ def scrape_to_file(
         # get results as dataframe
         df = scrape_to_dataframe(
             keywords, start_date, scrapers, verbose, timeout, method, limit, max_pages,
-            scraper_timeout=scraper_timeout, time_range=time_range, dedup_file=dedup_file, **kwargs
+            scraper_timeout=scraper_timeout, time_range=time_range, dedup_file=dedup_file, proxy=proxy, **kwargs
         )
 
         if df.empty:
@@ -638,7 +649,7 @@ def list_scrapers(method: str = "search") -> List[str]:
 
 # convenience functions for common use cases
 def quick_scrape(
-    keywords: str, days_back: int = 1, scrapers: str = "auto"
+    keywords: str, days_back: int = 1, scrapers: str = "auto", *, proxy: str | None = None
 ) -> pd.DataFrame:
     """
     Quick scrape for recent articles.
@@ -647,6 +658,7 @@ def quick_scrape(
         keywords (str): Keywords to search for
         days_back (int): Number of days back from today
         scrapers (str): Scrapers to use
+        proxy (str | None): Proxy URL for all requests.
 
     Returns:
         pd.DataFrame: Articles from the specified time period
@@ -654,7 +666,7 @@ def quick_scrape(
     from datetime import datetime, timedelta
 
     start_date = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
-    return scrape_to_dataframe(keywords, start_date, scrapers)
+    return scrape_to_dataframe(keywords, start_date, scrapers, proxy=proxy)
 
 
 def latest(
@@ -662,6 +674,7 @@ def latest(
     limit: int | None = None, max_pages: int | None = None,
     *, scraper_timeout: int | None = None,
     time_range: str | None = None, dedup_file: str | None = None,
+    proxy: str | None = None,
 ) -> List[Dict]:
     """Fetch latest articles for monitoring workflows."""
     return scrape(
@@ -676,6 +689,7 @@ def latest(
         scraper_timeout=scraper_timeout,
         time_range=time_range,
         dedup_file=dedup_file,
+        proxy=proxy,
     )
 
 
@@ -684,6 +698,7 @@ def latest_to_dataframe(
     limit: int | None = None, max_pages: int | None = None,
     *, scraper_timeout: int | None = None,
     time_range: str | None = None, dedup_file: str | None = None,
+    proxy: str | None = None,
 ) -> pd.DataFrame:
     """Fetch latest articles and return them as a DataFrame."""
     return scrape_to_dataframe(
@@ -698,6 +713,7 @@ def latest_to_dataframe(
         scraper_timeout=scraper_timeout,
         time_range=time_range,
         dedup_file=dedup_file,
+        proxy=proxy,
     )
 
 
@@ -713,6 +729,7 @@ def latest_to_file(
     scraper_timeout: int | None = None,
     time_range: str | None = None,
     dedup_file: str | None = None,
+    proxy: str | None = None,
 ) -> None:
     """Fetch latest articles and save them directly to a file."""
     scrape_to_file(
@@ -729,4 +746,5 @@ def latest_to_file(
         scraper_timeout=scraper_timeout,
         time_range=time_range,
         dedup_file=dedup_file,
+        proxy=proxy,
     )

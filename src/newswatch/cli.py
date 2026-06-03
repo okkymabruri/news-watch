@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import logging
+import os
 from datetime import datetime
 
 from .main import get_available_scrapers
@@ -112,7 +113,16 @@ def cli():
         action="store_true",
         help="Run health probes and print per-source status. Uses --method, --scrapers, --scraper-timeout, --max-pages.",
     )
+    parser.add_argument(
+        "--proxy",
+        type=str,
+        default=None,
+        help="Proxy URL for all requests (e.g. 'http://proxy.example.com:8080' or 'socks5://proxy.example.com:1080'). Also set via NEWSWATCH_PROXY env.",
+    )
     args = parser.parse_args()
+
+    if args.proxy:
+        os.environ["NEWSWATCH_PROXY"] = args.proxy
 
     scraper_classes, _linux_excluded = get_available_scrapers(
         method=args.method

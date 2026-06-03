@@ -2,12 +2,17 @@ import asyncio
 import logging
 import aiohttp
 
+from . import config
 
-async def _rnet_get(url: str, headers: dict | None, timeout: int) -> str | None:
+
+async def _rnet_get(url: str, headers: dict | None, timeout: int, proxy: str | None = None) -> str | None:
     try:
-        from rnet import Client
+        from rnet import Client, Proxy
 
-        client = Client()
+        if proxy:
+            client = Client(proxies=[Proxy.all(proxy)])
+        else:
+            client = Client()
         resp = await client.get(url, headers=headers, timeout=timeout)
         if resp.status != 200:
             return None
@@ -19,12 +24,15 @@ async def _rnet_get(url: str, headers: dict | None, timeout: int) -> str | None:
         return None
 
 
-async def _playwright_get(url: str, headers: dict | None, timeout: int) -> str | None:
+async def _playwright_get(url: str, headers: dict | None, timeout: int, proxy: str | None = None) -> str | None:
     try:
         from playwright.async_api import async_playwright
 
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
+            launch_kwargs = {"headless": True}
+            if proxy:
+                launch_kwargs["proxy"] = {"server": proxy}
+            browser = await p.chromium.launch(**launch_kwargs)
             try:
                 context = await browser.new_context(extra_http_headers=headers or {})
                 try:
@@ -74,18 +82,26 @@ def _looks_blocked(text: str) -> bool:
         "attention required",
         "verify you are human",
         "checking your browser",
+        "just a moment",
+        "please enable javascript",
         "incapsula",
         "sucuri",
         "akamai",
+        "reference #",
+        "datadome",
+        "perimeterx",
+        "px-captcha",
+        "ddos-guard",
     )
     return any(m in head for m in block_markers)
 
 
 class AsyncScraper:
-    def __init__(self, concurrency=12, max_retries=3):
+    def __init__(self, concurrency=12, max_retries=None):
         self.semaphore = asyncio.Semaphore(concurrency)
         self.session = None
-        self.max_retries = max_retries
+        self.max_retries = max_retries if max_retries is not None else config.get_max_retries()
+        self.proxy = config.get_proxy()
 
     async def __aenter__(self):
         timeout = aiohttp.ClientTimeout(
@@ -94,11 +110,7 @@ class AsyncScraper:
         self.session = aiohttp.ClientSession(
             timeout=timeout,
             headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/126.0.0.0 Safari/537.36"
-                ),
+                "User-Agent": config.get_user_agent(),
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                 "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
             },
@@ -119,7 +131,7 @@ class AsyncScraper:
 
                 if method == "GET":
                     async with self.session.get(
-                        url, headers=headers, timeout=request_timeout
+                        url, headers=headers, timeout=request_timeout, proxy=self.proxy
                     ) as response:
                         response.raise_for_status()
                         text = await response.text()
@@ -128,12 +140,12 @@ class AsyncScraper:
                             merged_headers = dict(self.session.headers)
                             if headers:
                                 merged_headers.update(headers)
-                            rnet_text = await _rnet_get(url, merged_headers, timeout)
+                            rnet_text = await _rnet_get(url, merged_headers, timeout, self.proxy)
                             if rnet_text and not _looks_blocked(rnet_text):
                                 return rnet_text
 
                             pw_text = await _playwright_get(
-                                url, merged_headers, timeout
+                                url, merged_headers, timeout, self.proxy
                             )
                             if pw_text:
                                 return pw_text
@@ -141,7 +153,7 @@ class AsyncScraper:
                         return text
                 elif method == "POST":
                     async with self.session.post(
-                        url, data=data, headers=headers, timeout=request_timeout
+                        url, data=data, headers=headers, timeout=request_timeout, proxy=self.proxy
                     ) as response:
                         response.raise_for_status()
                         return await response.text()
@@ -151,11 +163,11 @@ class AsyncScraper:
                     merged_headers = dict(self.session.headers)
                     if headers:
                         merged_headers.update(headers)
-                    rnet_text = await _rnet_get(url, merged_headers, timeout)
+                    rnet_text = await _rnet_get(url, merged_headers, timeout, self.proxy)
                     if rnet_text and not _looks_blocked(rnet_text):
                         return rnet_text
 
-                    text = await _playwright_get(url, merged_headers, timeout)
+                    text = await _playwright_get(url, merged_headers, timeout, self.proxy)
                     if text:
                         return text
                 if status == 429 or status in (
@@ -180,11 +192,11 @@ class AsyncScraper:
                     merged_headers = dict(self.session.headers)
                     if headers:
                         merged_headers.update(headers)
-                    rnet_text = await _rnet_get(url, merged_headers, timeout)
+                    rnet_text = await _rnet_get(url, merged_headers, timeout, self.proxy)
                     if rnet_text and not _looks_blocked(rnet_text):
                         return rnet_text
 
-                    text = await _playwright_get(url, merged_headers, timeout)
+                    text = await _playwright_get(url, merged_headers, timeout, self.proxy)
                     if text:
                         return text
                 if retries < self.max_retries:

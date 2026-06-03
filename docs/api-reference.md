@@ -16,6 +16,17 @@ recent_df = nw.quick_scrape("politik", days_back=3)          # Recent articles
 latest_df = nw.latest_to_dataframe(scrapers="antaranews,kompas")
 ```
 
+## Stable API (1.0)
+
+From 1.0 onward, the following public surface follows [Semantic Versioning](https://semver.org/) — no breaking changes within a major version:
+
+- **Scraping:** `scrape`, `scrape_to_dataframe`, `scrape_to_file`, `quick_scrape`
+- **Latest monitoring:** `latest`, `latest_to_dataframe`, `latest_to_file`
+- **Health:** `health_report`, `health_report_to_dataframe`, `health_report_to_file`
+- **Registry / discovery:** `list_scrapers`, `SCRAPERS`, `get_scraper_by_slug`, `get_stable_slugs`, `get_stable_scrapers`
+
+**Output schema (8 fields):** `title`, `publish_date`, `author`, `content`, `keyword`, `category`, `source`, `link`. The internal `Article` model also carries `scrape_timestamp`, which is intentionally not emitted to output.
+
 ## Core Functions
 
 ### scrape()
@@ -23,7 +34,7 @@ latest_df = nw.latest_to_dataframe(scrapers="antaranews,kompas")
 The foundation function that returns raw article data.
 
 ```python
-def scrape(keywords=None, start_date=None, scrapers="auto", verbose=False, timeout=300, method="search", **kwargs):
+def scrape(keywords=None, start_date=None, scrapers="auto", verbose=False, timeout=300, method="search", *, proxy=None, **kwargs):
     ...
 ```
 
@@ -38,6 +49,7 @@ def scrape(keywords=None, start_date=None, scrapers="auto", verbose=False, timeo
 - `verbose` (bool, optional): Show progress details (default: False)
 - `timeout` (int, optional): Max seconds to wait (default: 300)
 - `method` (str, optional): `"search"` (default) for keyword/date research, or `"latest"` for latest-news monitoring
+- `proxy` (str, optional): Proxy URL applied to all requests (aiohttp, rnet, Playwright). E.g. `"http://user:pass@proxy.example.com:8080"` or `"socks5://proxy.example.com:1080"`. Sets `NEWSWATCH_PROXY`. Available on all scraping/latest functions.
 
 **Returns:**
 
