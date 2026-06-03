@@ -96,12 +96,25 @@ for article in financial_articles:
 Returns a pandas DataFrame ready for analysis.
 
 ```python
-def scrape_to_dataframe(keywords, start_date, scrapers="auto", verbose=False, timeout=300, **kwargs):
+def scrape_to_dataframe(
+    keywords=None, start_date=None, scrapers="auto",
+    verbose=False, timeout=300, method="search",
+    limit=None, max_pages=None, *,
+    scraper_timeout=None, time_range=None, dedup_file=None,
+    proxy=None, **kwargs,
+):
     ...
 ```
 
 **Parameters:**
-Same as `scrape()` function.
+Same as `scrape()` function, plus:
+- `method` (str, optional): `"search"` (default) or `"latest"`.
+- `limit` (int | None): Maximum articles to collect (latest mode).
+- `max_pages` (int | None): Maximum pages per scraper (latest mode).
+- `scraper_timeout` (int | None): Per-scraper timeout in seconds.
+- `time_range` (str | None): Filter by ISO8601/ISO8601 window.
+- `dedup_file` (str | None): Previous output file to skip duplicates.
+- `proxy` (str | None): Proxy URL for all requests. Sets `NEWSWATCH_PROXY` for the duration of the call.
 
 **Returns:**
 pandas DataFrame with the same columns as `scrape()`, but with `publish_date` automatically converted to datetime for easy filtering and analysis.
@@ -140,15 +153,27 @@ print(latest_df[["source", "title"]].head())
 Save results directly to CSV or Excel files.
 
 ```python
-def scrape_to_file(keywords, start_date, output_path, output_format="xlsx", 
-                  scrapers="auto", verbose=False, timeout=300, **kwargs):
+def scrape_to_file(
+    keywords, start_date, output_path, output_format="xlsx",
+    scrapers="auto", verbose=False, timeout=300, method="search",
+    limit=None, max_pages=None, *,
+    scraper_timeout=None, time_range=None, dedup_file=None,
+    proxy=None, **kwargs,
+):
     ...
 ```
 
 **Parameters:**
 - `keywords`, `start_date`, `scrapers`, `verbose`, `timeout`: Same as other functions
 - `output_path` (str): Where to save the file
-- `output_format` (str, optional): `"xlsx"`, `"csv"`, or `"json"` (default: "xlsx")
+- `output_format` (str, optional): `"xlsx"`, `"csv"`, `"json"`, or `"jsonl"` (default: "xlsx")
+- `method` (str, optional): `"search"` (default) or `"latest"`.
+- `limit` (int | None): Maximum articles to collect (latest mode).
+- `max_pages` (int | None): Maximum pages per scraper (latest mode).
+- `scraper_timeout` (int | None): Per-scraper timeout in seconds.
+- `time_range` (str | None): Filter by ISO8601/ISO8601 window.
+- `dedup_file` (str | None): Previous output file to skip duplicates.
+- `proxy` (str | None): Proxy URL for all requests. Sets `NEWSWATCH_PROXY` for the duration of the call.
 
 **Returns:**
 Nothing - file is saved to the specified location.
@@ -333,7 +358,7 @@ The comprehensive guide covers:
 
 - Prefer `scrapers="auto"` unless you know which sites you need.
 - Cloud/server environments are more likely to be blocked.
-- Stable support currently covers 36 query-backed scrapers.
+- Stable support currently covers 60 search-capable scrapers and 63 latest-capable scrapers.
 - No investigating or quarantined sources remain.
 
 **Empty results**: Check if your keywords are in Indonesian or try broader terms
