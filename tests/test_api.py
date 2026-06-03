@@ -244,6 +244,7 @@ class TestConvenienceFunctions:
             scraper_timeout=None,
             time_range=None,
             dedup_file=None,
+            proxy=None,
         )
 
     @patch("newswatch.api.scrape_to_dataframe")
@@ -267,6 +268,7 @@ class TestConvenienceFunctions:
             scraper_timeout=None,
             time_range=None,
             dedup_file=None,
+            proxy=None,
         )
 
     @patch("newswatch.api.scrape_to_file")
@@ -288,6 +290,7 @@ class TestConvenienceFunctions:
             scraper_timeout=None,
             time_range=None,
             dedup_file=None,
+            proxy=None,
         )
 
 

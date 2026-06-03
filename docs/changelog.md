@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Proxy support across all request layers (aiohttp, rnet, Playwright): `--proxy` CLI flag, `proxy=` parameter on all scraping/latest API functions, and `NEWSWATCH_PROXY` env var (honors standard `HTTPS_PROXY`/`HTTP_PROXY`)
+- `NEWSWATCH_USER_AGENT` and `NEWSWATCH_MAX_RETRIES` env overrides
+- New `newswatch.config` module centralizing runtime env config (proxy, user-agent, retries)
+- Stable API (1.0) declaration in API reference — SemVer guarantee on the documented public surface
+
+### Changed
+- Expanded anti-bot block detection (`_looks_blocked`) with markers: "just a moment", DataDome, PerimeterX, px-captcha, DDoS-Guard, "please enable javascript", Akamai "reference #"
+
+### Fixed
+- Docs: README CLI table now lists `jsonl` output, `--time-range`, `--dedup-file`, `--proxy`
+- Docs: documented the canonical 8-field output schema (clarified `scrape_timestamp` is internal-only)
+
 ## [0.9.0] - 2026-05-29
 
 ### Added

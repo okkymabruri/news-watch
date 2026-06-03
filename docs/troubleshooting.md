@@ -1,5 +1,22 @@
 # Troubleshooting
 
+## Blocking / anti-bot on servers
+
+If scrapers work locally but get blocked on a server, CI, or Colab, route requests through a proxy. It applies to every layer (aiohttp, rnet, Playwright fallback):
+
+```bash
+newswatch -k ihsg -sd 2025-01-01 --proxy "http://user:pass@proxy.example.com:8080"
+# or via env (also honors standard HTTPS_PROXY / HTTP_PROXY)
+export NEWSWATCH_PROXY="socks5://proxy.example.com:1080"
+```
+
+```python
+import newswatch as nw
+df = nw.scrape_to_dataframe("ihsg", "2025-01-01", proxy="http://user:pass@proxy.example.com:8080")
+```
+
+Further overrides via env: `NEWSWATCH_USER_AGENT` (custom UA to reduce fingerprinting), `NEWSWATCH_MAX_RETRIES` (default 3).
+
 ## Installation
 
 ### Playwright
