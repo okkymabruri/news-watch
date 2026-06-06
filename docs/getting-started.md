@@ -63,7 +63,7 @@ Test that everything works:
 # Check available scrapers
 newswatch --list_scrapers
 
-# Should show 60 stable scrapers
+# Should show 63 stable scrapers
 ```
 
 ## Your First Scraping Session
@@ -216,10 +216,17 @@ print(f"\nRecent articles (>= Jan 15): {len(recent)}")
 | `-k, --keywords` | Comma-separated search terms | `"bank,kredit,fintech"` |
 | `-sd, --start_date` | Start date (YYYY-MM-DD) | `"2025-01-01"` |
 | `-s, --scrapers` | Specific scrapers or "auto"/"all" | `"kompas,tempo"` |
-| `-of, --output_format` | Output format: csv, xlsx, or json | `"csv"` |
+| `-of, --output_format` | Output format: csv, xlsx, json, or jsonl | `"csv"` |
 | `-o, --output_path` | Custom output file path | `"news-watch-output.csv"` |
 | `-v, --verbose` | Show detailed progress | (flag only) |
 | `--list_scrapers` | Show available scrapers | (flag only) |
+| `--max-pages` | Max pages per scraper (latest mode) | `2` |
+| `--scraper-timeout` | Timeout per scraper in seconds | `30` |
+| `--time-range` | Filter by ISO8601 time range | `"2025-01-01T00:00:00/2025-01-31T23:59:59"` |
+| `--dedup-file` | Skip articles already in this file | `"previous-output.csv"` |
+| `--proxy` | Proxy URL for all requests | `"http://proxy:8080"` |
+| `--progress` | Show progress bar (requires tqdm) | (flag only) |
+| `--health-report` | Run health checks instead of scraping | (flag only) |
 
 ## Next Steps
 

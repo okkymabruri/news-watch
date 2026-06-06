@@ -51,6 +51,10 @@ print(len(latest))
 
 | Source | Slug | Search | Latest | Notes |
 |--------|------|--------|--------|-------|
+| **Global Sources** | | | | |
+| AP News | `apnews` | Yes | Yes | Topic hub search; keyword filtering |
+| Al Jazeera | `aljazeera` | No | Yes | Latest-only via RSS; search JS-rendered |
+| **Indonesian Sources** | | | | |
 | Antara News | `antaranews` | Yes | Yes | Strict search |
 | BBC News | `bbc` | Yes | Yes | Strict search |
 | Bali Post | `balipost` | No | Yes | Latest-only |
