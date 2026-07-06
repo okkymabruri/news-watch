@@ -203,7 +203,7 @@ async def _async_scrape_to_list(
         start_date_obj = None
 
     # get available scrapers and validate selection
-    scraper_classes, _linux_excluded = get_available_scrapers(method=method)
+    scraper_classes = get_available_scrapers(method=method)
     if scrapers not in ["auto", "all"] and scrapers:
         allowed_scrapers = dict(scraper_classes)
         scraper_list = [name.strip().lower() for name in scrapers.split(",")]
@@ -653,7 +653,7 @@ def list_scrapers(method: str = "search") -> List[str]:
     Returns:
         List[str]: List of available scraper names
     """
-    scraper_classes, _ = get_available_scrapers(method=method)
+    scraper_classes = get_available_scrapers(method=method)
     return list(scraper_classes.keys())
 
 

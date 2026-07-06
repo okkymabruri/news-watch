@@ -763,11 +763,9 @@ def get_available_scrapers_from_registry(method: str = "search"):
     """Build the scraper_classes dict for main.py from the registry.
 
     Returns:
-        tuple: (scraper_classes_dict, linux_excluded_scrapers_dict)
-        scraper_classes maps slug -> {"class": ScraperClass, "params": {"concurrency": N}}
+        dict: scraper_classes_dict mapping slug -> {"class": ScraperClass, "params": {"concurrency": N}}
     """
     scraper_classes = {}
-    linux_excluded = {}
 
     if method == "latest":
         entries = get_latest_scrapers()
@@ -789,4 +787,4 @@ def get_available_scrapers_from_registry(method: str = "search"):
         except (ImportError, AttributeError) as e:
             logging.warning(f"Failed to load scraper '{slug}': {e}")
 
-    return scraper_classes, linux_excluded
+    return scraper_classes
