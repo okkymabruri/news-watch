@@ -4,16 +4,16 @@ import asyncio
 import csv
 import json
 import logging
+import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional, Union
 
 import pandas as pd
 
 from .main import get_available_scrapers
 
 logger = logging.getLogger(__name__)
-
 _DEFAULT_PROBE_TIMEOUT = 30
 _DEFAULT_MAX_PAGES = 1
 _DEFAULT_LIMIT = 1
@@ -270,6 +270,62 @@ def health_report_to_file(
         df.to_excel(path, index=False)
     else:
         raise ValueError(f"Unsupported format: {fmt}. Use json, jsonl, csv, or xlsx.")
+
+
+def append_health_history(
+    report: List[Dict],
+    path: Union[str, Path],
+    run_id: Optional[str] = None,
+    timestamp: Optional[str] = None,
+) -> int:
+    """Append a health report to a JSONL history file (append-only).
+
+    Each source in the report becomes one JSONL line. The ``run_id`` and
+    ``timestamp`` are shared across all lines of a single call so consumers
+    can group by run.
+
+    Safe on missing files (creates them) and missing parent directories
+    (creates them). Existing content is preserved verbatim; corrupt lines
+    are left untouched. ``json.dumps`` failures for individual records are
+    logged and the record is skipped, so a single bad source cannot block
+    the rest of the run from being persisted.
+
+    Args:
+        report: health report list from :func:`health_report`.
+        path: JSONL file path. Created if missing. Parent dirs created if missing.
+        run_id: optional run identifier (default: generated ``uuid4`` hex[:8]).
+        timestamp: optional ISO 8601 timestamp (default: now).
+
+    Returns:
+        Number of records appended.
+    """
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    rid = run_id or uuid.uuid4().hex[:8]
+    ts = timestamp or datetime.now().isoformat()
+
+    count = 0
+    with open(path, "a", encoding="utf-8") as f:
+        for src in report:
+            record = {
+                "timestamp": ts,
+                "run_id": rid,
+                "source": src.get("slug"),
+                "status": src.get("status"),
+                "error": src.get("error_message"),
+                "count": src.get("article_count", 0),
+                "error_type": src.get("error_type"),
+                "method": src.get("method"),
+                "elapsed_seconds": src.get("elapsed_seconds"),
+                "name": src.get("name"),
+            }
+            try:
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+                count += 1
+            except (TypeError, ValueError) as e:
+                logger.warning(f"Skipping unserializable health record for {src.get('slug')!r}: {e}")
+    return count
 
 
 def _print_health_summary(report: List[Dict]) -> None:
