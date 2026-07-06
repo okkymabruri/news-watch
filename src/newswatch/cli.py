@@ -10,7 +10,7 @@ from .health import health_report, health_report_to_file, _print_health_summary
 
 
 def cli():
-    scraper_classes, _linux_excluded = get_available_scrapers(method="search")
+    scraper_classes = get_available_scrapers(method="search")
     available_scrapers = list(scraper_classes.keys())
     available_scrapers_str = ",".join(available_scrapers)
 
@@ -124,7 +124,7 @@ def cli():
     if args.proxy:
         os.environ["NEWSWATCH_PROXY"] = args.proxy
 
-    scraper_classes, _linux_excluded = get_available_scrapers(
+    scraper_classes = get_available_scrapers(
         method=args.method
     )
     available_scrapers = list(scraper_classes.keys())

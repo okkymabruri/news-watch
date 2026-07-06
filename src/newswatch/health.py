@@ -81,7 +81,7 @@ async def _async_health_report(
     # Suppress logging during health probes
     logging.disable(logging.CRITICAL)
 
-    scraper_classes, _ = get_available_scrapers(method=method)
+    scraper_classes = get_available_scrapers(method=method)
 
     if scrapers.lower() in ("all", "auto"):
         slugs_to_run = list(scraper_classes.keys())

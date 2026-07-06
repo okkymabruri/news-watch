@@ -378,7 +378,7 @@ async def write_jsonl(queue, output_label, filename=None, limit=None, limit_reac
 
 
 def get_available_scrapers(method="search"):
-    """Get list of available scrapers from the central registry."""
+    """Get dict of available scrapers from the central registry."""
     return get_available_scrapers_from_registry(method=method)
 
 
@@ -470,7 +470,7 @@ async def main(args):
                       dedup_links=dedup_links, time_range=parsed_time_range)
         )
 
-    scraper_classes, _linux_excluded = get_available_scrapers(method=method)
+    scraper_classes = get_available_scrapers(method=method)
 
     if selected_scrapers.lower() in ["all", "auto"]:
         scrapers_to_run = list(scraper_classes.keys())
