@@ -1,8 +1,9 @@
 ## Custom
 dev/
+# agent handoff artifacts (local-only, never committed)
+.omp/
 *.csv
 *.xlsx
-*.DS_store
 
 ## AI and IDE
 .vscode/
