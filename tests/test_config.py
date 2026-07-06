@@ -19,6 +19,7 @@ def _clear_proxy_env(monkeypatch):
     """Ensure no proxy env leaks between tests."""
     for key in PROXY_KEYS:
         monkeypatch.delenv(key, raising=False)
+    monkeypatch.delenv("NEWSWATCH_HEALTH_HISTORY", raising=False)
     yield
 
 
@@ -87,3 +88,21 @@ class TestGetMaxRetries:
     def test_empty_falls_back(self, monkeypatch):
         monkeypatch.setenv("NEWSWATCH_MAX_RETRIES", "")
         assert config.get_max_retries() == config.DEFAULT_MAX_RETRIES
+
+
+class TestGetHealthHistoryPath:
+    def test_none_when_unset(self, monkeypatch):
+        monkeypatch.delenv("NEWSWATCH_HEALTH_HISTORY", raising=False)
+        assert config.get_health_history_path() is None
+
+    def test_none_when_empty(self, monkeypatch):
+        monkeypatch.setenv("NEWSWATCH_HEALTH_HISTORY", "")
+        assert config.get_health_history_path() is None
+
+    def test_returns_path_when_set(self, monkeypatch):
+        monkeypatch.setenv("NEWSWATCH_HEALTH_HISTORY", "/tmp/health.jsonl")
+        assert config.get_health_history_path() == "/tmp/health.jsonl"
+
+    def test_relative_path_preserved(self, monkeypatch):
+        monkeypatch.setenv("NEWSWATCH_HEALTH_HISTORY", "output/health.jsonl")
+        assert config.get_health_history_path() == "output/health.jsonl"
