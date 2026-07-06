@@ -13,6 +13,7 @@ Each entry declares:
   - smoke_keyword: best keyword for smoke tests (defaults to "ihsg")
   - supports_search: whether search mode is supported
   - supports_latest: whether latest mode is supported
+  - linux_excluded: skip on Linux runners (environment-sensitive source)
   - note: free-text context for devs
 
 Registry is built from a tuple of ScraperEntry via build_registry().
@@ -41,7 +42,9 @@ class ScraperEntry:
     smoke_keyword: str = "ihsg"
     supports_search: bool = True
     supports_latest: bool = False
+    linux_excluded: bool = False
     note: str = ""
+
 
 
 # ── Entry list (not a dict — dicts silently overwrite duplicate keys) ─────────
@@ -195,12 +198,11 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         strict_search=True,
         browser_required=True,
         smoke_keyword="indonesia",
+        linux_excluded=True,
         note="rebuilt with Playwright CSE bootstrap; 2026-04-18",
         supports_latest=True,
     ),
-    ScraperEntry(
-        "jawapos", "Jawa Pos", "jawapos", "JawaposScraper", smoke_keyword="ihsg", supports_latest=True
-    ),
+    ScraperEntry("jawapos", "Jawa Pos", "jawapos", "JawaposScraper", smoke_keyword="ihsg", linux_excluded=True, supports_latest=True),
     ScraperEntry(
         "jpnn",
         "JPNN (Jawa Pos News Network)",
@@ -237,6 +239,7 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         status="stable",
         strict_search=True,
         smoke_keyword="ekonomi",
+        linux_excluded=True,
         note="promoted to stable; rebuilt with sitemap keyword filtering; 2026-04-18",
         supports_latest=True,
     ),
@@ -348,6 +351,7 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         strict_search=True,
         browser_required=True,
         smoke_keyword="ekonomi",
+        linux_excluded=True,
         note="promoted to stable; Playwright CSE bypass CF 1015; 2026-04-23",
         supports_latest=True,
     ),
@@ -429,6 +433,7 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         concurrency=12,
         smoke_keyword="prabowo",
         browser_required=True,
+        linux_excluded=True,
         supports_latest=True,
     ),
     ScraperEntry(
@@ -448,6 +453,7 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         status="stable",
         strict_search=True,
         smoke_keyword="ekonomi",
+        linux_excluded=True,
         note="promoted to stable; /tag/{keyword} + article:published_time; concurrency=3 for rate limiting; 2026-04-24",
         supports_latest=True,
     ),
@@ -469,6 +475,7 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         strict_search=True,
         browser_required=True,
         smoke_keyword="prabowo",
+        linux_excluded=True,
         note="promoted to stable; rebuilt with Playwright CSE capture; 2026-04-18",
         supports_latest=True,
     ),
@@ -732,6 +739,19 @@ def get_search_scrapers() -> Dict[str, ScraperEntry]:
 def get_latest_scrapers() -> Dict[str, ScraperEntry]:
     """Return stable scrapers that support latest mode."""
     return {k: v for k, v in get_stable_scrapers().items() if v.supports_latest}
+
+
+def get_linux_excluded_slugs() -> List[str]:
+    """Return sorted list of stable scraper slugs that are Linux-excluded.
+
+    Single source of truth for the Linux-excluded set; consumed by the test
+    matrix and anywhere else that needs to skip environment-sensitive sources.
+    """
+    return sorted(
+        slug for slug, entry in SCRAPERS.items()
+        if entry.status == "stable" and entry.linux_excluded
+    )
+
 
 
 def get_quarantined_scrapers() -> Dict[str, ScraperEntry]:

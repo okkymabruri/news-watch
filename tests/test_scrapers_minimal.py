@@ -10,22 +10,19 @@ import os
 import pytest
 
 from newswatch.api import scrape
-from newswatch.registry import get_stable_slugs, SCRAPERS
+from newswatch.registry import (
+    SCRAPERS,
+    get_linux_excluded_slugs,
+    get_stable_slugs,
+)
 
-# Linux-excluded scrapers (known environment-sensitive sources)
-LINUX_EXCLUDED_SCRAPERS = [
-    "jakartapost",
-    "jawapos",
-    "kumparan",
-    "pikiranrakyat",
-    "suara",
-    "surabayapagi",
-    "tirto",
-]
-
-# Derive test matrix from the central registry
+# Derive test matrix from the central registry.
+# A scraper runs on Linux when it is stable, not Linux-excluded, AND
+# supports the search method (latest-only scrapers would always fail here).
 LINUX_SCRAPERS = sorted(
-    slug for slug in get_stable_slugs() if slug not in LINUX_EXCLUDED_SCRAPERS
+    slug for slug in get_stable_slugs()
+    if slug not in get_linux_excluded_slugs()
+    and SCRAPERS[slug].supports_search
 )
 
 # Per-scraper keyword overrides (use registry smoke_keyword if set, else "ihsg")
@@ -95,7 +92,7 @@ def test_scraper_minimal_data(scraper):
 
 
 @pytest.mark.network
-@pytest.mark.parametrize("scraper", LINUX_EXCLUDED_SCRAPERS)
+@pytest.mark.parametrize("scraper", get_linux_excluded_slugs())
 def test_linux_excluded_scrapers_force_all(scraper):
     """Optional: run known-flaky Linux-excluded scrapers when explicitly requested.
 
