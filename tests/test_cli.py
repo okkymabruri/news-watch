@@ -169,3 +169,88 @@ def test_cli_health_report_with_output(monkeypatch, capsys, tmp_path):
             mock_health.return_value, outfile, "csv",
         )
         mock_summary.assert_called_once()
+
+
+
+def test_cli_health_report_history_flag(monkeypatch, capsys, tmp_path):
+    """Test --health-history wires append_health_history with the flag path."""
+    history = str(tmp_path / "subdir" / "health.jsonl")
+    monkeypatch.setattr(sys, "argv", [
+        "cli.py", "--health-report", "--health-history", history,
+    ])
+    monkeypatch.delenv("NEWSWATCH_HEALTH_HISTORY", raising=False)
+
+    with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main, \
+         patch("newswatch.cli.health_report") as mock_health, \
+         patch("newswatch.cli._print_health_summary"), \
+         patch("newswatch.cli.append_health_history") as mock_append:
+        mock_health.return_value = [
+            {"slug": "kompas", "status": "ok", "article_count": 2},
+            {"slug": "tempo", "status": "ok", "article_count": 1},
+        ]
+        mock_append.return_value = 2
+        cli()
+
+        mock_main.assert_not_called()
+        mock_append.assert_called_once()
+        args, kwargs = mock_append.call_args
+        assert args[0] == mock_health.return_value
+        assert args[1] == history
+        captured = capsys.readouterr()
+        assert "Appended 2 health record(s)" in captured.out
+        assert history in captured.out
+
+
+def test_cli_health_report_history_from_env(monkeypatch, capsys, tmp_path):
+    """Test NEWSWATCH_HEALTH_HISTORY env wires append_health_history when flag absent."""
+    history = str(tmp_path / "env_health.jsonl")
+    monkeypatch.setattr(sys, "argv", ["cli.py", "--health-report"])
+    monkeypatch.setenv("NEWSWATCH_HEALTH_HISTORY", history)
+
+    with patch("newswatch.cli.run_main", new_callable=AsyncMock), \
+         patch("newswatch.cli.health_report") as mock_health, \
+         patch("newswatch.cli._print_health_summary"), \
+         patch("newswatch.cli.append_health_history") as mock_append:
+        mock_health.return_value = [{"slug": "kompas", "status": "ok"}]
+        mock_append.return_value = 1
+        cli()
+
+        mock_append.assert_called_once()
+        assert mock_append.call_args[0][1] == history
+        captured = capsys.readouterr()
+        assert "Appended 1 health record(s)" in captured.out
+
+
+def test_cli_health_report_no_history_skips_append(monkeypatch, capsys, tmp_path):
+    """Test --health-report without --health-history or env does NOT call append."""
+    monkeypatch.setattr(sys, "argv", ["cli.py", "--health-report"])
+    monkeypatch.delenv("NEWSWATCH_HEALTH_HISTORY", raising=False)
+
+    with patch("newswatch.cli.run_main", new_callable=AsyncMock), \
+         patch("newswatch.cli.health_report") as mock_health, \
+         patch("newswatch.cli._print_health_summary"), \
+         patch("newswatch.cli.append_health_history") as mock_append:
+        mock_health.return_value = [{"slug": "kompas", "status": "ok"}]
+        cli()
+        mock_append.assert_not_called()
+        captured = capsys.readouterr()
+        assert "Appended" not in captured.out
+
+
+def test_cli_health_report_flag_overrides_env(monkeypatch, capsys, tmp_path):
+    """Test --health-history flag wins over NEWSWATCH_HEALTH_HISTORY env."""
+    flag_path = str(tmp_path / "flag_health.jsonl")
+    env_path = str(tmp_path / "env_health.jsonl")
+    monkeypatch.setattr(sys, "argv", [
+        "cli.py", "--health-report", "--health-history", flag_path,
+    ])
+    monkeypatch.setenv("NEWSWATCH_HEALTH_HISTORY", env_path)
+
+    with patch("newswatch.cli.run_main", new_callable=AsyncMock), \
+         patch("newswatch.cli.health_report") as mock_health, \
+         patch("newswatch.cli._print_health_summary"), \
+         patch("newswatch.cli.append_health_history") as mock_append:
+        mock_health.return_value = [{"slug": "kompas", "status": "ok"}]
+        mock_append.return_value = 1
+        cli()
+        assert mock_append.call_args[0][1] == flag_path
