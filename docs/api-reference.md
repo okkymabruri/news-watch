@@ -354,14 +354,11 @@ The comprehensive guide covers:
 - **Large dataset management strategies**
 - **Troubleshooting common issues**
 
-## Notes
+<!-- BEGIN GENERATED: api-notes -->
+## Stable API Notes
 
-- Prefer `scrapers="auto"` unless you know which sites you need.
-- Cloud/server environments are more likely to be blocked.
-- Stable support currently covers 60 search-capable scrapers and 63 latest-capable scrapers.
-- No investigating or quarantined sources remain.
-
-**Empty results**: Check if your keywords are in Indonesian or try broader terms
+All 63 registered scrapers are exposed via `list_scrapers()` and the public `SCRAPERS` mapping. 60 of them support the `search` method; all 63 support `latest`.
+<!-- END GENERATED: api-notes -->
 ```python
 # Too specific
 df = nw.scrape_to_dataframe("very-specific-term", "2025-01-01")  # Might be empty

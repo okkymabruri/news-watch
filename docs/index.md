@@ -6,7 +6,11 @@
 
 news-watch scrapes structured news data from Indonesia's top news websites with keyword/date search and latest-news monitoring.
 
-The current stable release supports 63 news scrapers (61 Indonesian + AP News + Al Jazeera) with search or latest mode.
+<!-- BEGIN GENERATED: index-summary -->
+news-watch scrapes structured news data from Indonesia's top news websites with keyword/date search and latest-news monitoring.
+
+The current stable release supports 63 news scrapers (60 Indonesian/global sources with search mode, all 63 with latest mode).
+<!-- END GENERATED: index-summary -->
 
 ## Installation
 

@@ -54,10 +54,12 @@ A source moves to **stable** only if:
 3. unrelated keywords yield different links
 4. URLs are canonical article pages
 
-## Current State (2026-04-25)
+<!-- BEGIN GENERATED: architecture-state -->
+## Current State
 
 | State | Count |
 |---|---|
-| stable | 40 |
+| stable | 63 |
 | quarantined | 0 |
 | investigating | 0 |
+<!-- END GENERATED: architecture-state -->
