@@ -158,72 +158,11 @@ The output file contains the following columns:
 - `latest` is intended for latest-news monitoring and does not require keywords.
 - Latest mode currently starts with a smaller subset of sources than the full search catalog.
 
+<!-- BEGIN GENERATED: readme-heading -->
 ## Supported Websites (63)
+<!-- END GENERATED: readme-heading -->
 
-[Antara News](https://antaranews.com),
-[AP News](https://apnews.com),
-[Al Jazeera](https://www.aljazeera.com),
-[Bali Post](https://www.balipost.com),
-[BBC News](https://bbc.com),
-[Berita Jatim](https://beritajatim.com),
-[BeritaSatu](https://www.beritasatu.com),
-[Bisnis.com](https://bisnis.com),
-[Bloomberg Technoz](https://bloombergtechnoz.com),
-[CNA Indonesia](https://www.cna.id),
-[CNBC Indonesia](https://cnbcindonesia.com),
-[CNN Indonesia](https://cnnindonesia.com),
-[DailySocial](https://news.dailysocial.id),
-[Detik](https://detik.com),
-[Fajar](https://fajar.co.id),
-[Galamedia](https://galamedia.pikiran-rakyat.com),
-[Gatra](https://www.gatra.net),
-[Grid](https://www.grid.id),
-[Harian Jogja](https://www.harianjogja.com),
-[Hipwee](https://www.hipwee.com),
-[IDN Times](https://idntimes.com),
-[iNews](https://inews.id),
-[Investor Daily](https://investor.id),
-[Jakarta Globe](https://jakartaglobe.id),
-[Jakarta Post](https://thejakartapost.com),
-[Jakarta Selaras](https://jakarta.selaras.co.id),
-[Jawapos](https://jawapos.com),
-[JPNN](https://jpnn.com),
-[Kaltim Post](https://kaltimkece.borneo24.com),
-[Katadata](https://katadata.co.id),
-[KBR](https://kbr.id),
-[Kompas](https://kompas.com),
-[Kontan](https://kontan.co.id),
-[Kumparan](https://kumparan.com),
-[Liputan6](https://liputan6.com),
-[Media Indonesia](https://mediaindonesia.com),
-[Merdeka](https://merdeka.com),
-[Metro TV News](https://metrotvnews.com),
-[Niaga.Asia](https://www.niaga.asia),
-[Mojok](https://mojok.co),
-[Mongabay Indonesia](https://mongabay.co.id),
-[Okezone](https://okezone.com),
-[Pantau.com](https://www.pantau.com),
-[Pikiran Rakyat](https://pikiran-rakyat.com),
-[Poskota](https://poskota.co.id),
-[Project Multatuli](https://projectmultatuli.org),
-[Republika](https://republika.co.id),
-[RM.ID](https://rm.id),
-[RRI](https://rri.co.id),
-[RMOL](https://rmol.id),
-[SINDOnews](https://sindonews.com),
-[Suara](https://suara.com),
-[Suara Merdeka](https://suaramerdeka.com),
-[Surabaya Pagi](https://surabayapagi.com),
-[SWA](https://swa.co.id),
-[Tempo](https://tempo.co),
-[Tirto](https://tirto.id),
-[Tribunnews](https://tribunnews.com),
-[TVOne](https://tvonenews.com),
-[TVRI News](https://tvrinews.id),
-[VOA Indonesia](https://voaindonesia.com),
-[VOI.id](https://voi.id),
-[Viva](https://viva.co.id)
-
+<!-- BEGIN GENERATED: readme-counts -->
 > **Notes:**
 > - 63 total sources: 60 with keyword search, all 63 with latest mode.
 > - AP News uses topic hub pages with keyword-in-title filtering (robots disallows /search?q=*).
@@ -232,7 +171,7 @@ The output file contains the following columns:
 > - Use `-s all` to force-run all scrapers (may cause errors/timeouts).
 > - Some sources are environment-sensitive and may fail on remote servers even if they work locally.
 > - Limitation: Kontan scraper maximum 50 pages.
-
+<!-- END GENERATED: readme-counts -->
 ## Contributing
 
 Contributions are welcome! If you'd like to add support for more websites or improve the existing code, please open an issue or submit a pull request.
