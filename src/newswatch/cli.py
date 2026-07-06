@@ -4,10 +4,10 @@ import logging
 import os
 from datetime import datetime
 
+from .config import get_health_history_path
 from .main import get_available_scrapers
 from .main import main as run_main
-from .health import health_report, health_report_to_file, _print_health_summary
-
+from .health import append_health_history, health_report, health_report_to_file, _print_health_summary
 
 def cli():
     scraper_classes = get_available_scrapers(method="search")
@@ -114,6 +114,12 @@ def cli():
         help="Run health probes and print per-source status. Uses --method, --scrapers, --scraper-timeout, --max-pages.",
     )
     parser.add_argument(
+        "--health-history",
+        type=str,
+        default=None,
+        help="Append each per-source health record to this JSONL file (append-only). Also set via NEWSWATCH_HEALTH_HISTORY env.",
+    )
+    parser.add_argument(
         "--proxy",
         type=str,
         default=None,
@@ -150,6 +156,10 @@ def cli():
         if args.output_path:
             health_report_to_file(report, args.output_path, args.output_format)
             print(f"Health report written to {args.output_path}")
+        history_path = args.health_history or get_health_history_path()
+        if history_path:
+            n = append_health_history(report, history_path)
+            print(f"Appended {n} health record(s) to {history_path}")
         return
 
     # By default, suppress all logging unless verbose or progress is specified
