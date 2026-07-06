@@ -1,4 +1,4 @@
-.PHONY: test lint format release-notes release-notes-file release-notes-publish release release-patch release-minor release-major release-validate
+.PHONY: test lint format release-notes release-notes-file release-notes-publish release release-patch release-minor release-major release-validate sources sources-check
 
 test:
 	@uv run --extra dev pytest
@@ -48,3 +48,9 @@ release-major:
 release:
 	@test -n "$(VERSION)" || (echo "Error: Set VERSION=x.y.z" && exit 1)
 	@uv run python scripts/version.py release $(VERSION)
+
+sources:
+	@uv run python scripts/generate_sources.py
+
+sources-check:
+	@uv run python scripts/generate_sources.py --check

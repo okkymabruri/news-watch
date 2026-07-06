@@ -1,0 +1,241 @@
+#!/usr/bin/env python3
+"""Registry-driven source doc generator.
+
+Reads ``newswatch.registry.SCRAPERS``, computes counts, and rewrites marked
+regions in README.md + ``docs/*.md``. Markers look like::
+
+    <!-- BEGIN GENERATED: <id> -->
+    ...content...
+    <!-- END GENERATED: <id> -->
+
+Run with ``--check`` to fail (exit 1) if any marked block is out of date.
+"""
+from __future__ import annotations
+
+import argparse
+import importlib.util
+import re
+import sys
+from pathlib import Path
+from typing import Callable, Dict, List, Tuple
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+# ── Stats ──────────────────────────────────────────────────────────────────
+
+
+def compute_stats() -> Dict[str, int]:
+    """Return a dict of registry-derived counts.
+
+    Only uses fields that exist on ``ScraperEntry``: ``status``,
+    ``supports_search``, ``supports_latest``.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "newswatch.registry",
+        REPO_ROOT / "src" / "newswatch" / "registry.py",
+    )
+    if spec is None or spec.loader is None:  # pragma: no cover - defensive
+        raise RuntimeError("could not load newswatch.registry")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    scrapers = module.SCRAPERS
+
+    total = len(scrapers)
+    stable = sum(1 for s in scrapers.values() if s.status == "stable")
+    search = sum(
+        1 for s in scrapers.values() if s.status == "stable" and s.supports_search
+    )
+    latest = sum(
+        1 for s in scrapers.values() if s.status == "stable" and s.supports_latest
+    )
+    quarantined = sum(1 for s in scrapers.values() if s.status == "quarantined")
+    investigating = sum(
+        1 for s in scrapers.values() if s.status == "investigating"
+    )
+    return {
+        "total": total,
+        "stable": stable,
+        "search": search,
+        "latest": latest,
+        "quarantined": quarantined,
+        "investigating": investigating,
+    }
+
+
+# ── Renderers ──────────────────────────────────────────────────────────────
+
+
+def render_readme_heading(stats: Dict[str, int]) -> str:
+    """README "Supported Websites" section heading + intro."""
+    return f"## Supported Websites ({stats['total']})\n"
+
+
+def render_readme_counts(stats: Dict[str, int]) -> str:
+    """README bullets summarizing totals and policy notes."""
+    lines = [
+        "> **Notes:**",
+        f"> - {stats['total']} total sources: {stats['search']} with keyword search, "
+        f"all {stats['total']} with latest mode.",
+        "> - AP News uses topic hub pages with keyword-in-title filtering "
+        "(robots disallows /search?q=*).",
+        "> - Al Jazeera is latest-only via RSS feed (search page is JS-rendered).",
+        "> - Reuters skipped (WAF blocked).",
+        "> - Use `-s all` to force-run all scrapers (may cause errors/timeouts).",
+        "> - Some sources are environment-sensitive and may fail on remote "
+        "servers even if they work locally.",
+        "> - Limitation: Kontan scraper maximum 50 pages.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def render_architecture_state(stats: Dict[str, int]) -> str:
+    """docs/architecture.md "Current State" table."""
+    return (
+        "## Current State\n"
+        "\n"
+        "| State | Count |\n"
+        "|---|---|\n"
+        f"| stable | {stats['stable']} |\n"
+        f"| quarantined | {stats['quarantined']} |\n"
+        f"| investigating | {stats['investigating']} |\n"
+    )
+
+
+def render_index_summary(stats: Dict[str, int]) -> str:
+    """docs/index.md intro paragraph."""
+    return (
+        f"news-watch scrapes structured news data from Indonesia's top news "
+        f"websites with keyword/date search and latest-news monitoring.\n"
+        f"\n"
+        f"The current stable release supports {stats['total']} news scrapers "
+        f"({stats['search']} Indonesian/global sources with search mode, "
+        f"all {stats['total']} with latest mode)."
+        "\n"
+    )
+
+
+def render_api_notes(stats: Dict[str, int]) -> str:
+    """docs/api-reference.md stable-API notes block."""
+    return (
+        "## Stable API Notes\n"
+        "\n"
+        f"All {stats['total']} registered scrapers are exposed via "
+        "`list_scrapers()` and the public `SCRAPERS` mapping. "
+        f"{stats['search']} of them support the `search` method; "
+        f"all {stats['total']} support `latest`.\n"
+    )
+
+
+def render_guide_counts(stats: Dict[str, int]) -> str:
+    """docs/comprehensive-guide.md choosing-your-sources paragraph."""
+    return (
+        f"The stable release currently exposes {stats['total']} supported "
+        f"scrapers. No investigating or quarantined sources remain."
+        "\n"
+    )
+
+
+# ── Block replacement ──────────────────────────────────────────────────────
+
+# Group 1 = BEGIN line, group 2 = id, group 3 = body, group 4 = END line.
+_MARKER_RE = re.compile(
+    r"(<!-- BEGIN GENERATED: (?P<id>[A-Za-z0-9_-]+) -->\n)"
+    r"(?P<body>.*?)"
+    r"(<!-- END GENERATED: (?P=id) -->\n?)",
+    re.DOTALL,
+)
+
+
+def render_block(
+    text: str, block_id: str, renderer: Callable[[Dict[str, int]], str]
+) -> str:
+    """Replace the body of the marker block identified by ``block_id``.
+
+    The renderer MUST accept a stats dict and return a string (no trailing
+    newline required). The replacement preserves both markers and surrounding
+    text exactly.
+    """
+    stats = compute_stats()
+
+    def _replace(match: re.Match[str]) -> str:
+        if match.group("id") != block_id:
+            return match.group(0)
+        new_body = renderer(stats)
+        if not new_body.endswith("\n"):
+            new_body += "\n"
+        return match.group(1) + new_body + match.group(4)
+
+    new_text, n = _MARKER_RE.subn(_replace, text)
+    if n == 0:
+        raise KeyError(f"marker block {block_id!r} not found")
+    return new_text
+
+
+# ── Targets ────────────────────────────────────────────────────────────────
+
+
+TARGETS: List[Tuple[Path, str, Callable[[Dict[str, int]], str]]] = [
+    (REPO_ROOT / "README.md", "readme-heading", render_readme_heading),
+    (REPO_ROOT / "README.md", "readme-counts", render_readme_counts),
+    (
+        REPO_ROOT / "docs" / "architecture.md",
+        "architecture-state",
+        render_architecture_state,
+    ),
+    (REPO_ROOT / "docs" / "index.md", "index-summary", render_index_summary),
+    (
+        REPO_ROOT / "docs" / "api-reference.md",
+        "api-notes",
+        render_api_notes,
+    ),
+    (
+        REPO_ROOT / "docs" / "comprehensive-guide.md",
+        "guide-counts",
+        render_guide_counts,
+    ),
+]
+
+
+# ── CLI ────────────────────────────────────────────────────────────────────
+
+
+def _run(check: bool) -> int:
+    drift: List[str] = []
+    for path, block_id, renderer in TARGETS:
+        original = path.read_text(encoding="utf-8")
+        try:
+            updated = render_block(original, block_id, renderer)
+        except KeyError as exc:
+            print(f"{path}: missing marker ({exc})")
+            drift.append(f"{path}: missing marker for {block_id}")
+            continue
+        if updated != original:
+            if check:
+                drift.append(f"{path}: block {block_id} is out of date")
+            else:
+                path.write_text(updated, encoding="utf-8")
+                print(f"{path}: rewrote block {block_id}")
+    if drift:
+        print("drift detected:")
+        for line in drift:
+            print(f"  - {line}")
+        return 1
+    if check:
+        print("all generated blocks are up to date")
+    return 0
+
+
+def main(argv: List[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="exit 1 if any marked block is out of date",
+    )
+    args = parser.parse_args(argv)
+    return _run(check=args.check)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
