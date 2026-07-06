@@ -41,3 +41,15 @@ def get_max_retries():
     if parsed < 0:
         return DEFAULT_MAX_RETRIES
     return parsed
+
+def get_health_history_path() -> str | None:
+    """Path for append-only JSONL health history, or None.
+
+    Reads ``NEWSWATCH_HEALTH_HISTORY``. Empty string is treated as unset.
+    Callers should use the result to decide whether to enable history
+    appending (None → skip persistence).
+    """
+    value = os.environ.get("NEWSWATCH_HEALTH_HISTORY")
+    if not value:
+        return None
+    return value
