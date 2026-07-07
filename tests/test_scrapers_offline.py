@@ -46,6 +46,19 @@ def _search_capable_slugs() -> list[str]:
     )
 
 
+def _latest_capable_slugs() -> list[str]:
+    """All stable, latest-capable slugs.
+
+    Superset of ``_search_capable_slugs()`` — adds the three latest-only
+    entries (aljazeera, balipost, cnaindonesia) which have no working
+    search endpoint. Offline coverage of these is essential because they
+    are unreachable via the search contract tests.
+    """
+    return sorted(
+        slug for slug in get_stable_slugs() if SCRAPERS[slug].supports_latest
+    )
+
+
 def _import_scraper_class(slug: str):
     """Import the scraper class for ``slug`` from the registry."""
     entry = SCRAPERS[slug]
@@ -120,6 +133,47 @@ class TestScraperParseContract:
             assert s._articles_collected == 0
 
 
+# ── Layer 2b: latest-mode parse contract (offline via aioresponses) ───────
+
+
+class TestScraperLatestParseContract:
+    """build_latest_url to fetch_latest_results round-trip with mocked HTTP.
+
+    Mirrors ``TestScraperParseContract`` for the ``scrape(method="latest")``
+    path. The real ``build_latest_url`` is exercised (so any per-adapter
+    state mutation lands the same way it does in production); aioresponses
+    intercepts whatever URL emerges. Both GET and POST are mocked because
+    some latest endpoints (e.g. Algolia-backed listings) POST.
+
+    The three latest-only slugs (aljazeera, balipost, cnaindonesia) are
+    covered here — they have no search endpoint and are unreachable via
+    the search-mode parse contract.
+    """
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("slug", _latest_capable_slugs())
+    async def test_latest_handles_empty_response_without_raising(self, slug):
+        """Latest-mode empty-body contract: never raise, zero articles.
+
+        Canned passthrough HTML has no article links, so
+        ``parse_latest_article_links`` returns nothing and the loop exits
+        cleanly. ``_articles_collected`` must remain 0 — anything else
+        means the scraper is hallucinating items from a dead body.
+        """
+        cls = _import_scraper_class(slug)
+        s = cls(
+            keywords=SCRAPERS[slug].smoke_keyword,
+            start_date=datetime.now() - timedelta(days=7),
+            queue_=asyncio.Queue(),
+        )
+        async with s:
+            with aioresponses() as m:
+                m.get(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True)
+                m.post(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True)
+                await s.fetch_latest_results()
+            assert s._articles_collected == 0
+
+
 # ── Layer 3: block detection ─────────────────────────────────────────────
 
 
@@ -148,6 +202,28 @@ class TestScraperInvariants:
 
     @pytest.mark.parametrize("slug", _search_capable_slugs())
     def test_smoke_keyword_nonempty(self, slug):
+        entry = SCRAPERS[slug]
+        assert entry.smoke_keyword and entry.smoke_keyword.strip(), (
+            f"{slug} has empty smoke_keyword"
+        )
+
+
+# ── Latest-mode invariants (mirrors above for supports_latest slugs) ──────
+
+
+class TestScraperLatestInvariants:
+    """Same defensive invariants as ``TestScraperInvariants`` but for the
+    superset of stable scrapers that support ``method="latest"``. The
+    three latest-only slugs (aljazeera, balipost, cnaindonesia) live
+    exclusively in this layer; they never reach the search-side tests."""
+
+    @pytest.mark.parametrize("slug", _latest_capable_slugs())
+    def test_concurrency_positive_latest(self, slug):
+        entry = SCRAPERS[slug]
+        assert entry.concurrency >= 1, f"{slug} has concurrency={entry.concurrency}"
+
+    @pytest.mark.parametrize("slug", _latest_capable_slugs())
+    def test_smoke_keyword_nonempty_latest(self, slug):
         entry = SCRAPERS[slug]
         assert entry.smoke_keyword and entry.smoke_keyword.strip(), (
             f"{slug} has empty smoke_keyword"
