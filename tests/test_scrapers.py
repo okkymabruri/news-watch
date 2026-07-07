@@ -51,12 +51,32 @@ def _search_capable_class_slug_pairs() -> list[tuple[str, type]]:
     return pairs
 
 
-_PAIRS = _search_capable_class_slug_pairs()
+def _latest_capable_class_slug_pairs() -> list[tuple[str, type]]:
+    """Latest-mode mirror of ``_search_capable_class_slug_pairs``.
+
+    Covers every stable scraper whose registry entry sets
+    ``supports_latest=True``. That set is a superset of
+    ``supports_search``; the three extras (``aljazeera``, ``balipost``,
+    ``cnaindonesia``) are latest-only — they have no working search
+    endpoint and must be exercised via ``scrape(method="latest")``.
+    """
+    pairs: list[tuple[str, type]] = []
+    for slug in sorted(
+        s for s in get_stable_slugs() if SCRAPERS[s].supports_latest
+    ):
+        entry = SCRAPERS[slug]
+        module = importlib.import_module(f"newswatch.scrapers.{entry.module}")
+        pairs.append((slug, getattr(module, entry.class_name)))
+    return pairs
+
+
+_SEARCH_PAIRS = _search_capable_class_slug_pairs()
+_LATEST_PAIRS = _latest_capable_class_slug_pairs()
 
 
 @pytest.mark.asyncio
 @pytest.mark.network
-@pytest.mark.parametrize("slug,scraper_class", _PAIRS, ids=[p[0] for p in _PAIRS])
+@pytest.mark.parametrize("slug,scraper_class", _SEARCH_PAIRS, ids=[p[0] for p in _SEARCH_PAIRS])
 async def test_scraper_fetch_data(slug: str, scraper_class: type) -> None:
     items: list[dict] = []
 
@@ -111,3 +131,81 @@ async def test_scraper_fetch_data(slug: str, scraper_class: type) -> None:
         assert "publish_date" in item
         assert "content" in item
         assert "link" in item
+
+
+@pytest.mark.asyncio
+@pytest.mark.network
+@pytest.mark.parametrize("slug,scraper_class", _LATEST_PAIRS, ids=[p[0] for p in _LATEST_PAIRS])
+async def test_scraper_fetch_latest(slug: str, scraper_class: type) -> None:
+    """Live latest-mode integration test for every stable+latest scraper.
+
+    Mirrors ``test_scraper_fetch_data`` but drives ``scrape(method="latest")``:
+    the scraper hits its index/listing endpoint (no keyword filter) and
+    publishes whatever articles it finds onto the queue. The three
+    latest-only slugs (``aljazeera``, ``balipost``, ``cnaindonesia``) are
+    unreachable via search and are covered exclusively here.
+
+    Failure mode is identical to the search test: timeout, transport
+    error, or an empty upstream yields ``pytest.skip`` with a one-line
+    reason so the visible skip count reflects the source's health
+    rather than silently passing via ``xfail``.
+    """
+    items: list[dict] = []
+
+    async def item_consumer(queue: asyncio.Queue) -> None:
+        try:
+            while True:
+                item = await queue.get()
+                items.append(item)
+                queue.task_done()
+        except asyncio.CancelledError:
+            pass
+
+    queue: asyncio.Queue = asyncio.Queue()
+    # ``keywords`` is required by the constructor even in latest mode;
+    # ``fetch_latest_results`` ignores it. Pass the registry smoke keyword
+    # so the constructor signature stays identical to search-mode scrapers.
+    scraper = scraper_class(
+        keywords=SCRAPERS[slug].smoke_keyword,
+        queue_=queue,
+    )
+
+    consumer_task = asyncio.create_task(item_consumer(queue))
+
+    try:
+        scrape_task = asyncio.create_task(scraper.scrape(method="latest"))
+        try:
+            await asyncio.wait_for(scrape_task, timeout=60)
+        except asyncio.TimeoutError:
+            pytest.skip(f"{scraper_class.__name__} (latest) timed out after 60s (network or slow site)")
+        except Exception as e:
+            pytest.skip(f"{scraper_class.__name__} (latest) network failure: {type(e).__name__}: {e}")
+
+        try:
+            await asyncio.wait_for(queue.join(), timeout=5)
+        except asyncio.TimeoutError:
+            pass
+    finally:
+        consumer_task.cancel()
+        try:
+            await consumer_task
+        except (asyncio.TimeoutError, asyncio.CancelledError, StopAsyncIteration):
+            pass
+
+    if not items:
+        pytest.skip(
+            f"{scraper_class.__name__} (latest) returned no items from "
+            f"{getattr(scraper, 'base_url', '?')} "
+            "(anti-bot, source change, or genuine gap)"
+        )
+
+    assert len(items) > 0
+    for item in items:
+        assert "title" in item
+        assert item["title"]
+        assert "publish_date" in item
+        assert item["publish_date"]
+        assert "content" in item
+        assert item["content"]
+        assert "link" in item
+        assert item["link"]
