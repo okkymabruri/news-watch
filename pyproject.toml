@@ -91,3 +91,8 @@ include = [
     "/CITATION.cff",
     "/pyproject.toml",
 ]
+
+[dependency-groups]
+dev = [
+    "aioresponses>=0.7.9",
+]
