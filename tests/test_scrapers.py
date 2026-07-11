@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import asyncio
 import importlib
+import os
 from datetime import datetime, timedelta
 
 import pytest
@@ -70,8 +71,19 @@ def _latest_capable_class_slug_pairs() -> list[tuple[str, type]]:
     return pairs
 
 
-_SEARCH_PAIRS = _search_capable_class_slug_pairs()
-_LATEST_PAIRS = _latest_capable_class_slug_pairs()
+def _select_shard(pairs: list[tuple[str, type]]) -> list[tuple[str, type]]:
+    """Select one deterministic CI shard; default to the full matrix."""
+    shard_count = int(os.getenv("NEWSWATCH_LIVE_SHARD_COUNT", "1"))
+    shard_index = int(os.getenv("NEWSWATCH_LIVE_SHARD_INDEX", "0"))
+    if shard_count < 1 or not 0 <= shard_index < shard_count:
+        raise ValueError(
+            f"invalid live shard {shard_index}/{shard_count}; expected 0 <= index < count"
+        )
+    return [pair for index, pair in enumerate(pairs) if index % shard_count == shard_index]
+
+
+_SEARCH_PAIRS = _select_shard(_search_capable_class_slug_pairs())
+_LATEST_PAIRS = _select_shard(_latest_capable_class_slug_pairs())
 
 
 @pytest.mark.asyncio
@@ -95,6 +107,8 @@ async def test_scraper_fetch_data(slug: str, scraper_class: type) -> None:
         start_date=datetime.now() - timedelta(days=7),
         queue_=queue,
     )
+    if hasattr(scraper, "max_pages"):
+        scraper.max_pages = 2
 
     consumer_task = asyncio.create_task(item_consumer(queue))
 
@@ -131,6 +145,13 @@ async def test_scraper_fetch_data(slug: str, scraper_class: type) -> None:
         assert "publish_date" in item
         assert "content" in item
         assert "link" in item
+    keyword = SCRAPERS[slug].smoke_keyword.lower()
+    assert any(
+        keyword in (item.get("title") or "").lower()
+        or keyword in (item.get("link") or "").lower()
+        or keyword in (item.get("content") or "").lower()
+        for item in items
+    ), f"{slug} returned items but none contain smoke_keyword='{keyword}'"
 
 
 @pytest.mark.asyncio
@@ -169,6 +190,8 @@ async def test_scraper_fetch_latest(slug: str, scraper_class: type) -> None:
         keywords=SCRAPERS[slug].smoke_keyword,
         queue_=queue,
     )
+    if hasattr(scraper, "max_pages"):
+        scraper.max_pages = 2
 
     consumer_task = asyncio.create_task(item_consumer(queue))
 

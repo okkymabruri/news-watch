@@ -25,12 +25,6 @@ LINUX_SCRAPERS = sorted(
     and SCRAPERS[slug].supports_search
 )
 
-# Per-scraper keyword overrides (use registry smoke_keyword if set, else "ihsg")
-KEYWORDS_BY_SCRAPER = {
-    slug: SCRAPERS[slug].smoke_keyword
-    for slug in LINUX_SCRAPERS
-    if SCRAPERS.get(slug) and SCRAPERS[slug].smoke_keyword != "ihsg"
-}
 
 @pytest.mark.network
 @pytest.mark.parametrize("scraper", get_linux_excluded_slugs())
@@ -87,45 +81,6 @@ def test_scraper_nonsense_keyword_returns_none(scraper):
         f"'{NONSENSE_KEYWORD}' - first title: {articles[0].get('title', '')[:80]}"
     )
 
-
-@pytest.mark.network
-@pytest.mark.parametrize("scraper", LINUX_SCRAPERS)
-def test_scraper_positive_relevance(scraper):
-    """Verify scrapers return articles that actually contain the queried keyword."""
-
-    week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-    keywords = KEYWORDS_BY_SCRAPER.get(scraper, "ihsg")
-    kw_lower = keywords.lower()
-
-    articles = scrape(
-        keywords=keywords,
-        start_date=week_ago,
-        scrapers=scraper,
-        timeout=60,
-    )
-
-    assert len(articles) >= 1, (
-        f"{scraper} returned no articles for '{keywords}' in last 7 days"
-    )
-
-    match = next(
-        (
-            a
-            for a in articles
-            if (
-                kw_lower in (a.get("title") or "").lower()
-                or kw_lower in (a.get("link") or "").lower()
-                or kw_lower in (a.get("content") or "").lower()
-            )
-        ),
-        None,
-    )
-
-    assert match is not None, (
-        f"{scraper} returned {len(articles)} articles but none contain "
-        f"keyword '{keywords}' in title, link, or content. "
-        f"First title: '{(articles[0].get('title') or '')[:80]}'"
-    )
 
 
 @pytest.mark.network
