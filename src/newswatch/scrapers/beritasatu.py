@@ -166,7 +166,7 @@ class BeritaSatuScraper(BaseScraper):
 
             # Content extraction with fallback selectors
             content_div = None
-            for selector in [".article-content", ".post-content", ".entry-content", "article"]:
+            for selector in ["div.col.b1-article.body-content", ".article-content", ".post-content", ".entry-content", "article"]:
                 content_div = soup.select_one(selector)
                 if content_div:
                     break
