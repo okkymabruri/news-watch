@@ -113,10 +113,19 @@ class TestScraperParseContract:
         """The full search pipeline runs against mocked HTTP. Real
         build_search_url is exercised so adapter-specific state mutation
         (e.g. gatra._current_keyword) is set the way production sets it;
-        aioresponses intercepts the resulting URL via a regex match."""
+        aioresponses intercepts the resulting URL via a regex match.
+
+        Browser-required search scrapers are intentionally skipped because
+        their ``async with`` entry launches Playwright, which aioresponses
+        cannot intercept and which is not installed in the unit CI.
+        """
+        entry = SCRAPERS[slug]
+        if entry.browser_required:
+            pytest.skip("browser_required search scraper uses Playwright; not offline")
+
         cls = _import_scraper_class(slug)
         s = cls(
-            keywords=SCRAPERS[slug].smoke_keyword,
+            keywords=entry.smoke_keyword,
             start_date=datetime.now() - timedelta(days=7),
             queue_=asyncio.Queue(),
         )
@@ -124,7 +133,7 @@ class TestScraperParseContract:
             with aioresponses() as m:
                 m.get(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True)
                 m.post(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True)
-                await s.fetch_search_results(SCRAPERS[slug].smoke_keyword)
+                await s.fetch_search_results(entry.smoke_keyword)
             assert s._articles_collected == 0
 
 
