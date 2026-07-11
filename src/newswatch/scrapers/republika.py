@@ -51,11 +51,10 @@ class RepublikaScraper(BaseScraper):
                     )]
                 }""")
 
-                # Filter: only keep links where keyword appears in URL
-                kw_lower = keyword.lower()
-                article_links = [
-                    link for link in raw_links if kw_lower in link.lower()
-                ]
+                # Tag page is the relevance authority; rely on dedup + date filtering.
+                article_links = raw_links
+
+
 
                 if article_links:
                     await self.process_page(article_links, keyword)
