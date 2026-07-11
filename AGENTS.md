@@ -59,6 +59,16 @@ Adding a new source = add a `ScraperEntry` in `_SCRAPER_ENTRIES` (do not edit fi
 | `supports_latest` | "latest headlines" mode |
 | `note` | free-form remark for quarantined/investigating entries |
 
+## Delegation
+
+- Prefer delegating implementation, investigation, test execution, and mechanical work to sub-agents.
+- Spawn sub-agents on the OmniRoute worker tier.
+- Run at most two sub-agents concurrently.
+- If a sub-agent fails or returns no usable result, retry the assignment with a narrower, bounded prompt before taking the work back into the main model.
+- The main model owns task decomposition, coordination, final branch review, and the final user response.
+- Keep approval and review at the main model; do not duplicate sub-agent execution unless verification requires it.
+- Sub-agent prompts must still respect AGENTS.md and the Hard rules below.
+
 ## Hard rules
 
 - Never commit to `main`. Branch off `main`, work on a feature branch, open a PR.
