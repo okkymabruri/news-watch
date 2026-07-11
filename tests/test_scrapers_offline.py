@@ -13,7 +13,11 @@ Layers:
    executes so adapter-specific state (e.g. ``gatra._current_keyword``)
    is initialized naturally; aioresponses intercepts whatever URL
    emerges with a regex match.
-3. **Block detection** — ``_looks_blocked`` must keep flagging the
+3. **Latest contract** — latest-mode scrapers that use the shared HTTP
+   layer run through ``fetch_latest_results`` with mocked HTTP. Browser-
+   required latest scrapers are visibly skipped because aioresponses
+   cannot intercept Playwright/CDP traffic.
+4. **Block detection** — ``_looks_blocked`` must keep flagging the
    canonical WAF/CDN markers.
 
 These tests do NOT validate that a real Indonesian site returns real
@@ -25,9 +29,9 @@ catches regressions in the parsing layer without touching the network.
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timedelta
 import importlib
 import re
-from datetime import datetime, timedelta
 
 import pytest
 from aioresponses import aioresponses
@@ -47,13 +51,7 @@ def _search_capable_slugs() -> list[str]:
 
 
 def _latest_capable_slugs() -> list[str]:
-    """All stable, latest-capable slugs.
-
-    Superset of ``_search_capable_slugs()`` — adds the three latest-only
-    entries (aljazeera, balipost, cnaindonesia) which have no working
-    search endpoint. Offline coverage of these is essential because they
-    are unreachable via the search contract tests.
-    """
+    """All stable, latest-capable slugs."""
     return sorted(
         slug for slug in get_stable_slugs() if SCRAPERS[slug].supports_latest
     )
@@ -112,13 +110,10 @@ class TestScraperParseContract:
     @pytest.mark.asyncio
     @pytest.mark.parametrize("slug", _search_capable_slugs())
     async def test_search_handles_empty_response_without_raising(self, slug):
-        """When the upstream returns nothing parseable, the scraper reports
-        zero articles without raising. This is the contract: never throw
-        on a clean empty body. We let the real build_search_url run so any
-        adapter-specific state mutation (e.g. gatra._current_keyword) is
-        exercised the way it is in production. Both GET and POST are mocked
-        so adapters that POST to a search endpoint (e.g. tempo via Algolia)
-        are also covered."""
+        """The full search pipeline runs against mocked HTTP. Real
+        build_search_url is exercised so adapter-specific state mutation
+        (e.g. gatra._current_keyword) is set the way production sets it;
+        aioresponses intercepts the resulting URL via a regex match."""
         cls = _import_scraper_class(slug)
         s = cls(
             keywords=SCRAPERS[slug].smoke_keyword,
@@ -139,30 +134,23 @@ class TestScraperParseContract:
 class TestScraperLatestParseContract:
     """build_latest_url to fetch_latest_results round-trip with mocked HTTP.
 
-    Mirrors ``TestScraperParseContract`` for the ``scrape(method="latest")``
-    path. The real ``build_latest_url`` is exercised (so any per-adapter
-    state mutation lands the same way it does in production); aioresponses
-    intercepts whatever URL emerges. Both GET and POST are mocked because
-    some latest endpoints (e.g. Algolia-backed listings) POST.
-
-    The three latest-only slugs (aljazeera, balipost, cnaindonesia) are
-    covered here — they have no search endpoint and are unreachable via
-    the search-mode parse contract.
+    Browser-required latest scrapers are intentionally skipped here. Their
+    latest paths launch Playwright, and aioresponses cannot intercept CDP
+    browser traffic. They are still covered by registry invariants and by
+    the network-marked live suite.
     """
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("slug", _latest_capable_slugs())
     async def test_latest_handles_empty_response_without_raising(self, slug):
-        """Latest-mode empty-body contract: never raise, zero articles.
+        """Latest-mode empty-body contract: never raise, zero articles."""
+        entry = SCRAPERS[slug]
+        if entry.browser_required:
+            pytest.skip("browser_required latest scraper uses Playwright; not offline")
 
-        Canned passthrough HTML has no article links, so
-        ``parse_latest_article_links`` returns nothing and the loop exits
-        cleanly. ``_articles_collected`` must remain 0 — anything else
-        means the scraper is hallucinating items from a dead body.
-        """
         cls = _import_scraper_class(slug)
         s = cls(
-            keywords=SCRAPERS[slug].smoke_keyword,
+            keywords=entry.smoke_keyword,
             start_date=datetime.now() - timedelta(days=7),
             queue_=asyncio.Queue(),
         )
