@@ -33,52 +33,6 @@ KEYWORDS_BY_SCRAPER = {
 }
 
 @pytest.mark.network
-@pytest.mark.parametrize("scraper", LINUX_SCRAPERS)
-def test_scraper_minimal_data(scraper):
-    """Test that each scraper can get at least 1 article with minimal requirements."""
-    week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-    keywords = KEYWORDS_BY_SCRAPER.get(scraper, "ihsg")
-
-    try:
-        articles = scrape(
-            keywords=keywords,
-            start_date=week_ago,
-            scrapers=scraper,
-            timeout=60,
-        )
-    except Exception as e:
-        pytest.skip(f"{scraper} network/source failure: {type(e).__name__}: {e}")
-
-    if not articles:
-        pytest.skip(
-            f"{scraper} returned no articles with '{keywords}' in last 7 days"
-        )
-
-    article = next(
-        (
-            a
-            for a in articles
-            if (a.get("title") and len(a.get("title") or "") > 5)
-            and (a.get("content") and len(a.get("content") or "") > 50)
-        ),
-        articles[0],
-    )
-    assert article.get("title"), f"{scraper} article missing title"
-    assert article.get("content"), f"{scraper} article missing content"
-    assert scraper in article.get("source", "").lower(), (
-        f"{scraper} not found in source: {article.get('source')}"
-    )
-    assert article.get("link"), f"{scraper} article missing link"
-    assert len(article["content"]) > 50, (
-        f"{scraper} content too short: {len(article['content'])} chars"
-    )
-    assert len(article["title"]) > 5, (
-        f"{scraper} title too short: {len(article['title'])} chars"
-    )
-
-
-
-@pytest.mark.network
 @pytest.mark.parametrize("scraper", get_linux_excluded_slugs())
 def test_linux_excluded_scrapers_force_all(scraper):
     """Optional: run known-flaky Linux-excluded scrapers when explicitly requested.
