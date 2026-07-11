@@ -74,7 +74,7 @@ class JpnnScraper(BaseScraper):
         if not content:
             return
 
-        publish_date = self.parse_date(publish_date_str, locales=["id"])
+        publish_date = self.parse_date(publish_date_str, settings={"DATE_ORDER": "DMY"})
         if not publish_date:
             logging.debug("JPNN date parse failed | url: %s | date: %r", link, publish_date_str[:50])
             return
