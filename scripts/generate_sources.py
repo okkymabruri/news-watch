@@ -21,15 +21,99 @@ from typing import Callable, Dict, List, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+# Curated slug → homepage URL mapping. Source of truth: the reviewed main
+# README's source list. Keys MUST equal registry slugs; renderers validate
+# this on every run so a stale mapping fails fast instead of silently
+# dropping a source link.
+SOURCE_URLS: Dict[str, str] = {
+    "antaranews": "https://antaranews.com",
+    "apnews": "https://apnews.com",
+    "aljazeera": "https://www.aljazeera.com",
+    "balipost": "https://www.balipost.com",
+    "bbc": "https://bbc.com",
+    "beritajatim": "https://beritajatim.com",
+    "beritasatu": "https://www.beritasatu.com",
+    "bisnis": "https://bisnis.com",
+    "bloombergtechnoz": "https://bloombergtechnoz.com",
+    "cnaindonesia": "https://www.cna.id",
+    "cnbcindonesia": "https://cnbcindonesia.com",
+    "cnnindonesia": "https://cnnindonesia.com",
+    "dailysocial": "https://news.dailysocial.id",
+    "detik": "https://detik.com",
+    "fajar": "https://fajar.co.id",
+    "galamedia": "https://galamedia.pikiran-rakyat.com",
+    "gatra": "https://www.gatra.net",
+    "grid": "https://www.grid.id",
+    "harianjogja": "https://www.harianjogja.com",
+    "hipwee": "https://www.hipwee.com",
+    "idntimes": "https://idntimes.com",
+    "inews": "https://inews.id",
+    "investor": "https://investor.id",
+    "jakartaglobe": "https://jakartaglobe.id",
+    "jakartapost": "https://thejakartapost.com",
+    "jakartaselarascoid": "https://jakarta.selaras.co.id",
+    "jawapos": "https://jawapos.com",
+    "jpnn": "https://jpnn.com",
+    "kaltimpost": "https://kaltimkece.borneo24.com",
+    "katadata": "https://katadata.co.id",
+    "kbr": "https://kbr.id",
+    "kompas": "https://kompas.com",
+    "kontan": "https://kontan.co.id",
+    "kumparan": "https://kumparan.com",
+    "liputan6": "https://liputan6.com",
+    "mediaindonesia": "https://mediaindonesia.com",
+    "merdeka": "https://merdeka.com",
+    "metrotvnews": "https://metrotvnews.com",
+    "niagaasia": "https://www.niaga.asia",
+    "mojok": "https://mojok.co",
+    "mongabay": "https://mongabay.co.id",
+    "okezone": "https://okezone.com",
+    "pantau": "https://www.pantau.com",
+    "pikiranrakyat": "https://pikiran-rakyat.com",
+    "poskota": "https://poskota.co.id",
+    "projectmultatuli": "https://projectmultatuli.org",
+    "republika": "https://republika.co.id",
+    "rmid": "https://rm.id",
+    "rri": "https://rri.co.id",
+    "rmol": "https://rmol.id",
+    "sindonews": "https://sindonews.com",
+    "suara": "https://suara.com",
+    "suaramerdeka": "https://suaramerdeka.com",
+    "surabayapagi": "https://surabayapagi.com",
+    "swa": "https://swa.co.id",
+    "tempo": "https://tempo.co",
+    "tirto": "https://tirto.id",
+    "tribunnews": "https://tribunnews.com",
+    "tvone": "https://tvonenews.com",
+    "tvrinews": "https://tvrinews.id",
+    "voi": "https://voi.id",
+    "voaindonesia": "https://voaindonesia.com",
+    "viva": "https://viva.co.id",
+}
+
+
+def get_source_url_map() -> Dict[str, str]:
+    """Return the curated slug → URL mapping.
+
+    Kept as a function (rather than reading ``SOURCE_URLS`` directly) so
+    tests can monkeypatch the mapping without mutating module state.
+    """
+    return dict(SOURCE_URLS)
+
+
 # ── Stats ──────────────────────────────────────────────────────────────────
 
 
-def compute_stats() -> Dict[str, int]:
-    """Return a dict of registry-derived counts.
 
-    Only uses fields that exist on ``ScraperEntry``: ``status``,
-    ``supports_search``, ``supports_latest``.
+def _load_registry():
+    """Load newswatch.registry as a module and return it.
+
+    Module loading is the slow step; cached after the first call so the
+    source renderer doesn't re-parse the file on every block.
     """
+    cached = getattr(_load_registry, "_module", None)
+    if cached is not None:
+        return cached
     spec = importlib.util.spec_from_file_location(
         "newswatch.registry",
         REPO_ROOT / "src" / "newswatch" / "registry.py",
@@ -39,7 +123,17 @@ def compute_stats() -> Dict[str, int]:
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
-    scrapers = module.SCRAPERS
+    _load_registry._module = module  # type: ignore[attr-defined]
+    return module
+
+
+def compute_stats() -> Dict[str, int]:
+    """Return a dict of registry-derived counts.
+
+    Only uses fields that exist on ``ScraperEntry``: ``status``,
+    ``supports_search``, ``supports_latest``.
+    """
+    scrapers = _load_registry().SCRAPERS
 
     total = len(scrapers)
     stable = sum(1 for s in scrapers.values() if s.status == "stable")
@@ -63,6 +157,25 @@ def compute_stats() -> Dict[str, int]:
     }
 
 
+def validate_source_url_map(mapping: Dict[str, str]) -> None:
+    """Raise ``ValueError`` when source URLs drift from the registry."""
+    registry_slugs = set(_load_registry().SCRAPERS.keys())
+    mapping_slugs = set(mapping.keys())
+    missing = sorted(registry_slugs - mapping_slugs)
+    extra = sorted(mapping_slugs - registry_slugs)
+    url_counts = {url: list(mapping.values()).count(url) for url in mapping.values()}
+    duplicate_urls = sorted(url for url, count in url_counts.items() if count > 1)
+    problems: List[str] = []
+    if missing:
+        problems.append(f"missing from mapping: {missing}")
+    if extra:
+        problems.append(f"present in mapping but not in registry: {extra}")
+    if duplicate_urls:
+        problems.append(f"duplicate URLs: {duplicate_urls}")
+    if problems:
+        raise ValueError("source URL mapping drift: " + "; ".join(problems))
+
+
 # ── Renderers ──────────────────────────────────────────────────────────────
 
 
@@ -71,12 +184,34 @@ def render_readme_heading(stats: Dict[str, int]) -> str:
     return f"## Supported Websites ({stats['total']})\n"
 
 
+def render_readme_sources(stats: Dict[str, int]) -> str:
+    """README linked source list, one ``[name](url)`` per registry slug.
+
+    Rendering is deterministic: slugs are sorted alphabetically before being
+    joined with the comma-newline that matches main's prior list format.
+    The URL mapping is validated against the registry on every call so a
+    stale or rogue slug raises ``ValueError`` instead of producing a
+    silently-broken README.
+    """
+    url_map = get_source_url_map()
+    validate_source_url_map(url_map)
+    registry = _load_registry().SCRAPERS
+    lines = [
+        f"[{registry[slug].name}]({url_map[slug]})"
+        for slug in sorted(url_map)
+    ]
+    return ",\n".join(lines) + "\n"
+
+
+
+
+
 def render_readme_counts(stats: Dict[str, int]) -> str:
     """README bullets summarizing totals and policy notes."""
     lines = [
         "> **Notes:**",
         f"> - {stats['total']} total sources: {stats['search']} with keyword search, "
-        f"all {stats['total']} with latest mode.",
+        f"{stats['latest']} with latest mode.",
         "> - AP News uses topic hub pages with keyword-in-title filtering "
         "(robots disallows /search?q=*).",
         "> - Al Jazeera is latest-only via RSS feed (search page is JS-rendered).",
@@ -124,6 +259,17 @@ def render_api_notes(stats: Dict[str, int]) -> str:
         "`list_scrapers()` and the public `SCRAPERS` mapping. "
         f"{stats['search']} of them support the `search` method; "
         f"all {stats['total']} support `latest`.\n"
+        "\n"
+        "## Notes\n"
+        "\n"
+        "- Prefer `scrapers=\"auto\"` unless you know which sites you need.\n"
+        "- Cloud/server environments are more likely to be blocked.\n"
+        f"- Stable support currently covers {stats['search']} search-capable "
+        f"scrapers and {stats['latest']} latest-capable scrapers.\n"
+        "- No investigating or quarantined sources remain.\n"
+        "\n"
+        "**Empty results**: Check if your keywords are in Indonesian or try "
+        "broader terms.\n"
     )
 
 
@@ -131,10 +277,10 @@ def render_guide_counts(stats: Dict[str, int]) -> str:
     """docs/comprehensive-guide.md choosing-your-sources paragraph."""
     return (
         f"The stable release currently exposes {stats['total']} supported "
-        f"scrapers. No investigating or quarantined sources remain."
+        f"scrapers. No investigating or quarantined sources remain.\n"
         "\n"
+        f"{stats['latest']} of {stats['total']} sources support latest monitoring.\n"
     )
-
 
 # ── Block replacement ──────────────────────────────────────────────────────
 
@@ -177,6 +323,7 @@ def render_block(
 
 TARGETS: List[Tuple[Path, str, Callable[[Dict[str, int]], str]]] = [
     (REPO_ROOT / "README.md", "readme-heading", render_readme_heading),
+    (REPO_ROOT / "README.md", "readme-sources", render_readme_sources),
     (REPO_ROOT / "README.md", "readme-counts", render_readme_counts),
     (
         REPO_ROOT / "docs" / "architecture.md",

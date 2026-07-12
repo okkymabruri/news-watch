@@ -128,5 +128,3 @@ print(len(latest))
 **Performance**: Works best in local environments. Cloud platforms may experience reduced performance due to anti-bot measures.
 
 **Strict search policy**: Every listed source passes real keyword search checks.
-
-**Latest mode rollout**: latest monitoring starts with a smaller subset of sources and expands over time.
