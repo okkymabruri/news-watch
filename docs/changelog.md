@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-07-12
+
+### Added
+- Append-only JSONL health history persistence (`--health-history` flag, `NEWSWATCH_HEALTH_HISTORY` env, flag-overrides-env precedence) wired into `--health-report`
+- Registry-driven source documentation: doc generator emits source blocks from the registry; Makefile `sources` targets and six marked doc regions now reflect registry output
+- Required/offline test split: lint, sources-check, and unit tests run deterministically; live scraper checks moved to an advisory, sharded, cached matrix
+
+### Fixed
+- JPNN: parse English month dates as DMY in article metadata
+- BeritaSatu: match the current article body selector
+- Republika: trust tag-page search relevance so tag results surface in strict search
+- Offline test isolation: skip `browser_required` slugs in the required offline suite (search and latest)
+- Docs: restore registry-driven source documentation after prior drift
+
+### Changed
+- Live scraper probes: cache results and skip on upstream flakes to reduce CI noise
+
 ## [1.0.0] - 2026-06-06
 
 ### Added
