@@ -207,6 +207,8 @@ tech_df = nw.scrape_to_dataframe(
 The `auto` setting picks reliable scrapers based on your platform. Use `all` only if you need maximum coverage and don't mind potential errors.
 <!-- BEGIN GENERATED: guide-counts -->
 The stable release currently exposes 63 supported scrapers. No investigating or quarantined sources remain.
+
+63 of 63 sources support latest monitoring.
 <!-- END GENERATED: guide-counts -->
 
 ## Building Your First Analysis

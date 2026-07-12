@@ -358,6 +358,15 @@ The comprehensive guide covers:
 ## Stable API Notes
 
 All 63 registered scrapers are exposed via `list_scrapers()` and the public `SCRAPERS` mapping. 60 of them support the `search` method; all 63 support `latest`.
+
+## Notes
+
+- Prefer `scrapers="auto"` unless you know which sites you need.
+- Cloud/server environments are more likely to be blocked.
+- Stable support currently covers 60 search-capable scrapers and 63 latest-capable scrapers.
+- No investigating or quarantined sources remain.
+
+**Empty results**: Check if your keywords are in Indonesian or try broader terms.
 <!-- END GENERATED: api-notes -->
 ```python
 # Too specific
