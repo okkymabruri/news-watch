@@ -1,4 +1,4 @@
-.PHONY: test lint format release-notes release-notes-file release-notes-publish release release-patch release-minor release-major release-validate sources sources-check
+.PHONY: test lint format release-notes release-notes-file release-notes-publish release release-prepare release-publish release-patch release-minor release-major release-validate sources sources-check
 
 test:
 	@uv run --extra dev pytest
@@ -36,18 +36,25 @@ release-notes-publish: release-validate
 	@uv run python scripts/release_notes.py $(VERSION) > /tmp/news-watch-v$(VERSION)-notes.md
 	@gh release edit v$(VERSION) --notes-file /tmp/news-watch-v$(VERSION)-notes.md
 
+release: release-publish
+
+
+release-prepare:
+	@test -n "$(VERSION)" || (echo "Error: Set VERSION=x.y.z" && exit 1)
+	@uv run python scripts/version.py prepare "$(VERSION)"
+
 release-patch:
-	@uv run python scripts/version.py release
+	@uv run python scripts/version.py prepare --patch
 
 release-minor:
-	@uv run python scripts/version.py release --minor
+	@uv run python scripts/version.py prepare --minor
 
 release-major:
-	@uv run python scripts/version.py release --major
+	@uv run python scripts/version.py prepare --major
 
-release:
-	@test -n "$(VERSION)" || (echo "Error: Set VERSION=x.y.z" && exit 1)
-	@uv run python scripts/version.py release $(VERSION)
+
+release-publish: release-validate
+	@uv run python scripts/version.py publish "$(VERSION)"
 
 sources:
 	@uv run python scripts/generate_sources.py
