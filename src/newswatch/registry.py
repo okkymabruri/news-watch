@@ -631,6 +631,26 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         supports_latest=True,
         note="/search?keyword= endpoint; /explore for latest",
     ),
+    ScraperEntry(
+        "betahita",
+        "Betahita",
+        "betahita", "BetahitaScraper",
+        strict_search=True,
+        smoke_keyword="lingkungan",
+        supports_search=True,
+        supports_latest=True,
+        note="/search?query=quoted&pagenum= canonical pagination; articles under /{berita|opini|sorot}/{id}/{slug}",
+    ),
+    ScraperEntry(
+        "nusabali",
+        "NusaBali",
+        "nusabali", "NusaBaliScraper",
+        strict_search=True,
+        smoke_keyword="bali",
+        supports_search=True,
+        supports_latest=True,
+        note="/search?keyword=quoted&page= and homepage; canonical /berita/{id}/{slug}",
+    ),
     # ── Global sources (batch3) ──────────────────────────────────────────────
     ScraperEntry(
         "apnews",
