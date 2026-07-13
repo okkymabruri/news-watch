@@ -140,8 +140,9 @@ class SindonewsScraper(BaseScraper):
     async def build_latest_url(self, page):
         if page > 1:
             return None
+        # /feed returns an RSS 2.0 document (application/rss+xml).
         return await self.fetch(
-            f"https://www.{self.base_url}/",
+            f"https://www.{self.base_url}/feed",
             headers=self.headers,
             timeout=30,
         )
@@ -149,13 +150,11 @@ class SindonewsScraper(BaseScraper):
     def parse_latest_article_links(self, response_text):
         if not response_text:
             return None
-        soup = BeautifulSoup(response_text, "html.parser")
-        pattern = re.compile(r"sindonews\.com/read/")
-        filtered_hrefs = set()
-        for a in soup.find_all("a", href=True):
-            href = a["href"]
-            if pattern.search(href):
-                if not href.startswith("http"):
-                    href = f"https://www.{self.base_url}{href}"
-                filtered_hrefs.add(href)
-        return filtered_hrefs or None
+        soup = BeautifulSoup(response_text, "xml")
+        links = set()
+        for item in soup.find_all("item"):
+            link = item.find("link")
+            url = (link.text or "").strip() if link else ""
+            if url:
+                links.add(url)
+        return links or None
