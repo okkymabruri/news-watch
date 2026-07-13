@@ -29,9 +29,31 @@ import importlib
 import os
 from datetime import datetime, timedelta
 
+import aiohttp
 import pytest
 
+try:
+    from playwright.async_api import Error as PlaywrightError
+except ImportError:  # playwright not installed in some CI lanes
+    PlaywrightError = None  # type: ignore[assignment]
+
 from newswatch.registry import SCRAPERS, get_stable_slugs
+
+# Known external/network/browser failure classes worth skipping in canonical
+# live tests. Anything outside this tuple (e.g. ``AssertionError``,
+# ``ValueError``, ``KeyError``, ``TypeError``) is a real bug and must fail.
+_KNOWN_NETWORK_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    asyncio.TimeoutError,
+    asyncio.CancelledError,
+    ConnectionError,
+    TimeoutError,
+    aiohttp.ClientError,
+    OSError,
+    aiohttp.ServerDisconnectedError,
+    aiohttp.ServerTimeoutError,
+)
+if PlaywrightError is not None:
+    _KNOWN_NETWORK_EXCEPTIONS = _KNOWN_NETWORK_EXCEPTIONS + (PlaywrightError,)
 
 
 def _search_capable_class_slug_pairs() -> list[tuple[str, type]]:
@@ -118,7 +140,7 @@ async def test_scraper_fetch_data(slug: str, scraper_class: type) -> None:
             await asyncio.wait_for(scrape_task, timeout=60)
         except asyncio.TimeoutError:
             pytest.skip(f"{scraper_class.__name__} timed out after 60s (network or slow site)")
-        except Exception as e:
+        except _KNOWN_NETWORK_EXCEPTIONS as e:
             pytest.skip(f"{scraper_class.__name__} network failure: {type(e).__name__}: {e}")
 
         try:
@@ -201,7 +223,7 @@ async def test_scraper_fetch_latest(slug: str, scraper_class: type) -> None:
             await asyncio.wait_for(scrape_task, timeout=60)
         except asyncio.TimeoutError:
             pytest.skip(f"{scraper_class.__name__} (latest) timed out after 60s (network or slow site)")
-        except Exception as e:
+        except _KNOWN_NETWORK_EXCEPTIONS as e:
             pytest.skip(f"{scraper_class.__name__} (latest) network failure: {type(e).__name__}: {e}")
 
         try:
