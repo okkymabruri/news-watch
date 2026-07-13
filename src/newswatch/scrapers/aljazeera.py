@@ -1,7 +1,7 @@
 """
 Al Jazeera scraper — latest-only via RSS feed.
 
-The search page is JS-rendered and not easily scrapable.
+The public GraphQL search requires a per-request reCAPTCHA token, so search remains unsupported.
 Uses RSS feed for latest: https://www.aljazeera.com/xml/rss/all.xml
 Article pattern: /{year}/{month}/{day}/{slug}
 """
@@ -31,9 +31,8 @@ class AlJazeeraScraper(BaseScraper):
         )
 
     async def build_search_url(self, keyword, page):
-        # Search is JS-rendered and not feasible without Playwright.
-        # Return None to signal unsupported.
-        logging.info("Al Jazeera search mode not supported (JS-rendered). Use latest mode.")
+        # /graphql SearchQuery requires a per-request reCAPTCHA token.
+        logging.info("Al Jazeera search mode is reCAPTCHA-gated; use latest mode.")
         self.continue_scraping = False
         return None
 
