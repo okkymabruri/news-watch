@@ -281,7 +281,7 @@ def render_api_notes(stats: Dict[str, int]) -> str:
 
 
 def render_guide_counts(stats: Dict[str, int]) -> str:
-    """docs/comprehensive-guide.md choosing-your-sources paragraph."""
+    """docs/practical-guide.md choosing-your-sources paragraph."""
     return (
         f"The stable release currently exposes {stats['total']} supported "
         f"scrapers. No investigating or quarantined sources remain.\n"
@@ -344,7 +344,7 @@ TARGETS: List[Tuple[Path, str, Callable[[Dict[str, int]], str]]] = [
         render_api_notes,
     ),
     (
-        REPO_ROOT / "docs" / "comprehensive-guide.md",
+        REPO_ROOT / "docs" / "practical-guide.md",
         "guide-counts",
         render_guide_counts,
     ),

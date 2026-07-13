@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Scrape structured news data from Indonesian news portals using true keyword search.
+Collect structured news through verified keyword search and current-article discovery.
 
 ## System Flow
 
@@ -22,9 +22,9 @@ flowchart TD
 
 | File | Role |
 |---|---|
-| `registry.py` | Single source of truth — status, metadata, runtime loading |
+| `registry.py` | Single source of truth for status, capabilities, metadata, runtime loading, tests, and generated documentation |
 | `main.py` | Orchestrates scraper selection and execution |
-| `api.py` | Python API (`scrape`, `scrape_to_df`, etc.) |
+| `api.py` | Synchronous Python API (`scrape`, `scrape_to_dataframe`, latest and health helpers) |
 | `cli.py` | CLI entry point |
 | `scrapers/basescraper.py` | Abstract contract — `build_search_url`, `parse_article_links`, `get_article` |
 | `utils.py` | `AsyncScraper` — concurrency, WAF fallback (aiohttp → rnet → Playwright) |
@@ -40,19 +40,22 @@ flowchart TD
 
 | State | Meaning |
 |---|---|
-| **stable** | passes strict search; included in runtime and tests |
+| **stable** | capability validated; eligible for its declared search/latest methods |
 | **quarantined** | known search issues; excluded from runtime |
 | **investigating** | not yet classified |
 
-Only `stable` entries are loaded at runtime. The test matrix is derived from the registry.
+Only `stable` entries are loaded at runtime. Runtime selection, capability tests, live matrices, and generated source counts derive from the registry.
 
 ## Validation Gate
 
-A source moves to **stable** only if:
-1. positive keyword returns relevant articles
-2. nonsense keyword returns zero
+A source declares search support only if:
+
+1. a relevant keyword returns relevant articles
+2. a nonsense keyword returns zero
 3. unrelated keywords yield different links
-4. URLs are canonical article pages
+4. extracted URLs are canonical same-site article pages
+
+Latest support is validated independently; a source can be latest-only.
 
 <!-- BEGIN GENERATED: architecture-state -->
 ## Current State

@@ -128,7 +128,7 @@ sources = nw.list_scrapers()
 print("Available sources:", sources)
 ```
 
-See the [comprehensive guide](docs/comprehensive-guide.md) for detailed usage examples and advanced patterns.
+See the [practical guide](docs/practical-guide.md) for end-to-end CLI and Python-API examples and common research patterns.
 For interactive examples, see the [API reference notebook](notebook/api-reference.ipynb).
 
 ## Run on Google Colab

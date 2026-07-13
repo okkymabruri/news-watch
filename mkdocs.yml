@@ -18,7 +18,8 @@ nav:
   - Home: index.md
   - Getting Started: getting-started.md
   - Architecture: architecture.md
-  - Comprehensive Guide: comprehensive-guide.md
+  - Practical Guide: practical-guide.md
+  - MBG Use Case: mbg-use-case.md
   - API Reference: api-reference.md
   - Troubleshooting: troubleshooting.md
   - Changelog: changelog.md
