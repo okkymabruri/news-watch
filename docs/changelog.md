@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Alinea.id, Betahita, Good News From Indonesia, NusaBali, and The Conversation Indonesia with search and latest support
+- Hukumonline and Independen.id with latest support
+- Independen.id replaces BenarNews, whose Indonesian edition stopped publishing on 3 April 2025
+- Deterministic capability contracts for generic and custom search/latest workflows
+- Total stable scrapers: 70 (66 search-capable, all 70 latest-capable)
+
+### Changed
+- CNA Indonesia now supports server-rendered topic search
+- SINDOnews latest discovery now parses its RSS feed
+- Live scraper tests skip only known external failures; unexpected parser defects fail
+
+### Fixed
+- Registry notes no longer carry stale promotion labels or historical dates
+- Bali Post remains latest-only because its search endpoint is a JavaScript-only Google CSE shell
 
 ## [1.0.1] - 2026-07-12
 

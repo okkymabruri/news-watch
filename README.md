@@ -158,9 +158,10 @@ The output file contains the following columns:
 - `latest` is intended for latest-news monitoring and does not require keywords.
 
 <!-- BEGIN GENERATED: readme-heading -->
-## Supported Websites (63)
+## Supported Websites (70)
 <!-- END GENERATED: readme-heading -->
 <!-- BEGIN GENERATED: readme-sources -->
+[Alinea.id](https://www.alinea.id),
 [Al Jazeera](https://www.aljazeera.com),
 [Antara News](https://antaranews.com),
 [AP News](https://apnews.com),
@@ -168,20 +169,25 @@ The output file contains the following columns:
 [BBC News](https://bbc.com),
 [Berita Jatim](https://beritajatim.com),
 [BeritaSatu](https://www.beritasatu.com),
+[Betahita](https://www.betahita.id),
 [Bisnis.com](https://bisnis.com),
 [Bloomberg Technoz](https://bloombergtechnoz.com),
 [CNA Indonesia](https://www.cna.id),
 [CNBC Indonesia](https://cnbcindonesia.com),
 [CNN Indonesia](https://cnnindonesia.com),
+[The Conversation Indonesia](https://theconversation.com/id),
 [DailySocial](https://news.dailysocial.id),
 [Detik](https://detik.com),
 [Fajar](https://fajar.co.id),
 [Galamedia](https://galamedia.pikiran-rakyat.com),
 [Gatra](https://www.gatra.net),
+[Good News From Indonesia](https://www.goodnewsfromindonesia.id),
 [Grid](https://www.grid.id),
 [Harian Jogja](https://www.harianjogja.com),
 [Hipwee](https://www.hipwee.com),
+[Hukumonline](https://www.hukumonline.com),
 [IDN Times](https://idntimes.com),
+[Independen.id](https://independen.id),
 [iNews](https://inews.id),
 [Investor.id](https://investor.id),
 [Jakarta Globe](https://jakartaglobe.id),
@@ -202,6 +208,7 @@ The output file contains the following columns:
 [Mojok](https://mojok.co),
 [Mongabay Indonesia](https://mongabay.co.id),
 [Niaga.Asia](https://www.niaga.asia),
+[NusaBali](https://www.nusabali.com),
 [Okezone](https://okezone.com),
 [Pantau.com](https://www.pantau.com),
 [Pikiran Rakyat](https://pikiran-rakyat.com),
@@ -228,7 +235,7 @@ The output file contains the following columns:
 
 <!-- BEGIN GENERATED: readme-counts -->
 > **Notes:**
-> - 63 total sources: 60 with keyword search, 63 with latest mode.
+> - 70 total sources: 66 with keyword search, 70 with latest mode.
 > - AP News uses topic hub pages with keyword-in-title filtering (robots disallows /search?q=*).
 > - Al Jazeera is latest-only via RSS feed (search page is JS-rendered).
 > - Reuters skipped (WAF blocked).
