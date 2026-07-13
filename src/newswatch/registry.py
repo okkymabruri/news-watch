@@ -651,6 +651,16 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         supports_latest=True,
         note="/search?keyword=quoted&page= and homepage; canonical /berita/{id}/{slug}",
     ),
+    ScraperEntry(
+        "conversationid",
+        "The Conversation Indonesia",
+        "conversationid", "ConversationIDScraper",
+        strict_search=True,
+        smoke_keyword="indonesia",
+        supports_search=True,
+        supports_latest=True,
+        note="/id/search?date=all&date_from=&date_to=&language=id&page=&q=quoted&sort=recency",
+    ),
     # ── Global sources (batch3) ──────────────────────────────────────────────
     ScraperEntry(
         "apnews",
