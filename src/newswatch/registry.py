@@ -614,6 +614,23 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         browser_required=True,
         note="new; custom CMS /search/{keyword} path param; Chrome UA required; 2026-05-16",
     ),
+    # ── Capability expansion: 2026-07 ───────────────────────────────────────
+    ScraperEntry(
+        "alinea",
+        "Alinea.id",
+        "alinea", "AlineaScraper",
+        smoke_keyword="jakarta",
+        supports_latest=True,
+        note="server-rendered /search?q= and /indeks endpoints",
+    ),
+    ScraperEntry(
+        "gnfi",
+        "Good News From Indonesia",
+        "gnfi", "GNFIScraper",
+        smoke_keyword="bali",
+        supports_latest=True,
+        note="/search?keyword= endpoint; /explore for latest",
+    ),
     # ── Global sources (batch3) ──────────────────────────────────────────────
     ScraperEntry(
         "apnews",
