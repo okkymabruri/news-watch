@@ -4,8 +4,9 @@ the XML/RSS parsers introduced/preserved in this batch.
 These tests pin:
 - Which exception classes are skipped (known external/network/browser)
   vs. allowed to fail (real bugs).
-- That Kumparan's XML sitemap parser does not warn under BeautifulSoup.
+- That Kumparan's latest parser consumes its active RSS endpoint without XML warnings.
 - That SINDO's latest parser consumes the RSS ``/feed`` XML endpoint.
+- That Surabaya Pagi bounds search pagination, scopes canonical extraction, queues the standard item schema, and consumes RSS latest links.
 """
 
 from __future__ import annotations
@@ -18,6 +19,7 @@ import pytest
 
 from newswatch.scrapers.kumparan import KumparanScraper
 from newswatch.scrapers.sindonews import SindonewsScraper
+from newswatch.scrapers.surabayapagi import SurabayaPagiScraper
 
 try:
     from playwright.async_api import Error as PlaywrightError
@@ -180,3 +182,91 @@ class TestSindonewsXMLParser:
         assert parsed.path == "/feed", (
             f"SINDO latest URL is {url!r}; expected path /feed for RSS XML"
         )
+
+# ── 4. Surabaya Pagi: bounded search and RSS latest ──────────────────────
+
+
+class TestSurabayaPagiReliability:
+    SEARCH_HTML = (
+        '<div class="category-text-wrap"><h2>'
+        '<a href="https://surabayapagi.com/news-123-ekonomi-surabaya">ok</a>'
+        '</h2></div>'
+        '<aside><a href="https://surabayapagi.com/news-999-sidebar">sidebar</a></aside>'
+        '<div class="category-text-wrap"><h2>'
+        '<a href="https://other.example.com/news-456-offsite">offsite</a>'
+        '</h2></div>'
+    )
+    RSS_XML = (
+        '<?xml version="1.0"?><rss><channel>'
+        '<item><link>https://surabayapagi.com/news-123-current</link></item>'
+        '<item><link>https://other.example.com/news-999-offsite</link></item>'
+        '</channel></rss>'
+    )
+    ARTICLE_HTML = (
+        '<html><head><meta name="author" content="Reporter">'
+        '<meta property="article:published_time" content="2026-07-13T12:05:00+07:00">'
+        '</head><body><h1>Ekonomi Surabaya</h1>'
+        '<article><p>Isi berita ekonomi Surabaya yang cukup panjang.</p></article>'
+        '</body></html>'
+    )
+
+    async def test_search_url_is_quoted_and_bounded(self):
+        scraper = SurabayaPagiScraper("ekonomi")
+        calls = []
+
+        async def fake_fetch(url, **kwargs):
+            calls.append((url, kwargs))
+            return self.SEARCH_HTML
+
+        scraper.fetch = fake_fetch
+        assert await scraper.build_search_url("energi hijau", 1) == self.SEARCH_HTML
+        assert await scraper.build_search_url("energi hijau", 2) == self.SEARCH_HTML
+        assert await scraper.build_search_url("energi hijau", 11) is None
+        assert [call[0] for call in calls] == [
+            "https://surabayapagi.com/search/energi%20hijau",
+            "https://surabayapagi.com/search/energi%20hijau/2",
+        ]
+        assert all(call[1]["timeout"] == 15 for call in calls)
+
+    def test_search_links_are_primary_same_site_articles(self):
+        scraper = SurabayaPagiScraper("ekonomi")
+        assert scraper.parse_article_links(self.SEARCH_HTML) == {
+            "https://surabayapagi.com/news-123-ekonomi-surabaya"
+        }
+
+    async def test_article_queues_canonical_item_schema(self):
+        scraper = SurabayaPagiScraper("ekonomi", queue_=asyncio.Queue())
+
+        async def fake_fetch(url, **kwargs):
+            return self.ARTICLE_HTML
+
+        scraper.fetch = fake_fetch
+        link = "https://surabayapagi.com/news-123-ekonomi-surabaya"
+        await scraper.get_article(link, "ekonomi")
+        item = scraper.queue_.get_nowait()
+        assert set(item) == {
+            "title", "publish_date", "author", "content", "keyword",
+            "category", "source", "link",
+        }
+        assert item["link"] == link
+        assert item["keyword"] == "ekonomi"
+        assert item["source"] == "surabayapagi"
+
+    async def test_latest_uses_feed_and_canonical_items(self):
+        scraper = SurabayaPagiScraper("ekonomi")
+        calls = []
+
+        async def fake_fetch(url, **kwargs):
+            calls.append((url, kwargs))
+            return self.RSS_XML
+
+        scraper.fetch = fake_fetch
+        assert await scraper.build_latest_url(1) == self.RSS_XML
+        assert await scraper.build_latest_url(2) is None
+        assert scraper.parse_latest_article_links(self.RSS_XML) == {
+            "https://surabayapagi.com/news-123-current"
+        }
+        assert calls == [(
+            "https://surabayapagi.com/feed",
+            {"retries": scraper.max_retries, "timeout": 15},
+        )]

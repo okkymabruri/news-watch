@@ -453,7 +453,7 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         strict_search=True,
         smoke_keyword="ekonomi",
         linux_excluded=True,
-        note="promoted to stable; /tag/{keyword} + article:published_time; concurrency=3 for rate limiting; 2026-04-24",
+        note="active /search/{keyword}/{page} + /feed endpoints; bounded HTTP transport; 2026-07-13",
         supports_latest=True,
     ),
     ScraperEntry(
