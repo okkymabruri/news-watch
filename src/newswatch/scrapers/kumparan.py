@@ -6,6 +6,7 @@ that can be filtered by keyword presence.
 """
 
 import logging
+import xml.etree.ElementTree as ET
 
 from bs4 import BeautifulSoup
 
@@ -19,6 +20,7 @@ class KumparanScraper(BaseScraper):
         self.start_date = start_date
         self.continue_scraping = True
         self.sitemap_index = f"{self.base_url}/sitemap.xml"
+        self.rss_url = "https://lapi.kumparan.com/v2.0/rss/"
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
         }
@@ -129,15 +131,18 @@ class KumparanScraper(BaseScraper):
     async def build_latest_url(self, page):
         if page > 1:
             return None
-        return await self.fetch(self.sitemap_index, headers=self.headers, timeout=30)
+        return await self.fetch(self.rss_url, headers=self.headers, timeout=30)
 
     def parse_latest_article_links(self, response_text):
         if not response_text:
             return None
-        soup = BeautifulSoup(response_text, "xml")
-        links = set()
-        for loc in soup.find_all("loc"):
-            url = loc.text.strip()
-            if url and "kumparan.com" in url:
-                links.add(url)
+        try:
+            root = ET.fromstring(response_text)
+        except ET.ParseError:
+            return None
+        links = {
+            link.text.strip()
+            for link in root.findall(".//item/link")
+            if link.text and link.text.strip().startswith(f"{self.base_url}/")
+        }
         return links or None

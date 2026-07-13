@@ -81,39 +81,48 @@ class TestKnownNetworkExceptionTuple:
         assert KeyError not in _KNOWN_NETWORK_EXCEPTIONS
 
 
-# ── 2. Kumparan: XML sitemap parser is warning-free ──────────────────────
+# ── 2. Kumparan: latest mode consumes active RSS XML ─────────────────────
 
 
 class TestKumparanXMLParser:
-    """Confirm Kumparan's latest parser uses BeautifulSoup's ``xml``
-    builder and does not emit ``XMLParsedAsHTMLWarning`` for actual XML
-    input. The earlier HTML parser raised a ``bs4`` warning every fetch.
-    """
+    RSS_XML = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<rss><channel>'
+        '<item><link>https://kumparan.com/kumparannews/article-a</link></item>'
+        '<item><link>https://kumparan.com/kumparanbisnis/article-b</link></item>'
+        '<item><link>https://other.example.com/article-c</link></item>'
+        '<item><title>missing link</title></item>'
+        '</channel></rss>'
+    )
 
-    def test_latest_uses_xml_parser_on_real_sitemap(self):
-        xml = (
-            '<?xml version="1.0" encoding="UTF-8"?>\n'
-            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
-            '<url><loc>https://kumparan.com/foo-ekonomi-123</loc></url>'
-            '<url><loc>https://kumparan.com/ekonomi/bar-456</loc></url>'
-            '<url><loc>https://other.example.com/no-kumparan</loc></url>'
-            "</urlset>"
-        )
-        s = KumparanScraper("ekonomi")
-        with warnings.catch_warnings():
-            warnings.simplefilter("error")  # turn any warning into an error
-            links = s.parse_latest_article_links(xml)
-        assert links == {
-            "https://kumparan.com/foo-ekonomi-123",
-            "https://kumparan.com/ekonomi/bar-456",
-        }, f"unexpected links {sorted(links or [])}"
-
-    def test_latest_empty_xml_returns_none(self):
-        s = KumparanScraper("ekonomi")
+    def test_latest_parses_same_site_rss_items_without_warning(self):
+        scraper = KumparanScraper("ekonomi")
         with warnings.catch_warnings():
             warnings.simplefilter("error")
-            assert s.parse_latest_article_links("") is None
-            assert s.parse_latest_article_links(None) is None  # type: ignore[arg-type]
+            links = scraper.parse_latest_article_links(self.RSS_XML)
+        assert links == {
+            "https://kumparan.com/kumparannews/article-a",
+            "https://kumparan.com/kumparanbisnis/article-b",
+        }
+
+    def test_latest_invalid_xml_returns_none(self):
+        scraper = KumparanScraper("ekonomi")
+        assert scraper.parse_latest_article_links("") is None
+        assert scraper.parse_latest_article_links(None) is None
+        assert scraper.parse_latest_article_links("not xml") is None
+
+    async def test_latest_url_fetches_active_rss_once(self):
+        scraper = KumparanScraper("ekonomi")
+        calls = []
+
+        async def fake_fetch(url, **kwargs):
+            calls.append((url, kwargs))
+            return self.RSS_XML
+
+        scraper.fetch = fake_fetch
+        assert await scraper.build_latest_url(1) == self.RSS_XML
+        assert await scraper.build_latest_url(2) is None
+        assert calls == [(scraper.rss_url, {"headers": scraper.headers, "timeout": 30})]
 
 
 # ── 3. SINDO: latest parser consumes RSS XML from /feed ──────────────────
