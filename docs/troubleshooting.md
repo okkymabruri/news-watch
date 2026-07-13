@@ -95,7 +95,7 @@ Some sources (e.g., Tirto) may require browser automation. Ensure Playwright is 
 playwright install chromium
 ```
 
-All 63 scrapers are stable and included in the runtime (60 Indonesian + AP News + Al Jazeera). No investigating or quarantined sources remain.
+All 70 scrapers are stable and included in the runtime. No investigating or quarantined sources remain.
 
 Try:
 ```bash

@@ -9,7 +9,7 @@ news-watch scrapes structured news data from Indonesia's top news websites with 
 <!-- BEGIN GENERATED: index-summary -->
 news-watch scrapes structured news data from Indonesia's top news websites with keyword/date search and latest-news monitoring.
 
-The current stable release supports 63 news scrapers (60 Indonesian/global sources with search mode, all 63 with latest mode).
+The current stable release supports 70 news scrapers (66 Indonesian/global sources with search mode, all 70 with latest mode).
 <!-- END GENERATED: index-summary -->
 
 ## Installation
@@ -59,6 +59,8 @@ print(len(latest))
 | AP News | `apnews` | Yes | Yes | Topic hub search; keyword filtering |
 | Al Jazeera | `aljazeera` | No | Yes | Latest-only via RSS; search JS-rendered |
 | **Indonesian Sources** | | | | |
+| Alinea.id | `alinea` | Yes | Yes | Server-rendered search and index |
+| Betahita | `betahita` | Yes | Yes | Server-rendered keyword search |
 | Antara News | `antaranews` | Yes | Yes | Strict search |
 | BBC News | `bbc` | Yes | Yes | Strict search |
 | Bali Post | `balipost` | No | Yes | Latest-only |
@@ -66,8 +68,10 @@ print(len(latest))
 | BeritaSatu | `beritasatu` | Yes | Yes | Strict search |
 | Bisnis.com | `bisnis` | Yes | Yes | Browser required; Strict search |
 | Bloomberg Technoz | `bloombergtechnoz` | Yes | Yes | Strict search |
-| CNA Indonesia | `cnaindonesia` | No | Yes | Latest-only |
+| CNA Indonesia | `cnaindonesia` | Yes | Yes | Server-rendered topic search |
 | CNBC Indonesia | `cnbcindonesia` | Yes | Yes | Strict search |
+| Good News From Indonesia | `gnfi` | Yes | Yes | Keyword search and explore index |
+| Hukumonline | `hukumonline` | No | Yes | Latest-only news sitemap; Cloudflare-sensitive |
 | CNN Indonesia | `cnnindonesia` | Yes | Yes | Strict search |
 | DailySocial | `dailysocial` | Yes | Yes | Strict search |
 | Detik | `detik` | Yes | Yes | Strict search |
@@ -78,6 +82,7 @@ print(len(latest))
 | Harian Jogja | `harianjogja` | Yes | Yes | Strict search |
 | Hipwee | `hipwee` | Yes | Yes | Strict search |
 | IDN Times | `idntimes` | Yes | Yes | Browser required; Strict search |
+| Independen.id | `independen` | No | Yes | Latest-only current reporting |
 | Investor.id | `investor` | Yes | Yes | Strict search |
 | JPNN (Jawa Pos News Network) | `jpnn` | Yes | Yes | Strict search |
 | Jakarta Globe | `jakartaglobe` | Yes | Yes | Strict search |
@@ -96,6 +101,7 @@ print(len(latest))
 | Mojok | `mojok` | Yes | Yes | Strict search |
 | Mongabay Indonesia | `mongabay` | Yes | Yes | Strict search |
 | Niaga.Asia | `niagaasia` | Yes | Yes | Strict search |
+| NusaBali | `nusabali` | Yes | Yes | Server-rendered keyword search |
 | Okezone | `okezone` | Yes | Yes | Strict search |
 | Pantau.com | `pantau` | Yes | Yes | Strict search |
 | Pikiran Rakyat | `pikiranrakyat` | Yes | Yes | Browser required; Strict search |
@@ -114,6 +120,7 @@ print(len(latest))
 | TVRI News | `tvrinews` | Yes | Yes | Strict search |
 | Tempo | `tempo` | Yes | Yes | Strict search |
 | The Jakarta Post | `jakartapost` | Yes | Yes | Browser required; Strict search |
+| The Conversation Indonesia | `conversationid` | Yes | Yes | Server-rendered Indonesian search |
 | Tirto | `tirto` | Yes | Yes | Browser required; Strict search |
 | Tribunnews | `tribunnews` | Yes | Yes | Strict search |
 | VOA Indonesia | `voaindonesia` | Yes | Yes | Strict search |
@@ -127,4 +134,4 @@ print(len(latest))
 
 **Performance**: Works best in local environments. Cloud platforms may experience reduced performance due to anti-bot measures.
 
-**Strict search policy**: Every listed source passes real keyword search checks.
+**Strict search policy**: Sources marked `Yes` in the Search column have verified keyword-search workflows.

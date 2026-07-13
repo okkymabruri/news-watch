@@ -59,7 +59,7 @@ A source moves to **stable** only if:
 
 | State | Count |
 |---|---|
-| stable | 63 |
+| stable | 70 |
 | quarantined | 0 |
 | investigating | 0 |
 <!-- END GENERATED: architecture-state -->
