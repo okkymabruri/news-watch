@@ -661,6 +661,16 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         supports_latest=True,
         note="/id/search?date=all&date_from=&date_to=&language=id&page=&q=quoted&sort=recency",
     ),
+    ScraperEntry(
+        "hukumonline",
+        "Hukumonline",
+        "hukumonline", "HukumonlineScraper",
+        strict_search=False,
+        smoke_keyword="hukum",
+        supports_search=False,
+        supports_latest=True,
+        note="latest-only /berita/sitemap.xml; public /search returns 401 (legal-database SPA, needs auth)",
+    ),
     # ── Global sources (batch3) ──────────────────────────────────────────────
     ScraperEntry(
         "apnews",
