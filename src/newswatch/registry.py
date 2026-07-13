@@ -671,6 +671,16 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         supports_latest=True,
         note="latest-only /berita/sitemap.xml; public /search returns 401 (legal-database SPA, needs auth)",
     ),
+    ScraperEntry(
+        "independen",
+        "Independen.id",
+        "independen", "IndependenScraper",
+        strict_search=False,
+        smoke_keyword="indonesia",
+        supports_search=False,
+        supports_latest=True,
+        note="latest-only Drupal homepage with root-level slugs; excludes node/taxonomy/user/tags/agenda routes",
+    ),
     # ── Global sources (batch3) ──────────────────────────────────────────────
     ScraperEntry(
         "apnews",
