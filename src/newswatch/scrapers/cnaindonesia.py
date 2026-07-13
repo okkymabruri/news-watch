@@ -1,17 +1,19 @@
 """
-CNA Indonesia scraper — latest-only via homepage.
+CNA Indonesia scraper — topic + latest via server-rendered Drupal pages.
 
-https://www.cna.id/terbaru
+https://www.cna.id/topic/{keyword}  (search; URL-quoted keyword)
+https://www.cna.id/terbaru          (latest)
 Article pattern: /{category}/{slug}-{id}
 
-NOTE: Search uses Algolia JS (not available as static HTML).
-This scraper only supports latest mode.
+NOTE: The header search box uses Algolia JS (not available as static HTML).
+The topic listing endpoint (/topic/{keyword}) returns the same article set
+in static HTML, so it is used as the search source.
 """
 
 import json
 import logging
 import re
-from urllib.parse import urljoin
+from urllib.parse import quote, urljoin
 
 from bs4 import BeautifulSoup
 
@@ -29,11 +31,25 @@ class CNAIndonesiaScraper(BaseScraper):
         )
 
     async def build_search_url(self, keyword, page):
-        # Search uses Algolia JS — not available as static HTML
-        return None
+        # /topic/{keyword} returns a server-rendered Drupal listing page.
+        # CNA's Algolia search is JS-only; topic URL is the only static-HTML
+        # listing available. URL-quote the keyword so spaces/UTF-8 are encoded.
+        if page != 1:
+            return None
+        encoded = quote(keyword, safe="")
+        return await self.fetch(f"{self.base_url}/topic/{encoded}")
 
     def parse_article_links(self, response_text):
-        return None
+        if not response_text:
+            return None
+        soup = BeautifulSoup(response_text, "html.parser")
+        links = set()
+        for a in soup.select("a[href]"):
+            href = a.get("href", "")
+            full_url = urljoin(self.base_url, href) if not href.startswith("http") else href
+            if self._article_re.match(full_url):
+                links.add(full_url)
+        return links or None
 
     async def get_article(self, link, keyword):
         response_text = await self.fetch(link)
