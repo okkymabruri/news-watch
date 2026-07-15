@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- `--daterange` is now date-only: format `YYYY-MM-DD/YYYY-MM-DD`, inclusive of both full calendar days (start 00:00:00, end 23:59:59.999999). The Python `time_range=` parameter accepts the same date-only syntax; datetime-bearing values are rejected.
+
 ### Deprecated
 - `--time-range` CLI flag: compatibility alias for `--daterange`. Emits a stderr warning in v1.1.x and is removed/rejected (unrecognized argument) beginning v1.2.0. Use `--daterange`.
 

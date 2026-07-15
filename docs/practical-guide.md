@@ -96,7 +96,7 @@ import newswatch as nw
 df = nw.scrape_to_dataframe(
     keywords="ihsg,saham,obligasi",
     start_date="2025-01-01",
-    time_range="2025-01-01T00:00:00/2025-01-31T23:59:59",
+    time_range="2025-01-01/2025-01-31",
     scrapers="cnbcindonesia,kontan,bisnis",
     verbose=True,
 )

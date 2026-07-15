@@ -119,7 +119,7 @@ def test_cli_scraper_timeout_arg(monkeypatch, capsys):
 
 
 def test_cli_daterange_arg(monkeypatch, capsys):
-    value = "2026-07-13T00:00:00/2026-07-14T23:59:59"
+    value = "2026-07-13/2026-07-15"
     monkeypatch.setattr(sys, "argv", ["cli.py", "--daterange", value])
 
     with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main:
@@ -132,7 +132,7 @@ def test_cli_daterange_arg(monkeypatch, capsys):
 
 def test_cli_daterange_canonical_no_deprecation_warning(monkeypatch, capsys):
     """Canonical --daterange reaches run_main as args.time_range and emits no legacy warning."""
-    value = "2026-07-13T00:00:00/2026-07-14T23:59:59"
+    value = "2026-07-13/2026-07-15"
     monkeypatch.setattr(sys, "argv", ["cli.py", "--daterange", value])
 
     with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main:
@@ -146,7 +146,7 @@ def test_cli_daterange_canonical_no_deprecation_warning(monkeypatch, capsys):
 
 def test_cli_legacy_time_range_warns_and_maps_to_daterange(monkeypatch, capsys):
     """Under v1.1.x, --time-range warns on stderr naming --daterange and v1.2.0, then reaches run_main as args.time_range."""
-    value = "2026-07-13T00:00:00/2026-07-14T23:59:59"
+    value = "2026-07-13/2026-07-15"
     monkeypatch.setattr(sys, "argv", ["cli.py", "--time-range", value])
 
     with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main:
@@ -168,9 +168,9 @@ def test_cli_legacy_and_canonical_collision_errors(monkeypatch, capsys):
         [
             "cli.py",
             "--time-range",
-            "2026-01-01T00:00:00/2026-01-02T00:00:00",
+            "2026-07-13/2026-07-15",
             "--daterange",
-            "2026-02-01T00:00:00/2026-02-02T00:00:00",
+            "2026-08-01/2026-08-03",
         ],
     )
 
@@ -190,7 +190,7 @@ def test_cli_legacy_time_range_unrecognized_at_removal(monkeypatch, capsys):
     monkeypatch.setattr(
         sys,
         "argv",
-        ["cli.py", "--time-range", "2026-07-13T00:00:00/2026-07-14T23:59:59"],
+        ["cli.py", "--time-range", "2026-07-13/2026-07-15"],
     )
 
     with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main:
@@ -206,7 +206,7 @@ def test_cli_date_range_with_hyphen_unrecognized(monkeypatch, capsys):
     monkeypatch.setattr(
         sys,
         "argv",
-        ["cli.py", "--date-range", "2026-07-13T00:00:00/2026-07-14T23:59:59"],
+        ["cli.py", "--date-range", "2026-07-13/2026-07-15"],
     )
 
     with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main:

@@ -37,7 +37,7 @@ uv run newswatch \
   --method search \
   --keywords "makan bergizi gratis,program MBG,satuan pelayanan pemenuhan gizi,SPPG,badan gizi nasional" \
   --start_date "2025-01-05" \
-  --daterange "2025-01-05T00:00:00/2026-07-14T23:59:59" \
+  --daterange "2025-01-05/2026-07-14" \
   --scrapers all \
   --scraper-timeout 180 \
   --output_format jsonl \
@@ -73,7 +73,7 @@ that run, not fixed properties of the news ecosystem.
    `source` on every record. Reject malformed rows rather than filling missing
    evidence with inferred values.
 2. **Enforce the study window.** Parse publication timestamps and retain only
-   records from 2025-01-05 00:00:00 through 2026-07-14 23:59:59. Report
+   records from 2025-01-05 through 2026-07-14 inclusive of both full calendar days (i.e. 2025-01-05 00:00:00 through 2026-07-14 23:59:59.999999). Report
    unparseable and out-of-window rows separately.
 3. **Confirm relevance.** Keep a record only when its title or content contains
    at least one retrieval term: `MBG`, `Makan Bergizi Gratis`, `Program MBG`,

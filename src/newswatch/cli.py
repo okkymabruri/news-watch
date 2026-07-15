@@ -115,7 +115,7 @@ def cli():
         dest="time_range",
         type=str,
         default=None,
-        help="Filter articles by inclusive date range. Format: ISO8601/ISO8601, e.g. '2026-07-13T00:00:00/2026-07-14T23:59:59'.",
+        help="Filter articles by inclusive date range. Format: YYYY-MM-DD/YYYY-MM-DD, e.g. '2026-07-13/2026-07-14'.",
     )
     parser.add_argument(
         "--dedup-file",
