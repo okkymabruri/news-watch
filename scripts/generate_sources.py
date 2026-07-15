@@ -32,6 +32,7 @@ SOURCE_URLS: Dict[str, str] = {
     "aljazeera": "https://www.aljazeera.com",
     "betahita": "https://www.betahita.id",
     "balipost": "https://www.balipost.com",
+    "bantennews": "https://www.bantennews.co.id",
     "bbc": "https://bbc.com",
     "beritajatim": "https://beritajatim.com",
     "beritasatu": "https://www.beritasatu.com",
@@ -41,6 +42,7 @@ SOURCE_URLS: Dict[str, str] = {
     "cnbcindonesia": "https://cnbcindonesia.com",
     "conversationid": "https://theconversation.com/id",
     "cnnindonesia": "https://cnnindonesia.com",
+    "dandapala": "https://dandapala.com",
     "dailysocial": "https://news.dailysocial.id",
     "detik": "https://detik.com",
     "fajar": "https://fajar.co.id",
@@ -111,7 +113,6 @@ def get_source_url_map() -> Dict[str, str]:
 # ── Stats ──────────────────────────────────────────────────────────────────
 
 
-
 def _load_registry():
     """Load newswatch.registry as a module and return it.
 
@@ -135,19 +136,32 @@ def _load_registry():
 
 
 def compute_stats() -> Dict[str, int]:
-    """Return a dict of registry-derived counts.
+    """Return registered, stable, and status counts from the registry.
+
+    Exposes both registered capability counts (every slug in the registry)
+    and stable-release counts (status == "stable") so renderers can pick
+    the right view for each block. Counts for investigating and quarantined
+    statuses are always explicit — renderers describe them dynamically so
+    the docs never claim "none" when those counts are nonzero.
+
+    Keys:
+      registered_total, registered_search, registered_latest — every slug.
+      stable_total, stable_search, stable_latest — status == "stable".
+      investigating, quarantined — counts of non-stable statuses.
 
     Only uses fields that exist on ``ScraperEntry``: ``status``,
     ``supports_search``, ``supports_latest``.
     """
     scrapers = _load_registry().SCRAPERS
 
-    total = len(scrapers)
-    stable = sum(1 for s in scrapers.values() if s.status == "stable")
-    search = sum(
+    registered_total = len(scrapers)
+    registered_search = sum(1 for s in scrapers.values() if s.supports_search)
+    registered_latest = sum(1 for s in scrapers.values() if s.supports_latest)
+    stable_total = sum(1 for s in scrapers.values() if s.status == "stable")
+    stable_search = sum(
         1 for s in scrapers.values() if s.status == "stable" and s.supports_search
     )
-    latest = sum(
+    stable_latest = sum(
         1 for s in scrapers.values() if s.status == "stable" and s.supports_latest
     )
     quarantined = sum(1 for s in scrapers.values() if s.status == "quarantined")
@@ -155,10 +169,12 @@ def compute_stats() -> Dict[str, int]:
         1 for s in scrapers.values() if s.status == "investigating"
     )
     return {
-        "total": total,
-        "stable": stable,
-        "search": search,
-        "latest": latest,
+        "registered_total": registered_total,
+        "registered_search": registered_search,
+        "registered_latest": registered_latest,
+        "stable_total": stable_total,
+        "stable_search": stable_search,
+        "stable_latest": stable_latest,
         "quarantined": quarantined,
         "investigating": investigating,
     }
@@ -186,9 +202,31 @@ def validate_source_url_map(mapping: Dict[str, str]) -> None:
 # ── Renderers ──────────────────────────────────────────────────────────────
 
 
+def _status_summary(stats: Dict[str, int]) -> str:
+    """Dynamic clause about investigating/quarantined sources.
+
+    Always reflects the current counts — never claims "none" when a
+    count is nonzero. Singular/plural noun agrees with the count.
+    """
+    parts: List[str] = []
+    if stats["investigating"]:
+        n = stats["investigating"]
+        parts.append(f"{n} source{'' if n == 1 else 's'} under investigation")
+    if stats["quarantined"]:
+        n = stats["quarantined"]
+        parts.append(f"{n} source{'' if n == 1 else 's'} quarantined")
+    if not parts:
+        return "No sources under investigation or quarantined."
+    return "; ".join(parts) + "."
+
+
 def render_readme_heading(stats: Dict[str, int]) -> str:
-    """README "Supported Websites" section heading + intro."""
-    return f"## Supported Websites ({stats['total']})\n"
+    """README "Supported Websites" section heading + intro.
+
+    Uses the registered total — every slug in the URL mapping corresponds
+    to a registered scraper, regardless of stability status.
+    """
+    return f"## Supported Websites ({stats['registered_total']})\n"
 
 
 def render_readme_sources(stats: Dict[str, int]) -> str:
@@ -203,22 +241,22 @@ def render_readme_sources(stats: Dict[str, int]) -> str:
     url_map = get_source_url_map()
     validate_source_url_map(url_map)
     registry = _load_registry().SCRAPERS
-    lines = [
-        f"[{registry[slug].name}]({url_map[slug]})"
-        for slug in sorted(url_map)
-    ]
+    lines = [f"[{registry[slug].name}]({url_map[slug]})" for slug in sorted(url_map)]
     return ",\n".join(lines) + "\n"
 
 
-
-
-
 def render_readme_counts(stats: Dict[str, int]) -> str:
-    """README bullets summarizing totals and policy notes."""
+    """README bullets summarizing registered, stable, and status counts."""
+    state = _status_summary(stats)
     lines = [
         "> **Notes:**",
-        f"> - {stats['total']} total sources: {stats['search']} with keyword search, "
-        f"{stats['latest']} with latest mode.",
+        f"> - {stats['registered_total']} registered sources: "
+        f"{stats['registered_search']} with keyword search, "
+        f"{stats['registered_latest']} with latest mode.",
+        f"> - {stats['stable_total']} stable scrapers in the current release: "
+        f"{stats['stable_search']} with keyword search, "
+        f"{stats['stable_latest']} with latest mode.",
+        f"> - {state}",
         "> - AP News uses topic hub pages with keyword-in-title filtering "
         "(robots disallows /search?q=*).",
         "> - Al Jazeera is latest-only via RSS feed (search page is JS-rendered).",
@@ -238,7 +276,8 @@ def render_architecture_state(stats: Dict[str, int]) -> str:
         "\n"
         "| State | Count |\n"
         "|---|---|\n"
-        f"| stable | {stats['stable']} |\n"
+        f"| registered | {stats['registered_total']} |\n"
+        f"| stable | {stats['stable_total']} |\n"
         f"| quarantined | {stats['quarantined']} |\n"
         f"| investigating | {stats['investigating']} |\n"
     )
@@ -247,13 +286,14 @@ def render_architecture_state(stats: Dict[str, int]) -> str:
 def render_index_summary(stats: Dict[str, int]) -> str:
     """docs/index.md intro paragraph."""
     return (
-        f"news-watch scrapes structured news data from Indonesia's top news "
-        f"websites with keyword/date search and latest-news monitoring.\n"
-        f"\n"
-        f"The current stable release supports {stats['total']} news scrapers "
-        f"({stats['search']} Indonesian/global sources with search mode, "
-        f"all {stats['total']} with latest mode)."
+        "news-watch scrapes structured news data from Indonesia's top news "
+        "websites with keyword/date search and latest-news monitoring.\n"
         "\n"
+        f"The current stable release supports {stats['stable_total']} news "
+        f"scrapers ({stats['stable_search']} Indonesian/global sources with "
+        f"search mode, {stats['stable_latest']} with latest mode). "
+        f"{stats['registered_total']} sources are registered in total: "
+        f"{_status_summary(stats)}\n"
     )
 
 
@@ -262,18 +302,19 @@ def render_api_notes(stats: Dict[str, int]) -> str:
     return (
         "## Stable API Notes\n"
         "\n"
-        f"All {stats['total']} registered scrapers are exposed via "
+        f"All {stats['registered_total']} registered scrapers are exposed via "
         "`list_scrapers()` and the public `SCRAPERS` mapping. "
-        f"{stats['search']} of them support the `search` method; "
-        f"all {stats['total']} support `latest`.\n"
+        f"{stats['registered_search']} of them support the `search` method; "
+        f"all {stats['registered_latest']} support `latest`.\n"
         "\n"
         "## Notes\n"
         "\n"
         "- Prefer `scrapers=\"auto\"` unless you know which sites you need.\n"
         "- Cloud/server environments are more likely to be blocked.\n"
-        f"- Stable support currently covers {stats['search']} search-capable "
-        f"scrapers and {stats['latest']} latest-capable scrapers.\n"
-        "- No investigating or quarantined sources remain.\n"
+        f"- Stable support currently covers {stats['stable_total']} scrapers "
+        f"({stats['stable_search']} search-capable, {stats['stable_latest']} "
+        "latest-capable).\n"
+        f"- {_status_summary(stats)}\n"
         "\n"
         "**Empty results**: Check if your keywords are in Indonesian or try "
         "broader terms.\n"
@@ -283,11 +324,16 @@ def render_api_notes(stats: Dict[str, int]) -> str:
 def render_guide_counts(stats: Dict[str, int]) -> str:
     """docs/practical-guide.md choosing-your-sources paragraph."""
     return (
-        f"The stable release currently exposes {stats['total']} supported "
-        f"scrapers. No investigating or quarantined sources remain.\n"
+        f"The stable release currently exposes {stats['stable_total']} supported "
+        f"scrapers. {_status_summary(stats)}\n"
         "\n"
-        f"{stats['latest']} of {stats['total']} sources support latest monitoring.\n"
+        f"{stats['stable_search']} of {stats['stable_total']} stable sources support "
+        f"keyword search; {stats['stable_latest']} support latest monitoring.\n"
+        f"The full registry contains {stats['registered_total']} sources: "
+        f"{stats['registered_search']} support keyword search and "
+        f"{stats['registered_latest']} support latest monitoring.\n"
     )
+
 
 # ── Block replacement ──────────────────────────────────────────────────────
 
@@ -326,7 +372,6 @@ def render_block(
 
 
 # ── Targets ────────────────────────────────────────────────────────────────
-
 
 TARGETS: List[Tuple[Path, str, Callable[[Dict[str, int]], str]]] = [
     (REPO_ROOT / "README.md", "readme-heading", render_readme_heading),

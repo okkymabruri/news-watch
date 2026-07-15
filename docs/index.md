@@ -7,7 +7,7 @@
 <!-- BEGIN GENERATED: index-summary -->
 news-watch scrapes structured news data from Indonesia's top news websites with keyword/date search and latest-news monitoring.
 
-The current stable release supports 70 news scrapers (66 Indonesian/global sources with search mode, all 70 with latest mode).
+The current stable release supports 70 news scrapers (66 Indonesian/global sources with search mode, 70 with latest mode). 72 sources are registered in total: 2 sources under investigation.
 <!-- END GENERATED: index-summary -->
 
 ## Install
@@ -41,7 +41,7 @@ latest = nw.latest_to_dataframe(scrapers="antaranews,kompas,viva")
 
 - [Getting Started](getting-started.md)
 - [Practical Guide](practical-guide.md)
-- [MBG Use Case](mbg-use-case.md)
+- [MBG Use Case](use-case.md)
 - [API Reference](api-reference.md)
 - [Architecture](architecture.md)
 - [Troubleshooting](troubleshooting.md)

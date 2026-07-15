@@ -158,7 +158,7 @@ The output file contains the following columns:
 - `latest` is intended for latest-news monitoring and does not require keywords.
 
 <!-- BEGIN GENERATED: readme-heading -->
-## Supported Websites (70)
+## Supported Websites (72)
 <!-- END GENERATED: readme-heading -->
 <!-- BEGIN GENERATED: readme-sources -->
 [Alinea.id](https://www.alinea.id),
@@ -166,6 +166,7 @@ The output file contains the following columns:
 [Antara News](https://antaranews.com),
 [AP News](https://apnews.com),
 [Bali Post](https://www.balipost.com),
+[Banten News](https://www.bantennews.co.id),
 [BBC News](https://bbc.com),
 [Berita Jatim](https://beritajatim.com),
 [BeritaSatu](https://www.beritasatu.com),
@@ -177,6 +178,7 @@ The output file contains the following columns:
 [CNN Indonesia](https://cnnindonesia.com),
 [The Conversation Indonesia](https://theconversation.com/id),
 [DailySocial](https://news.dailysocial.id),
+[Dandapala](https://dandapala.com),
 [Detik](https://detik.com),
 [Fajar](https://fajar.co.id),
 [Galamedia](https://galamedia.pikiran-rakyat.com),
@@ -235,7 +237,9 @@ The output file contains the following columns:
 
 <!-- BEGIN GENERATED: readme-counts -->
 > **Notes:**
-> - 70 total sources: 66 with keyword search, 70 with latest mode.
+> - 72 registered sources: 67 with keyword search, 72 with latest mode.
+> - 70 stable scrapers in the current release: 66 with keyword search, 70 with latest mode.
+> - 2 sources under investigation.
 > - AP News uses topic hub pages with keyword-in-title filtering (robots disallows /search?q=*).
 > - Al Jazeera is latest-only via RSS feed (search page is JS-rendered).
 > - Reuters skipped (WAF blocked).

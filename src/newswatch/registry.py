@@ -681,6 +681,32 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         supports_latest=True,
         note="latest-only Drupal homepage with root-level slugs; excludes node/taxonomy/user/tags/agenda routes",
     ),
+    # ── Source additions: 2026-07 ───────────────────────────────────────────
+    ScraperEntry(
+        "bantennews",
+        "Banten News",
+        "bantennews", "BantenNewsScraper",
+        status="investigating",
+        strict_search=True,
+        browser_required=True,
+        concurrency=3,
+        smoke_keyword="makan bergizi gratis",
+        supports_search=True,
+        supports_latest=True,
+        note="WordPress search with browser fallback; root-level article slugs",
+    ),
+    ScraperEntry(
+        "dandapala",
+        "Dandapala",
+        "dandapala", "DandapalaScraper",
+        status="investigating",
+        strict_search=False,
+        concurrency=5,
+        smoke_keyword="hukum",
+        supports_search=False,
+        supports_latest=True,
+        note="latest-only homepage; apparent query parameters ignore keywords",
+    ),
     # ── Global sources (batch3) ──────────────────────────────────────────────
     ScraperEntry(
         "apnews",

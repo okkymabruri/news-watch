@@ -1,6 +1,6 @@
 # news-watch Practical Guide
 
-A short, end-to-end walkthrough of `news-watch` covering both retrieval methods and common research and monitoring patterns. For exhaustive function signatures, see the [API Reference](api-reference.md). For installation, see [Getting Started](getting-started.md). For the MBG research workflow, see the [MBG use case guide](mbg-use-case.md).
+A short, end-to-end walkthrough of `news-watch` covering both retrieval methods and common research and monitoring patterns. For exhaustive function signatures, see the [API Reference](api-reference.md). For installation, see [Getting Started](getting-started.md). For the MBG research workflow, see the [MBG use case guide](use-case.md).
 
 ## Retrieval methods
 
@@ -56,9 +56,10 @@ nw.list_scrapers(method="latest") # sources that support latest mode
 For larger sweeps, narrow the date window or `--limit` to bound cost; for noisy periods, narrow `--scrapers` before retrying.
 
 <!-- BEGIN GENERATED: guide-counts -->
-The stable release currently exposes 70 supported scrapers. No investigating or quarantined sources remain.
+The stable release currently exposes 70 supported scrapers. 2 sources under investigation.
 
-70 of 70 sources support latest monitoring.
+66 of 70 stable sources support keyword search; 70 support latest monitoring.
+The full registry contains 72 sources: 67 support keyword search and 72 support latest monitoring.
 <!-- END GENERATED: guide-counts -->
 
 ## Saving results
@@ -131,4 +132,4 @@ All knobs also work as keyword arguments (`proxy=`, `scraper_timeout=`) or CLI f
 - [API Reference](api-reference.md) — function signatures and parameters.
 - [Architecture](architecture.md) — registry, scraper states, validation gate.
 - [Troubleshooting](troubleshooting.md) — install, runtime, and platform notes.
-- [MBG use case](mbg-use-case.md) — end-to-end MBG research workflow with quality gates.
+- [MBG use case](use-case.md) — end-to-end MBG research workflow with quality gates.
