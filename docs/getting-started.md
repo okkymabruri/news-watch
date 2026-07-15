@@ -109,6 +109,6 @@ Cloud and shared IPs are blocked more often than local connections. See [Trouble
 ## Next
 
 - [Practical Guide](practical-guide.md): retrieval patterns and reliability controls
-- [MBG Use Case](mbg-use-case.md): a real policy-news collection and analysis workflow
+- [MBG Use Case](use-case.md): a real policy-news collection and analysis workflow
 - [API Reference](api-reference.md): public functions and parameters
 - [Architecture](architecture.md): registry and scraper lifecycle
