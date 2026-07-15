@@ -117,13 +117,23 @@ The substantive topics cover SPPG operations, budgets, food safety, corruption,
 public oversight, supply chains, and program governance; the outlier class
 captures documents that do not cluster cleanly with any dominant theme.
 
-![Two-dimensional UMAP scatter of the 8,173 cleaned documents colored by topic; five large substantive topics are directly labelled and unassigned outliers are shown in grey](assets/mbg/umap_scatter.png)
+![Two-dimensional UMAP scatter of the 8,173 cleaned documents colored by topic; the five largest substantive topics are listed in an external legend and unassigned outliers are shown in grey](assets/mbg/umap_scatter.png)
 
 A two-dimensional UMAP projection of the cleaned documents, colored by
 topic. Each point is one document. The five largest substantive topics are
-labelled directly, while grey points show documents left unassigned by the
-clustering model. Separation and overlap are diagnostic patterns, not proof
-that the generated labels are definitive categories.
+listed in an external legend on the right of the figure, while grey points
+show documents left unassigned by the clustering model. Separation and
+overlap are diagnostic patterns, not proof that the generated labels are
+definitive categories.
+
+**Visualization projection (figure only).** The scatter uses a dedicated
+UMAP projection tuned for readability (`random_state=42`,
+`n_neighbors=30`, `min_dist=0.3`, `metric=cosine`). It is distinct from
+the analysis UMAP embedded inside the BERTopic pipeline, which produces
+the topic assignments themselves; this second projection only re-lays
+the documents out in two dimensions so clusters spread out and the
+topic clouds stay legible. Topic assignments and cluster identities
+are unchanged.
 
 ![Per-topic document counts ranked largest to smallest; the top three topics together account for 3,769 of 8,173 cleaned documents (46.1 percent)](assets/mbg/topic_size_bar.png)
 
