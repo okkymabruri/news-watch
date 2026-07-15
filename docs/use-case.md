@@ -117,11 +117,11 @@ The substantive topics cover SPPG operations, budgets, food safety, corruption,
 public oversight, supply chains, and program governance; the outlier class
 captures documents that do not cluster cleanly with any dominant theme.
 
-![Two-dimensional UMAP scatter of the 8,173 cleaned documents colored by topic; the five largest substantive topics are listed in an external legend and unassigned outliers are shown in grey](assets/mbg/umap_scatter.png)
+![Two-dimensional UMAP scatter of the 8,173 cleaned documents colored by topic; all 14 substantive topics are labeled directly over their cluster regions and unassigned outliers are shown in grey](assets/mbg/umap_scatter.png)
 
 A two-dimensional UMAP projection of the cleaned documents, colored by
-topic. Each point is one document. The five largest substantive topics are
-listed in an external legend on the right of the figure, while grey points
+topic. Each point is one document. All 14 substantive topics are labeled
+directly over their cluster regions within the scatter, while grey points
 show documents left unassigned by the clustering model. Separation and
 overlap are diagnostic patterns, not proof that the generated labels are
 definitive categories.
