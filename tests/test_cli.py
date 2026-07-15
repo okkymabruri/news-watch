@@ -118,6 +118,36 @@ def test_cli_scraper_timeout_arg(monkeypatch, capsys):
         assert args.scraper_timeout == 30
 
 
+def test_cli_daterange_arg(monkeypatch, capsys):
+    value = "2026-07-13T00:00:00/2026-07-14T23:59:59"
+    monkeypatch.setattr(sys, "argv", ["cli.py", "--daterange", value])
+
+    with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main:
+        cli()
+        capsys.readouterr()
+
+        mock_main.assert_called_once()
+        args = mock_main.call_args[0][0]
+        assert args.time_range == value
+
+
+@pytest.mark.parametrize("legacy_flag", ["--time-range", "--date-range"])
+def test_cli_rejects_other_date_range_spellings(monkeypatch, capsys, legacy_flag):
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["cli.py", legacy_flag, "2026-07-13T00:00:00/2026-07-14T23:59:59"],
+    )
+
+    with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main:
+        with pytest.raises(SystemExit) as error:
+            cli()
+
+        assert error.value.code == 2
+        assert "unrecognized arguments" in capsys.readouterr().err.lower()
+        mock_main.assert_not_called()
+
+
 def test_cli_progress_flag(monkeypatch, capsys):
     """Test that --progress flag is parsed."""
     monkeypatch.setattr(sys, "argv", ["cli.py", "--progress"])

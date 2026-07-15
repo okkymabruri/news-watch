@@ -97,10 +97,11 @@ def cli():
         help="Print per-scraper progress lines (implies some verbosity).",
     )
     parser.add_argument(
-        "--time-range",
+        "--daterange",
+        dest="time_range",
         type=str,
         default=None,
-        help="Filter articles by time range. Format: ISO8601/ISO8601, e.g. '2026-04-30T16:30:00/2026-05-01T08:00:00'.",
+        help="Filter articles by inclusive date range. Format: ISO8601/ISO8601, e.g. '2026-07-13T00:00:00/2026-07-14T23:59:59'.",
     )
     parser.add_argument(
         "--dedup-file",

@@ -75,7 +75,7 @@ newswatch --method <search|latest> -k <keywords> -sd <start_date> -s [<scrapers>
 | `--max-pages` | Maximum pages to fetch per scraper in latest mode |
 | `--scraper-timeout` | Per-scraper timeout in seconds |
 | `--progress` | Print per-scraper progress lines |
-| `--time-range` | Filter articles by time window. Format: `ISO8601/ISO8601` (e.g. `2026-04-30T16:30:00/2026-05-01T08:00:00`) |
+| `--daterange` | Filter articles by an inclusive date window. Format: `ISO8601/ISO8601` (e.g. `2026-07-13T00:00:00/2026-07-14T23:59:59`) |
 | `--dedup-file` | Path to a previous output file (JSON/JSONL/CSV); articles with matching links are skipped |
 | `--proxy` | Proxy URL for all requests (e.g. `http://proxy.example.com:8080` or `socks5://proxy.example.com:1080`). Also via `NEWSWATCH_PROXY` env |
 
