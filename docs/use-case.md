@@ -7,24 +7,29 @@ exactly as it is currently configured. It is the companion to
 `practical-guide.md`; it does not duplicate installation, configuration, or
 troubleshooting content.
 
-## Background: Announcement vs. Operations
+## Background: What Is MBG?
 
-- **5 January 2025** — The Badan Gizi Nasional (BGN) announced the launch of
-  the MBG program. Use this date as the *earliest possible news hook*.
-  Announcement coverage on and around 5 Jan 2025 is largely about the policy
-  itself, governance, and rollout intent.
-- **6 January 2025** — Operations began. Coverage from this date forward
-  includes implementation, beneficiaries, kitchens (SPPG), regional rollouts,
-  incidents, audits, and parliamentary oversight.
+*Makan Bergizi Gratis* (MBG) is Indonesia's national free nutritious-meals
+program, administered by the Badan Gizi Nasional (BGN). It provides meals
+designed against daily nutritional adequacy standards for school students,
+pregnant women, breastfeeding mothers, and young children. Delivery is
+organized through *Satuan Pelayanan Pemenuhan Gizi* (SPPG), the local service
+units that prepare and distribute meals.
 
-Cite the policy with BGN's primary announcement:
+BGN describes MBG as both a nutrition intervention and a platform for nutrition
+education. Its operating model also links SPPG procurement with local farmers,
+fishers, cooperatives, and small businesses. This scale makes MBG a useful news
+research case: reporting spans beneficiary access, kitchen expansion, food
+safety, procurement, public finance, regional implementation, oversight, and
+political accountability.
 
-- <https://www.bgn.go.id/news/artikel/bgn-akan-memulai-program-mbg-secara-bertahap>
+The corpus starts on **5 January 2025**, when BGN formally introduced the 2025
+program, and includes implementation from **6 January 2025** onward. Official
+program context and operating details are available from:
 
-When narrating the program, distinguish the announcement (5 Jan) from the
-first operational day (6 Jan); the corpus window starts on 5 Jan to retain
-announcement framing while the bulk of records describes the operational
-period.
+- [BGN's program launch statement](https://www.bgn.go.id/news/artikel/bgn-akan-memulai-program-mbg-secara-bertahap)
+- [BGN's MBG frequently asked questions](https://www.bgn.go.id/faq)
+- [BGN's SPPG quality-oversight statement](https://www.bgn.go.id/news/siaran-pers/bgn-perkuat-pengawasan-sppg-untuk-menjaga-kualitas-penyelenggaraan-program-mbg)
 
 ## Collection Command
 
@@ -35,7 +40,7 @@ declared window. `--scrapers all` resolves every stable entry with
 ```bash
 uv run newswatch \
   --method search \
-  --keywords "makan bergizi gratis,program MBG,satuan pelayanan pemenuhan gizi,SPPG,badan gizi nasional" \
+  --keywords "mbg,makan bergizi gratis,program MBG,satuan pelayanan pemenuhan gizi,SPPG,badan gizi nasional" \
   --start_date "2025-01-05" \
   --daterange "2025-01-05/2026-07-14" \
   --scrapers all \
@@ -75,10 +80,12 @@ that run, not fixed properties of the news ecosystem.
 2. **Enforce the study window.** Parse publication timestamps and retain only
    records from 2025-01-05 through 2026-07-14 inclusive of both full calendar days (i.e. 2025-01-05 00:00:00 through 2026-07-14 23:59:59.999999). Report
    unparseable and out-of-window rows separately.
-3. **Confirm relevance.** Keep a record only when its title or content contains
-   at least one retrieval term: `MBG`, `Makan Bergizi Gratis`, `Program MBG`,
+3. **Confirm relevance.** Keep a record only when its title contains standalone
+   `MBG` or an explicit program term: `Makan Bergizi Gratis`, `Program MBG`,
    `satuan pelayanan pemenuhan gizi`, `SPPG`, `Badan Gizi Nasional`, or `BGN`.
-   Matching is case-insensitive.
+   Matching is case-insensitive, and acronym boundaries reject collisions such
+   as `PVMBG`. Title anchoring excludes tangential articles that mention an MBG
+   term only in the body.
 4. **Remove duplicates in order.** Deduplicate exact article links first, then
    lowercase and collapse whitespace in titles before removing repeated titles.
    Preserve the number removed at each step so the final corpus is auditable.
@@ -87,29 +94,30 @@ that run, not fixed properties of the news ecosystem.
    private research workspace.
 
 Inspect the actual numbers in each run; do not treat one retrieval as a fixed
-benchmark. The run documented here yielded 9,973 well-formed records
-before cleaning, then 7,621 after relevance filtering, 3,995 after URL
-deduplication, and 3,976 after normalized-title deduplication. It covered 34
-sources and all 19 calendar months in the window. These are one run's retrieval
-counts, not estimates of article production.
+benchmark. The run documented here yielded 24,600 well-formed records before
+cleaning, then 17,717 after relevance filtering, 8,206 after URL deduplication,
+and 8,173 after normalized-title deduplication. It covered 44 sources and all 19
+calendar months in the window. These are one run's retrieval counts, not
+estimates of article production.
 
 ## Aggregate Analysis
 
-The run documented above — **3,976 cleaned documents**, **34 sources**,
+The run documented above — **8,173 cleaned documents**, **44 sources**,
 and all **19 calendar months** in the window — supports the aggregate topic
 and entity figures below. Topic annotations are **provisional English summaries**
-derived from auto-generated Indonesian term statistics; named entities retain
-their source-language proper names. Treat both as working labels pending manual
-review before citing them as facts.
+derived from auto-generated Indonesian term statistics and a manual review of
+private topic assignments; named entities retain their source-language proper
+names. Treat both as working labels pending further validation before citing
+them as facts.
 
 ### Topic landscape and prevalence
 
 The cleaned corpus resolves to **14 substantive topics plus an outlier class**.
-The substantive topics cover operations, beneficiaries, regional rollouts,
-incidents, audits, and parliamentary oversight; the outlier class captures
-documents that do not cluster cleanly with any dominant theme.
+The substantive topics cover SPPG operations, budgets, food safety, corruption,
+public oversight, supply chains, and program governance; the outlier class
+captures documents that do not cluster cleanly with any dominant theme.
 
-![Two-dimensional UMAP scatter of the 3,976 cleaned documents colored by topic; five large substantive topics are directly labelled and unassigned outliers are shown in grey](assets/mbg/umap_scatter.png)
+![Two-dimensional UMAP scatter of the 8,173 cleaned documents colored by topic; five large substantive topics are directly labelled and unassigned outliers are shown in grey](assets/mbg/umap_scatter.png)
 
 A two-dimensional UMAP projection of the cleaned documents, colored by
 topic. Each point is one document. The five largest substantive topics are
@@ -117,19 +125,19 @@ labelled directly, while grey points show documents left unassigned by the
 clustering model. Separation and overlap are diagnostic patterns, not proof
 that the generated labels are definitive categories.
 
-![Per-topic document counts ranked largest to smallest; the top three topics together account for 2,469 of 3,976 cleaned documents (62.1 percent)](assets/mbg/topic_size_bar.png)
+![Per-topic document counts ranked largest to smallest; the top three topics together account for 3,769 of 8,173 cleaned documents (46.1 percent)](assets/mbg/topic_size_bar.png)
 
 Topic-size distribution ordered largest to smallest, including the outlier
-class. The three largest topics account for **2,469 of 3,976 cleaned documents
-(62.1%)**; the remainder is spread across the other 11 substantive topics and
+class. The three largest topics account for **3,769 of 8,173 cleaned documents
+(46.1%)**; the remainder is spread across the other 11 substantive topics and
 the outlier class, confirming that program coverage is not a single narrative.
 
 ![Topic prevalence over the 19 calendar months from January 2025 through July 2026, with the largest topics tracked as separate lines](assets/mbg/topic_trendline.png)
 
 Per-topic volume over the 19 calendar months in the window. The three largest
-topics rise sharply in June 2026, when they total 845 documents — about 4.3
-times their previous combined monthly peak. The pattern describes this
-retrieved corpus and should not be extrapolated beyond 2026-07-14.
+topics rise in June 2026, when they total 648 documents — about 1.6 times their
+previous combined monthly peak of 399. The pattern describes this retrieved
+corpus and should not be extrapolated beyond 2026-07-14.
 
 ### Named entities and SPPG kitchens
 
@@ -137,26 +145,26 @@ Provisional entity extraction surfaces the most-mentioned people, event
 locations, and SPPG/Dapur kitchen references in the corpus. The figures
 below are aggregate counts; surface-form resolution is provisional.
 
-![Top-mentioned people across the 3,976 cleaned documents; provisional extraction yields 23,487 mentions resolved to 3,423 unique surface forms](assets/mbg/person_top_bar.png)
+![Top-mentioned people across the 8,173 cleaned documents; provisional extraction yields 46,244 mentions resolved to 5,488 unique surface forms](assets/mbg/person_top_bar.png)
 
 Top-mentioned people across the corpus. Provisional extraction yields
-**23,487 mentions resolved to 3,423 unique surface forms**. Ranks describe
+**46,244 mentions resolved to 5,488 unique surface forms**. Ranks describe
 prominence in this retrieved corpus, not policy importance. Audited aliases
 reduce obvious name fragments, but shared or incomplete names can still split
 or merge identities.
 
-![Top event locations; counts exclude publisher datelines and general geographic framing, with 746 mentions resolving to 313 unique places](assets/mbg/place_top_bar.png)
+![Top event locations; counts exclude publisher datelines and general geographic framing, with 1,766 mentions resolving to 532 unique places](assets/mbg/place_top_bar.png)
 
-Top event locations: **746 mentions resolving to 313 unique places**.
+Top event locations: **1,766 mentions resolving to 532 unique places**.
 These counts **exclude publisher datelines and general geographic
 framing** — only locations anchored to a described event (visit, launch,
 incident, audit) are counted. As a result, this chart under-represents
 places that appear only as byline cities or background geography.
 
-![Top SPPG/Dapur (satuan pelayanan pemenuhan gizi) kitchen references; 769 mentions resolve to 461 unique kitchen surfaces](assets/mbg/sppg_top_bar.png)
+![Top SPPG/Dapur (satuan pelayanan pemenuhan gizi) kitchen references; 1,425 mentions resolve to 716 unique kitchen surfaces](assets/mbg/sppg_top_bar.png)
 
 Top SPPG/Dapur (*satuan pelayanan pemenuhan gizi*) kitchen references:
-**769 mentions resolving to 461 unique kitchen surfaces**. Unit numbers are
+**1,425 mentions resolving to 716 unique kitchen surfaces**. Unit numbers are
 preserved where available, while strict normalization excludes regional
 collectives and malformed identifiers. These automated identifiers remain
 provisional until reconciled against operational records.
@@ -166,14 +174,14 @@ provisional until reconciled against operational records.
 Be explicit about what this corpus can and cannot support.
 
 - **Retrieval coverage.** The registry contains 67 search-capable sources;
-  34 sources contributed documents retained after cleaning. Five latest-only
+  44 sources contributed documents retained after cleaning. Five latest-only
   sources (`aljazeera`, `balipost`, `dandapala`, `hukumonline`, and
   `independen`) cannot participate in keyword search. Sources outside the
   registry are not searched.
-- **Keyword recall.** Retrieval uses five related queries: `makan bergizi
-  gratis`, `program MBG`, `satuan pelayanan pemenuhan gizi`, `SPPG`, and
-  `badan gizi nasional`. Articles that discuss implementation without any
-  of those terms can still be missed.
+- **Keyword recall.** Retrieval uses six related queries: `mbg`, `makan bergizi
+ gratis`, `program MBG`, `satuan pelayanan pemenuhan gizi`, `SPPG`, and
+ `badan gizi nasional`. Articles that discuss implementation without any of
+ those terms can still be missed.
 - **Completeness.** A finished corpus is bounded by what each scraper's
   search endpoint exposes. Some sources cap depth, return only top-N, or
   paginate inconsistently. Re-running with a tighter window or
