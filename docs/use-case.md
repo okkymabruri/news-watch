@@ -166,6 +166,12 @@ their directions are especially provisional. The heterogeneous outlier class
 is retained in aggregate reconciliation but omitted from this substantive-topic
 figure.
 
+The complete aggregate results are available as
+[per-topic CSV](assets/mbg/topic_sentiment.csv) and
+[method/reconciliation JSON](assets/mbg/sentiment_summary.json). Both files
+contain topic-level or run-level statistics only; document predictions remain
+private.
+
 **Interpretation boundary.** The pinned Indonesian RoBERTa classifier was
 trained on IndoNLU SmSA comments and reviews, not MBG news. Its outputs describe
 the language tone of retrieved articles after right truncation at 512 model
