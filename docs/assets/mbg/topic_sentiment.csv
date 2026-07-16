@@ -1,0 +1,16 @@
+topic,display_label,documents,positive,neutral,negative,positive_share,neutral_share,negative_share,mean_sentiment_score
+-1,Outliers,2594,870,875,849,0.335389,0.337317,0.327294,0.009982
+0,SPPG operations and school delivery,2412,818,931,663,0.339138,0.385987,0.274876,0.072378
+1,School food poisoning incidents,804,62,272,470,0.077114,0.338308,0.584577,-0.458446
+2,Corruption investigations and prosecutions,646,13,360,273,0.020124,0.557276,0.422601,-0.376681
+3,Budget execution and efficiency,596,75,428,93,0.125839,0.718121,0.15604,-0.009674
+4,Public demonstrations and oversight,537,133,192,212,0.247672,0.357542,0.394786,-0.137879
+5,Dairy production and livestock supply,178,62,87,29,0.348315,0.488764,0.162921,0.207369
+6,Delivery vehicles and procurement,142,11,71,60,0.077465,0.5,0.422535,-0.307736
+7,Viral misinformation and incidents,83,17,9,57,0.204819,0.108434,0.686747,-0.451373
+8,Food prices and commodity supply,54,19,26,9,0.351852,0.481481,0.166667,0.078216
+9,Halal certification and governance,43,13,16,14,0.302326,0.372093,0.325581,0.002367
+10,SPPG staffing and civil-service appointments,31,5,22,4,0.16129,0.709677,0.129032,0.030597
+11,Proposed or unclear SPPG locations,24,0,3,21,0.0,0.125,0.875,-0.810418
+12,Proposed MBG support for tuberculosis patients,22,3,5,14,0.136364,0.227273,0.636364,-0.36745
+13,MBG insurance proposals,17,1,15,1,0.058824,0.882353,0.058824,0.067341
