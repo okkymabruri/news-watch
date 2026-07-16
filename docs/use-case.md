@@ -258,10 +258,10 @@ By weighted degree, the most connected eligible surfaces are **Sony Sonjaya
 Sudaryati Deyang (653)**, and **Asep Yusuf Somantri (341)**. The largest raw
 co-mention count is Dadan Hindayana–Prabowo Subianto (**432 documents**).
 
-**Node-color legend.** Each color marks the **detected graph community**
-assigned by community detection on the co-mention graph. Colors are categorical
-community IDs only: they carry **no sentiment, political polarity, endorsement,
-or positive / negative meaning**.
+**Node-color legend.** The displayed largest component contains two detected
+communities: **community 1 (red)** and **community 2 (blue)**. These are
+categorical community IDs only; they carry **no sentiment, political polarity,
+endorsement, or positive / negative meaning**.
 
 Co-mention describes shared news coverage, not personal relationships,
 coordination, endorsement, influence, or causal importance.
