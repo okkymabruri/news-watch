@@ -134,12 +134,43 @@ class. The three largest topics account for **3,862 of 8,183 cleaned documents
 (47.2%)**; the remainder is spread across the other 11 substantive topics and
 the outlier class, confirming that program coverage is not a single narrative.
 
-![Topic prevalence over the 19 calendar months from January 2025 through July 2026, with the largest topics tracked as separate lines](assets/mbg/topic_trendline.png)
+![Per-topic document volume across the 19 calendar months from January 2025 through July 2026, with the six largest topics each rendered in a distinct colorblind-safe color and a distinct line style, endpoint labels printed directly at the right margin, and four callout annotations marking contemporaneous coverage families for October 2025 (SPPG expansion and safety-governance), February 2026 (Ramadan menu and delivery adaptation), June 2026 (BGN restructuring and school-holiday operations), and September 2025 T1 (Bandung Barat mass incidents)](assets/mbg/topic_trendline.png)
 
-Per-topic volume over the 19 calendar months in the window. The three largest
-topics rise in June 2026, when they total 851 documents — about 2.5 times their
-previous combined monthly peak of 339. The pattern describes this retrieved
-corpus and should not be extrapolated beyond 2026-07-15.
+Per-topic volume over the 19 calendar months in the window for the **six
+largest topics**: T0 SPPG operations and school delivery, T1 school
+food-poisoning incidents, T2 corruption investigations and prosecutions, T3
+budget execution and efficiency, T4 public demonstrations and oversight, and
+T5 dairy production and livestock supply. The figure renders each topic in a
+**distinct colorblind-safe color and line style** and prints the topic label
+directly at the right-hand endpoint of every line, so each series stays
+legible without relying on color alone.
+
+Four callouts report exact monthly counts and mark contemporaneous coverage
+families rather than causal triggers:
+
+- **October 2025 — T0, 181 documents:** SPPG expansion and safety-governance
+  coverage.
+- **February 2026 — T0, 294 documents:** Ramadan menu and delivery adaptation.
+- **June 2026 — T0, 463 documents:** BGN restructuring and school-holiday
+  operations.
+- **September 2025 — T1, 225 documents:** Bandung Barat mass incidents. T1
+  rises from **6 documents in August** and remains elevated at **151 in
+  October**; September, not August, is the peak month.
+
+In **June 2026** the three largest topics combined reach **851 documents**
+— about **2.5 times** their previous combined monthly peak of **339**.
+This run reports aggregate volume only; annotations describe contemporaneous
+news coverage families that happen to align with each spike and are not
+claims that those events caused the observed volume. The pattern describes
+this retrieved corpus and should not be extrapolated beyond 2026-07-15.
+
+Independent public reporting documents the same contemporaneous coverage
+families without quoting private records:
+
+- [Bandung Barat mass-poisoning response, ANTARA (September 2025)](https://www.antaranews.com/berita/5129056/pemkab-bandung-barat-tetapkan-klb-usai-ratusan-siswa-keracunan-mbg)
+- [Ramadan dry-food adaptation statement, ANTARA](https://en.antaranews.com/news/405814/free-meals-nutrition-maintained-despite-dry-food-shift-minister)
+- [BGN school-holiday audit of MBG kitchens, ANTARA](https://en.antaranews.com/news/419313/bgn-to-fully-audit-free-meal-kitchens-during-school-holidays)
+- [SPPG safety certification push after poisoning cases, Kompas](https://money.kompas.com/read/2025/10/03/100000126/usai-kasus-keracunan-bgn-ngebut-sertifikasi-sppg-agar-pangan-aman-)
 
 ### Sentiment by topic
 
@@ -219,13 +250,26 @@ produce **28 nodes and 42 edges** across **6 connected components**. The figure
 shows the largest component (**17 nodes**) using a deterministic spring layout
 (`seed=42`); node area reflects document frequency, edge width reflects
 co-mentioned documents, and color marks detected graph communities.
-
-![Person co-mention network for the MBG corpus; the largest component shows 17 of 28 eligible normalized person surfaces, with node size mapped to document frequency and edge width to co-mentioned documents](assets/mbg/person_comention_network.png)
+![Person co-mention network for the MBG corpus; the largest component shows 17 of 28 eligible normalized person surfaces, with node area mapped to document frequency, edge width to co-mentioned documents, and node color marking the detected community category — colors are categorical community labels and carry no sentiment or political polarity meaning](assets/mbg/person_comention_network.png)
 
 By weighted degree, the most connected eligible surfaces are **Sony Sonjaya
 (976)**, **Prabowo Subianto (941)**, **Dadan Hindayana (813)**, **Nanik
 Sudaryati Deyang (653)**, and **Asep Yusuf Somantri (341)**. The largest raw
 co-mention count is Dadan Hindayana–Prabowo Subianto (**432 documents**).
+
+**Semantic legend.** The figure encodes three independent attributes:
+
+- **Node area** is proportional to the number of documents that mention the
+  person (document frequency of the normalized surface).
+- **Edge width** is proportional to the number of documents in which the two
+  connected person surfaces co-occur (co-mentioned-document count).
+- **Node color** marks the **detected graph community** assigned by the
+  community-detection pass on the co-mention graph. Colors are **categorical
+  community labels only** — they identify which community each node belongs
+  to and carry **no sentiment, no political polarity, and no positive /
+  negative meaning**. Red and blue, where they appear, are community
+  identifiers, not endorsements or stance markers.
+
 Co-mention describes shared news coverage, not personal relationships,
 coordination, endorsement, influence, or causal importance.
 
