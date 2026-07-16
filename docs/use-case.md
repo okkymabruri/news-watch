@@ -250,27 +250,18 @@ contain at least **two name tokens**; an edge must occur in at least **5
 documents** with Jaccard similarity of at least **0.05**. These precision gates
 produce **26 nodes and 41 edges** across **5 connected components**. The figure
 shows the largest component (**17 nodes**) using a deterministic spring layout
-(`seed=42`); node area reflects document frequency, edge width reflects
-co-mentioned documents, and color marks detected graph communities.
-![Person co-mention network for the MBG corpus; the largest component shows 17 of 28 eligible normalized person surfaces, with node area mapped to document frequency, edge width to co-mentioned documents, and node color marking the detected community category — colors are categorical community labels and carry no sentiment or political polarity meaning](assets/mbg/person_comention_network.png)
+(`seed=42`). Node color marks the detected graph community.
+![Person co-mention network for the MBG corpus; the largest component shows 17 of 26 eligible normalized person surfaces, and node colors mark categorical detected-community IDs with no sentiment or political-polarity meaning](assets/mbg/person_comention_network.png)
 
 By weighted degree, the most connected eligible surfaces are **Sony Sonjaya
 (976)**, **Prabowo Subianto (941)**, **Dadan Hindayana (813)**, **Nanik
 Sudaryati Deyang (653)**, and **Asep Yusuf Somantri (341)**. The largest raw
 co-mention count is Dadan Hindayana–Prabowo Subianto (**432 documents**).
 
-**Semantic legend.** The figure encodes three independent attributes:
-
-- **Node area** is proportional to the number of documents that mention the
-  person (document frequency of the normalized surface).
-- **Edge width** is proportional to the number of documents in which the two
-  connected person surfaces co-occur (co-mentioned-document count).
-- **Node color** marks the **detected graph community** assigned by the
-  community-detection pass on the co-mention graph. Colors are **categorical
-  community labels only** — they identify which community each node belongs
-  to and carry **no sentiment, no political polarity, and no positive /
-  negative meaning**. Red and blue, where they appear, are community
-  identifiers, not endorsements or stance markers.
+**Node-color legend.** Each color marks the **detected graph community**
+assigned by community detection on the co-mention graph. Colors are categorical
+community IDs only: they carry **no sentiment, political polarity, endorsement,
+or positive / negative meaning**.
 
 Co-mention describes shared news coverage, not personal relationships,
 coordination, endorsement, influence, or causal importance.
