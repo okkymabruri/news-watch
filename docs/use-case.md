@@ -60,14 +60,6 @@ What `--scrapers all` resolves to in this repo:
 - 5 entries support latest collection only and are skipped by search runs:
   `aljazeera`, `balipost`, `dandapala`, `hukumonline`, and `independen`.
 
-Verify the search-capable registry count yourself at runtime:
-
-```bash
-uv run python -c "import sys; sys.path.insert(0,'src'); \
-  from newswatch.registry import get_search_scrapers; \
-  print(len(get_search_scrapers()))"
-# -> 66
-```
 
 ## Corpus Validation
 
@@ -171,10 +163,10 @@ framing** — only locations anchored to a described event (visit, launch,
 incident, audit) are counted. As a result, this chart under-represents
 places that appear only as byline cities or background geography.
 
-![Top SPPG/Dapur (satuan pelayanan pemenuhan gizi) kitchen references; 1,425 mentions resolve to 716 unique kitchen surfaces](assets/mbg/sppg_top_bar.png)
+![Top SPPG/Dapur (satuan pelayanan pemenuhan gizi) kitchen references; 1,363 mentions resolve to 676 unique kitchen surfaces](assets/mbg/sppg_top_bar.png)
 
 Top SPPG/Dapur (*satuan pelayanan pemenuhan gizi*) kitchen references:
-**1,425 mentions resolving to 716 unique kitchen surfaces**. Unit numbers are
+**1,363 mentions resolving to 676 unique kitchen surfaces**. Unit numbers are
 preserved where available, while strict normalization excludes regional
 collectives and malformed identifiers. These automated identifiers remain
 provisional until reconciled against operational records.
