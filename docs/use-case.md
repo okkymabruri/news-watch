@@ -209,6 +209,35 @@ preserved where available, while strict normalization excludes regional
 collectives and malformed identifiers. These automated identifiers remain
 provisional until reconciled against operational records.
 
+### Person co-mention network
+
+The aggregate network connects two normalized person surfaces when they occur
+in the same document. A person must appear in at least **25 documents** and
+contain at least **two name tokens**; an edge must occur in at least **5
+documents** with Jaccard similarity of at least **0.05**. These precision gates
+produce **28 nodes and 42 edges** across **6 connected components**. The figure
+shows the largest component (**17 nodes**) using a deterministic spring layout
+(`seed=42`); node area reflects document frequency, edge width reflects
+co-mentioned documents, and color marks detected graph communities.
+
+![Person co-mention network for the MBG corpus; the largest component shows 17 of 28 eligible normalized person surfaces, with node size mapped to document frequency and edge width to co-mentioned documents](assets/mbg/person_comention_network.png)
+
+By weighted degree, the most connected eligible surfaces are **Sony Sonjaya
+(976)**, **Prabowo Subianto (941)**, **Dadan Hindayana (813)**, **Nanik
+Sudaryati Deyang (653)**, and **Asep Yusuf Somantri (341)**. The largest raw
+co-mention count is Dadan Hindayana–Prabowo Subianto (**432 documents**).
+Co-mention describes shared news coverage, not personal relationships,
+coordination, endorsement, influence, or causal importance.
+
+The complete aggregate outputs are available as [node metrics
+CSV](assets/mbg/person_nodes.csv), [edge metrics
+CSV](assets/mbg/person_edges.csv), and [method/reconciliation
+JSON](assets/mbg/network_summary.json). Names remain provisional NER surfaces:
+there is no co-reference resolution, ambiguous identities may split or merge,
+single-token surfaces such as bare `Yusuf` and `Purbaya` are excluded by the
+precision gate rather than inferred as longer identities, and no article-level
+evidence is published.
+
 ## Collection Limitations
 
 Be explicit about what this corpus can and cannot support.
