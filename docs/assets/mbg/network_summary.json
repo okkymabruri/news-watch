@@ -34,12 +34,12 @@
     }
   },
   "graph": {
-    "n_nodes": 28,
-    "n_edges": 42,
-    "n_components": 6,
+    "n_nodes": 26,
+    "n_edges": 41,
+    "n_components": 5,
     "largest_component_size": 17,
-    "density": 0.1111111111111111,
-    "n_communities": 7
+    "density": 0.12615384615384614,
+    "n_communities": 6
   },
   "community": {
     "0": {
@@ -58,9 +58,6 @@
       "size": 2
     },
     "5": {
-      "size": 2
-    },
-    "6": {
       "size": 2
     }
   },
@@ -120,22 +117,22 @@
       "community": 2
     },
     {
-      "entity": "Purbaya Yudhi Sadewa",
-      "weighted_degree": 86.0,
-      "documents": 235,
-      "community": 6
-    },
-    {
-      "entity": "Yudhi Sadewa",
-      "weighted_degree": 86.0,
-      "documents": 110,
-      "community": 6
-    },
-    {
       "entity": "Febrie Adriansyah",
       "weighted_degree": 72.0,
       "documents": 164,
       "community": 2
+    },
+    {
+      "entity": "Andri Mulyono",
+      "weighted_degree": 70.0,
+      "documents": 43,
+      "community": 2
+    },
+    {
+      "entity": "Agustina Arumsari",
+      "weighted_degree": 69.0,
+      "documents": 206,
+      "community": 1
     }
   ],
   "reconciliation": {
@@ -151,7 +148,7 @@
     "Person surfaces are provisional automated extraction; no validated identity records.",
     "Shared names, partial names, and person/place overlap may remain unresolved.",
     "No co-reference resolution or unsupported alias inference beyond entity-mentions.py rules.",
-    "Unresolved 'Yusuf' and unapproved 'Purbaya' remain distinct surfaces by design.",
+    "Audited Purbaya fragments are canonicalized; ambiguous bare 'Yusuf' remains unresolved.",
     "Single-token canonical surfaces are excluded from the public graph for precision (min_name_tokens>=2).",
     "Graph aggregates only; no per-document evidence, links, or article text are exported.",
     "Network reflects the curated portal corpus, not the Indonesian population."

@@ -216,13 +216,15 @@ Provisional entity extraction surfaces the most-mentioned people, event
 locations, and SPPG/Dapur kitchen references in the corpus. The figures
 below are aggregate counts; surface-form resolution is provisional.
 
-![Top-mentioned people across the 8,183 cleaned documents; provisional extraction yields 46,273 mentions resolved to 5,489 unique surface forms](assets/mbg/person_top_bar.png)
+![Top-mentioned multi-token people across the 8,183 cleaned documents; provisional extraction yields 46,273 mentions resolved to 5,487 normalized surfaces](assets/mbg/person_top_bar.png)
 
-Top-mentioned people across the corpus. Provisional extraction yields
-**46,273 mentions resolved to 5,489 unique surface forms**. Ranks describe
-prominence in this retrieved corpus, not policy importance. Audited aliases
-reduce obvious name fragments, but shared or incomplete names can still split
-or merge identities.
+Top-mentioned multi-token people across the corpus. Provisional extraction
+yields **46,273 mentions resolved to 5,487 normalized surfaces**. Ranks
+describe prominence in this retrieved corpus, not policy importance. Audited
+aliases combine `Purbaya`, `Purba`, `Yudhi`, and `Yudhi Sadewa` with
+**Purbaya Yudhi Sadewa (1,110 mentions across 266 documents)**. Ambiguous
+single-token surfaces such as `Yusuf` are retained in aggregate tables but
+excluded from this precision-oriented chart rather than assigned to one person.
 
 ![Top event locations; counts exclude publisher datelines and general geographic framing, with 1,773 mentions resolving to 532 unique places](assets/mbg/place_top_bar.png)
 
@@ -246,7 +248,7 @@ The aggregate network connects two normalized person surfaces when they occur
 in the same document. A person must appear in at least **25 documents** and
 contain at least **two name tokens**; an edge must occur in at least **5
 documents** with Jaccard similarity of at least **0.05**. These precision gates
-produce **28 nodes and 42 edges** across **6 connected components**. The figure
+produce **26 nodes and 41 edges** across **5 connected components**. The figure
 shows the largest component (**17 nodes**) using a deterministic spring layout
 (`seed=42`); node area reflects document frequency, edge width reflects
 co-mentioned documents, and color marks detected graph communities.
@@ -277,10 +279,11 @@ The complete aggregate outputs are available as [node metrics
 CSV](assets/mbg/person_nodes.csv), [edge metrics
 CSV](assets/mbg/person_edges.csv), and [method/reconciliation
 JSON](assets/mbg/network_summary.json). Names remain provisional NER surfaces:
-there is no co-reference resolution, ambiguous identities may split or merge,
-single-token surfaces such as bare `Yusuf` and `Purbaya` are excluded by the
-precision gate rather than inferred as longer identities, and no article-level
-evidence is published.
+there is no general co-reference resolution, and ambiguous identities may
+still split or merge. Audited `Purbaya`/`Yudhi Sadewa` fragments are
+canonicalized to `Purbaya Yudhi Sadewa`; ambiguous bare `Yusuf` remains
+unresolved and is excluded by the two-token network precision gate. No
+article-level evidence is published.
 
 ## Collection Limitations
 
