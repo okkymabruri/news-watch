@@ -2,7 +2,7 @@
 
 This guide walks the public workflow — from collection through aggregate
 analysis — for the *Makan Bergizi Gratis* (MBG) policy research corpus
-covering **2025-01-05 through 2026-07-14**, using the `newswatch` registry
+covering **2025-01-05 through 2026-07-15**, using the `newswatch` registry
 exactly as it is currently configured. It is the companion to
 `practical-guide.md`; it does not duplicate installation, configuration, or
 troubleshooting content.
@@ -42,7 +42,7 @@ uv run newswatch \
   --method search \
   --keywords "mbg,makan bergizi gratis,program MBG,satuan pelayanan pemenuhan gizi,SPPG,badan gizi nasional" \
   --start_date "2025-01-05" \
-  --daterange "2025-01-05/2026-07-14" \
+  --daterange "2025-01-05/2026-07-15" \
   --scrapers all \
   --scraper-timeout 180 \
   --output_format jsonl \
@@ -78,7 +78,7 @@ that run, not fixed properties of the news ecosystem.
    `source` on every record. Reject malformed rows rather than filling missing
    evidence with inferred values.
 2. **Enforce the study window.** Parse publication timestamps and retain only
-   records from 2025-01-05 through 2026-07-14 inclusive of both full calendar days (i.e. 2025-01-05 00:00:00 through 2026-07-14 23:59:59.999999). Report
+   records from 2025-01-05 through 2026-07-15 inclusive of both full calendar days (i.e. 2025-01-05 00:00:00 through 2026-07-15 23:59:59). Report
    unparseable and out-of-window rows separately.
 3. **Confirm relevance.** Keep a record only when its title contains standalone
    `MBG` or an explicit program term: `Makan Bergizi Gratis`, `Program MBG`,
@@ -94,15 +94,15 @@ that run, not fixed properties of the news ecosystem.
    private research workspace.
 
 Inspect the actual numbers in each run; do not treat one retrieval as a fixed
-benchmark. The run documented here yielded 24,600 well-formed records before
-cleaning, then 17,717 after relevance filtering, 8,206 after URL deduplication,
-and 8,173 after normalized-title deduplication. It covered 44 sources and all 19
+benchmark. The run documented here yielded 24,609 well-formed records before
+cleaning, then 17,727 after relevance filtering, 8,216 after URL deduplication,
+and 8,183 after normalized-title deduplication. It covered 44 sources and all 19
 calendar months in the window. These are one run's retrieval counts, not
 estimates of article production.
 
 ## Aggregate Analysis
 
-The run documented above — **8,173 cleaned documents**, **44 sources**,
+The run documented above — **8,183 cleaned documents**, **44 sources**,
 and all **19 calendar months** in the window — supports the aggregate topic
 and entity figures below. Topic annotations are **provisional English summaries**
 derived from auto-generated Indonesian term statistics and a manual review of
@@ -117,7 +117,7 @@ The substantive topics cover SPPG operations, budgets, food safety, corruption,
 public oversight, supply chains, and program governance; the outlier class
 captures documents that do not cluster cleanly with any dominant theme.
 
-![Two-dimensional UMAP scatter of the 8,173 cleaned documents colored by topic; all 14 substantive topics are labeled directly over their cluster regions and unassigned outliers are shown in grey](assets/mbg/umap_scatter.png)
+![Two-dimensional UMAP scatter of the 8,183 cleaned documents colored by topic; all 14 substantive topics are labeled directly over their cluster regions and unassigned outliers are shown in grey](assets/mbg/umap_scatter.png)
 
 A two-dimensional UMAP projection of the cleaned documents, colored by
 topic. Each point is one document. All 14 substantive topics are labeled
@@ -135,19 +135,19 @@ the documents out in two dimensions so clusters spread out and the
 topic clouds stay legible. Topic assignments and cluster identities
 are unchanged.
 
-![Per-topic document counts ranked largest to smallest; the top three topics together account for 3,769 of 8,173 cleaned documents (46.1 percent)](assets/mbg/topic_size_bar.png)
+![Per-topic document counts ranked largest to smallest; the top three topics together account for 3,862 of 8,183 cleaned documents (47.2 percent)](assets/mbg/topic_size_bar.png)
 
 Topic-size distribution ordered largest to smallest, including the outlier
-class. The three largest topics account for **3,769 of 8,173 cleaned documents
-(46.1%)**; the remainder is spread across the other 11 substantive topics and
+class. The three largest topics account for **3,862 of 8,183 cleaned documents
+(47.2%)**; the remainder is spread across the other 11 substantive topics and
 the outlier class, confirming that program coverage is not a single narrative.
 
 ![Topic prevalence over the 19 calendar months from January 2025 through July 2026, with the largest topics tracked as separate lines](assets/mbg/topic_trendline.png)
 
 Per-topic volume over the 19 calendar months in the window. The three largest
-topics rise in June 2026, when they total 648 documents — about 1.6 times their
-previous combined monthly peak of 399. The pattern describes this retrieved
-corpus and should not be extrapolated beyond 2026-07-14.
+topics rise in June 2026, when they total 851 documents — about 2.5 times their
+previous combined monthly peak of 339. The pattern describes this retrieved
+corpus and should not be extrapolated beyond 2026-07-15.
 
 ### Named entities and SPPG kitchens
 
@@ -155,17 +155,17 @@ Provisional entity extraction surfaces the most-mentioned people, event
 locations, and SPPG/Dapur kitchen references in the corpus. The figures
 below are aggregate counts; surface-form resolution is provisional.
 
-![Top-mentioned people across the 8,173 cleaned documents; provisional extraction yields 46,244 mentions resolved to 5,488 unique surface forms](assets/mbg/person_top_bar.png)
+![Top-mentioned people across the 8,183 cleaned documents; provisional extraction yields 46,273 mentions resolved to 5,489 unique surface forms](assets/mbg/person_top_bar.png)
 
 Top-mentioned people across the corpus. Provisional extraction yields
-**46,244 mentions resolved to 5,488 unique surface forms**. Ranks describe
+**46,273 mentions resolved to 5,489 unique surface forms**. Ranks describe
 prominence in this retrieved corpus, not policy importance. Audited aliases
 reduce obvious name fragments, but shared or incomplete names can still split
 or merge identities.
 
-![Top event locations; counts exclude publisher datelines and general geographic framing, with 1,766 mentions resolving to 532 unique places](assets/mbg/place_top_bar.png)
+![Top event locations; counts exclude publisher datelines and general geographic framing, with 1,773 mentions resolving to 532 unique places](assets/mbg/place_top_bar.png)
 
-Top event locations: **1,766 mentions resolving to 532 unique places**.
+Top event locations: **1,773 mentions resolving to 532 unique places**.
 These counts **exclude publisher datelines and general geographic
 framing** — only locations anchored to a described event (visit, launch,
 incident, audit) are counted. As a result, this chart under-represents
