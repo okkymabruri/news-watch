@@ -141,6 +141,38 @@ topics rise in June 2026, when they total 851 documents — about 2.5 times thei
 previous combined monthly peak of 339. The pattern describes this retrieved
 corpus and should not be extrapolated beyond 2026-07-15.
 
+### Sentiment by topic
+
+The aggregate sentiment classifier shows that news tone varies substantially by
+topic. Among the larger substantive topics, school food-poisoning coverage
+(T1, **n=804**) has the clearest negative pattern: **58.5%** of documents have
+`negative` as their highest-probability label and the mean probability score is
+**-0.458**. Corruption investigations and prosecutions (T2, **n=646**) are
+mostly neutral by highest-probability label (**55.7%**) but still have a
+negative mean score (**-0.377**), reflecting very little positive probability.
+By contrast, dairy production and livestock supply (T5, **n=178**) has the
+highest mean score among topics with at least 30 documents (**+0.207**).
+
+![Diverging per-topic sentiment distribution for the 14 substantive topics, with negative and positive highest-probability label shares shown on opposing axes and neutral marked at the center](assets/mbg/topic_sentiment_diverging.png)
+
+The figure reports each document's highest-probability label as a share of its
+topic; the centered grey marker indicates neutral classification, while the
+mean score used for ordering is the topic average of
+`P(positive) - P(negative)`. These measures can differ. For example, SPPG
+operations and school delivery (T0, **n=2,412**) has **33.9% positive**, **38.6%
+neutral**, and **27.5% negative** highest-probability labels, but only a modest
+mean score of **+0.072**. Topics T8–T13 each contain at most 54 documents, so
+their directions are especially provisional. The heterogeneous outlier class
+is retained in aggregate reconciliation but omitted from this substantive-topic
+figure.
+
+**Interpretation boundary.** The pinned Indonesian RoBERTa classifier was
+trained on IndoNLU SmSA comments and reviews, not MBG news. Its outputs describe
+the language tone of retrieved articles after right truncation at 512 model
+tokens. They do **not** measure public opinion, policy effectiveness,
+factuality, or stance, and the probabilities should be treated as ordinal
+comparisons rather than calibrated population estimates.
+
 ### Named entities and SPPG kitchens
 
 Provisional entity extraction surfaces the most-mentioned people, event
