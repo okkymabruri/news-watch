@@ -211,8 +211,9 @@ class TestScraperInvariants:
 class TestScraperLatestInvariants:
     """Same defensive invariants as ``TestScraperInvariants`` but for the
     superset of stable scrapers that support ``method="latest"``. The
-    three latest-only slugs (aljazeera, balipost, cnaindonesia) live
-    exclusively in this layer; they never reach the search-side tests."""
+    five latest-only slugs (aljazeera, balipost, dandapala, hukumonline,
+    independen) live exclusively in this layer; they never reach the
+    search-side tests."""
 
     @pytest.mark.parametrize("slug", _latest_capable_slugs())
     def test_concurrency_positive_latest(self, slug):

@@ -33,7 +33,7 @@ newswatch --list_scrapers
 newswatch --method latest --list_scrapers
 ```
 
-The current registry contains 70 sources: 66 support search and all 70 support latest mode.
+The current registry contains 77 sources: 72 support search and all 77 support latest mode.
 
 ## Search by topic and date
 

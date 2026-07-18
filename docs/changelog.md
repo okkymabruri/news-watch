@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+- Infobanknews (`infobanknews`) with WordPress REST search/latest discovery and IDX Channel (`idxchannel`) with bounded sitemap-based search/latest discovery
+
+### Changed
+- Promoted Dandapala to stable latest-only support after a successful live probe, quarantined Investor.id after repeated CloudFront 403 responses, and corrected Banten News to HTTP-only investigating metadata
+- Consolidated temporary new-source scraper contracts into their permanent focused, registry, and shared test modules
+
+### Fixed
+- Enforced every-token relevance filtering for GNFI keyword search while leaving latest-mode discovery unfiltered
+
 ## [1.2.1] - 2026-07-18
 
 ### Changed

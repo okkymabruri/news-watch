@@ -43,15 +43,25 @@ import json
 import warnings
 from datetime import datetime
 from typing import Any
+from urllib.parse import quote
 
 import pytest
 
+from newswatch.scrapers.alinea import AlineaScraper
+from newswatch.scrapers.betahita import BetahitaScraper
+from newswatch.scrapers.conversationid import ConversationIDScraper
 from newswatch.scrapers.ddtcnews import DDTCNewsScraper
+from newswatch.scrapers.gnfi import GNFIScraper
+from newswatch.scrapers.hukumonline import HukumonlineScraper
 from newswatch.scrapers.idnfinancials import IDNFinancialsScraper
+from newswatch.scrapers.independen import IndependenScraper
 from newswatch.scrapers.kumparan import KumparanScraper
+from newswatch.scrapers.nusabali import NusaBaliScraper
 from newswatch.scrapers.sindonews import SindonewsScraper
 from newswatch.scrapers.surabayapagi import SurabayaPagiScraper
 from newswatch.scrapers.wartaekonomi import WartaEkonomiScraper
+from newswatch.scrapers.idxchannel import IDXChannelScraper
+from newswatch.scrapers.infobanknews import InfobanknewsScraper
 
 
 # ── Shared offline test scaffolding ────────────────────────────────────────
@@ -1392,11 +1402,81 @@ _QUEUE_SCHEMA_PARAMS = (
         "wartaekonomi.co.id",
         id="wartaekonomi",
     ),
+    pytest.param(
+        AlineaScraper,
+        "politik",
+        "https://www.alinea.id/politik/foo-bar-b123",
+        "Alinea test headline",
+        "Reporter Satu",
+        "politik",
+        "www.alinea.id",
+        id="alinea",
+    ),
+    pytest.param(
+        GNFIScraper,
+        "bali",
+        "https://www.goodnewsfromindonesia.id/2026/07/12/test-article",
+        "GNFI test headline",
+        "GNFI Reporter",
+        "Lingkungan",
+        "goodnewsfromindonesia.id",
+        id="gnfi",
+    ),
+    pytest.param(
+        BetahitaScraper,
+        "lingkungan",
+        "https://www.betahita.id/berita/12345/test-article",
+        "Betahita test headline",
+        "Betahita Reporter",
+        "Berita",
+        "betahita.id",
+        id="betahita",
+    ),
+    pytest.param(
+        NusaBaliScraper,
+        "bali",
+        "https://www.nusabali.com/berita/225365/pria-mabuk-diamankan-polisi",
+        "NusaBali test headline",
+        "Penulis : I Putu Reporter",
+        "Denpasar",
+        "nusabali.com",
+        id="nusabali",
+    ),
+    pytest.param(
+        ConversationIDScraper,
+        "indonesia",
+        "https://theconversation.com/some-article-12345",
+        "Conversation ID test headline",
+        "Author One, Author Two",
+        "Politics, Economics",
+        "theconversation.com",
+        id="conversationid",
+    ),
+    pytest.param(
+        HukumonlineScraper,
+        "hukum",
+        "https://www.hukumonline.com/berita/a/canonical-slug",
+        "Hukumonline test headline",
+        "Hukumonline Reporter",
+        "Hukum",
+        "hukumonline.com",
+        id="hukumonline",
+    ),
+    pytest.param(
+        IndependenScraper,
+        "indonesia",
+        "https://independen.id/judul-artikel-contoh/",
+        "Independen test headline",
+        "Independen Reporter",
+        "Investigasi",
+        "independen.id",
+        id="independen",
+    ),
 )
 
 
 class TestNewAdapterQueueSchema:
-    """All three newest adapters must emit items with exactly the eight
+    """All ten newest adapters must emit items with exactly the eight
     contract keys, expected value types, and the canonical ``source`` domain.
     """
 
@@ -1444,7 +1524,7 @@ class TestNewAdapterQueueSchema:
                 '</div>'
                 '</body></html>'
             )
-        else:  # WartaEkonomiScraper
+        elif cls is WartaEkonomiScraper:
             ld_payload = json.dumps({
                 "@context": "https://schema.org",
                 "@type": "NewsArticle",
@@ -1466,6 +1546,128 @@ class TestNewAdapterQueueSchema:
                 '</article>'
                 '</body></html>'
             )
+        elif cls is AlineaScraper:
+            html = (
+                '<!doctype html><html><head>'
+                '<meta property="og:title" content="Alinea test headline">'
+                '</head><body>'
+                '<h1>Alinea test headline</h1>'
+                '<div class="frontdate">12 Juli 2026</div>'
+                '<div class="written__reporter">'
+                '<div class="reporter__nama">Reporter Satu</div>'
+                '</div>'
+                '<article><div>'
+                '<p>Alinea lead paragraph well over the forty-character filter threshold for the body.</p>'
+                '<p>Alinea second body paragraph retained by the alinea content extractor.</p>'
+                '</div></article>'
+                '</body></html>'
+            )
+        elif cls is GNFIScraper:
+            ld_payload = json.dumps({
+                "@context": "https://schema.org",
+                "@type": "NewsArticle",
+                "datePublished": "2026-07-12T10:00:00+00:00",
+                "author": {"@type": "Person", "name": "JSON-LD Reporter"},
+            })
+            html = (
+                '<!doctype html>\n<html><head>\n'
+                '<meta property="og:title" content="GNFI test headline">\n'
+                '<meta name="author" content="GNFI Reporter">\n'
+                '<script type="application/ld+json">\n'
+                f'{ld_payload}\n'
+                '</script>\n'
+                '</head><body>\n'
+                '<div class="article-category"><a href="/c/lingkungan">Lingkungan</a></div>\n'
+                '<div class="article-sheet">\n'
+                '<p data-path-to-node="0">GNFI lead paragraph retained by the article-sheet extractor.</p>\n'
+                '<p data-path-to-node="1">GNFI second paragraph retained by the article-sheet extractor.</p>\n'
+                '</div>\n'
+                '</body></html>\n'
+            )
+        elif cls is BetahitaScraper:
+            html = (
+                '<!doctype html><html><head></head><body>'
+                '<article class="detail-artikel">'
+                '<div class="judul-artikel">'
+                '<h5>Berita</h5>'
+                '<h1>Betahita test headline</h1>'
+                '<h5 class="margin-bottom-sm">Sabtu, 11 Juli 2026</h5>'
+                '</div>'
+                '<div class="box-sumber"><h5 class="title">Oleh: Betahita Reporter</h5></div>'
+                '<div class="detail-in">'
+                '<p>BETAHITA.ID — Betahita lead paragraph included after the dateline marker.</p>'
+                '<p>Betahita second paragraph also retained because it follows the dateline.</p>'
+                '</div>'
+                '</article>'
+                '</body></html>'
+            )
+        elif cls is NusaBaliScraper:
+            html = (
+                '<!doctype html><html><head>'
+                '<meta property="og:title" content="NusaBali test headline">'
+                '</head><body>'
+                '<span class="month pull-left" itemprop="datePublished">12 Jul 2026 19:37:24</span>'
+                '<div class="breadcrumb">'
+                '<span class="article-category" itemprop="articleSection">Denpasar</span>'
+                '</div>'
+                '<span itemprop="author">Penulis : I Putu Reporter</span>'
+                '<div class="entry-content" itemprop="articleBody">'
+                '<p>NusaBali lead paragraph pulled into the body by the entry-content extractor.</p>'
+                '<p>NusaBali second paragraph retained because it sits inside articleBody.</p>'
+                '</div>'
+                '</body></html>'
+            )
+        elif cls is ConversationIDScraper:
+            html = (
+                '<!doctype html><html><head>'
+                '<meta property="og:title" content="Conversation ID test headline">'
+                '</head><body>'
+                '<time datetime="2026-07-12T10:00:00Z">12 July 2026</time>'
+                '<a rel="author" href="/profile/author-one">Author One</a>'
+                '<a rel="author" href="/profile/author-two">Author Two</a>'
+                '<a href="/topics/politics">Politics</a>'
+                '<a href="/topics/economics">Economics</a>'
+                '<div itemprop="articleBody">'
+                '<p>Conversation ID lead paragraph retained by the articleBody extractor.</p>'
+                '<p>Conversation ID second paragraph retained by the articleBody extractor.</p>'
+                '</div>'
+                '</body></html>'
+            )
+        elif cls is HukumonlineScraper:
+            ld_payload = json.dumps({
+                "@context": "https://schema.org",
+                "@type": "NewsArticle",
+                "datePublished": "2026-07-12T10:00:00+07:00",
+                "author": {"@type": "Person", "name": "Hukumonline Reporter"},
+                "articleSection": "Hukum",
+            })
+            html = (
+                '<!doctype html>\n<html><head>\n'
+                '<meta property="og:title" content="Hukumonline test headline">\n'
+                f'<script type="application/ld+json">{ld_payload}</script>\n'
+                '</head><body>\n'
+                '<article>\n'
+                '<p>Hukumonline lead paragraph included by the article-descendant extractor.</p>\n'
+                '<p>Hukumonline second paragraph retained by the joined article body.</p>\n'
+                '</article>\n'
+                '</body></html>\n'
+            )
+        else:  # IndependenScraper
+            html = (
+                '<!doctype html><html><head>'
+                '<meta property="og:title" content="Independen test headline - Independen.id">'
+                '<meta property="article:published_time" content="2026-07-12T10:00:00+07:00">'
+                '<meta property="article:section" content="Investigasi">'
+                '<meta name="author" content="Independen Reporter">'
+                '</head><body>'
+                '<article>'
+                '<p class="lead">Independen lead paragraph surviving the 25-char filter inside the article.</p>'
+                '<p>Independen second paragraph continuing the joined article body from the markup.</p>'
+                '<div class="share-buttons"><a href="#">share</a></div>'
+                '<div class="related-articles"><p>related noise — must be removed</p></div>'
+                '</article>'
+                '</body></html>'
+            )
 
         s = cls(keywords=keyword, queue_=asyncio.Queue())
         _attach_fetch(s, {link: html})
@@ -1483,7 +1685,6 @@ class TestNewAdapterQueueSchema:
         assert isinstance(item["source"], str) and item["source"]
         assert item["link"] == link
         assert item["source"] == source
-
 
 _CUTOFF_PARAMS = (
     pytest.param(
@@ -1503,6 +1704,30 @@ _CUTOFF_PARAMS = (
         "makan bergizi gratis",
         "https://wartaekonomi.co.id/read12345/warta-ekonomi-test-headline",
         id="wartaekonomi",
+    ),
+    pytest.param(
+        GNFIScraper,
+        "bali",
+        "https://www.goodnewsfromindonesia.id/2026/07/12/test-article",
+        id="gnfi",
+    ),
+    pytest.param(
+        NusaBaliScraper,
+        "bali",
+        "https://www.nusabali.com/berita/225365/pria-mabuk-diamankan-polisi",
+        id="nusabali",
+    ),
+    pytest.param(
+        ConversationIDScraper,
+        "indonesia",
+        "https://theconversation.com/some-article-12345",
+        id="conversationid",
+    ),
+    pytest.param(
+        IndependenScraper,
+        "indonesia",
+        "https://independen.id/judul-artikel-contoh/",
+        id="independen",
     ),
 )
 
@@ -1539,7 +1764,7 @@ class TestNewAdapterStartDateCutoff:
                 '<div class="article-body"><p>x</p></div>'
                 '</body></html>'
             )
-        else:  # WartaEkonomiScraper
+        elif cls is WartaEkonomiScraper:
             body = (
                 '<!doctype html><html><head>'
                 f'<link rel="canonical" href="{link}">'
@@ -1557,7 +1782,1171 @@ class TestNewAdapterStartDateCutoff:
                 '</article>'
                 '</body></html>'
             )
+        elif cls is GNFIScraper:
+            body = (
+                '<!doctype html><html><head>'
+                '<meta property="og:title" content="GNFI test headline">'
+                '<meta property="article:published_time" content="2026-07-12T10:00:00+07:00">'
+                '</head><body><div class="article-sheet"><p data-path-to-node="0">x</p></div>'
+                '</body></html>'
+            )
+        elif cls is NusaBaliScraper:
+            body = (
+                '<!doctype html><html><head>'
+                '<meta property="og:title" content="NusaBali test headline">'
+                '</head><body>'
+                '<span class="month pull-left" itemprop="datePublished">12 Jul 2026 19:37:24</span>'
+                '<span itemprop="author">Penulis : Author</span>'
+                '<div class="entry-content" itemprop="articleBody"><p>x</p></div>'
+                '</body></html>'
+            )
+        elif cls is ConversationIDScraper:
+            body = (
+                '<!doctype html><html><head>'
+                '<meta property="og:title" content="Conversation ID test headline">'
+                '</head><body>'
+                '<time datetime="2026-07-12T10:00:00Z">12 July 2026</time>'
+                '<div itemprop="articleBody"><p>x</p></div>'
+                '</body></html>'
+            )
+        else:  # IndependenScraper
+            body = (
+                '<!doctype html><html><head>'
+                '<meta property="og:title" content="Independen test headline">'
+                '<meta property="article:published_time" content="2026-07-12T10:00:00+07:00">'
+                '</head><body>'
+                '<article><p>x</p></article>'
+                '</body></html>'
+            )
         _attach_fetch(s, {link: body})
         await s.get_article(link, keyword)
         assert s.queue_.qsize() == 0
         assert s.continue_scraping is False
+
+
+# ── 8. GNFI: strict every-token keyword filter; latest path is unfiltered ──
+
+
+class TestGNFIRelevance:
+    """GNFI: search mode applies every-token filter against ``<title>``;
+    latest mode (``/explore``) consumes the same HTML without any filter."""
+
+    KEYWORD = "makan bergizi"
+    HTML = (
+        '<html><body>'
+        '<a href="https://www.goodnewsfromindonesia.id/2026/07/12/makan-bergizi-gratis-di-bali"'
+        '   title="Makan Bergizi title">link1</a>'
+        '<a href="https://www.goodnewsfromindonesia.id/2026/07/11/unrelated-other-news"'
+        '   title="Other title">link2</a>'
+        '</body></html>'
+    )
+
+    @pytest.mark.asyncio
+    async def test_strict_search_then_unfiltered_latest(self):
+        s = GNFIScraper(keywords=self.KEYWORD, queue_=asyncio.Queue())
+
+        async def stub_build_search_url(keyword, page):
+            s._current_keyword = keyword
+            return self.HTML
+
+        s.build_search_url = stub_build_search_url
+        await s.build_search_url(self.KEYWORD, 1)
+
+        search_links = s.parse_article_links(self.HTML)
+        assert search_links == {
+            "https://www.goodnewsfromindonesia.id/2026/07/12/makan-bergizi-gratis-di-bali",
+        }
+
+        latest_links = s.parse_latest_article_links(self.HTML)
+        assert latest_links == {
+            "https://www.goodnewsfromindonesia.id/2026/07/12/makan-bergizi-gratis-di-bali",
+            "https://www.goodnewsfromindonesia.id/2026/07/11/unrelated-other-news",
+        }
+
+
+# ── 9. Infobanknews: REST discovery + article extraction + cutoff ──────────
+
+
+class TestInfobanknewsScraper:
+    """Infobanknews: WordPress REST discovery pagination/boundaries +
+    article extraction (JSON-LD / article-content fallback) + cutoff."""
+
+    BASE = "https://infobanknews.com"
+    REST = f"{BASE}/wp-json/wp/v2/posts"
+    LINK_OK = f"{BASE}/makan-bergizi/"
+    LINK_NESTED = f"{BASE}/category/foo/"
+    LINK_TAX = f"{BASE}/author/john/"
+
+    @pytest.mark.asyncio
+    async def test_rest_discovery_pagination_and_article_schema(self):
+        s = InfobanknewsScraper(keywords="makan bergizi", queue_=asyncio.Queue())
+
+        page1 = json.dumps([
+            {"link": self.LINK_OK},
+            {"link": self.LINK_NESTED},
+            {"link": "not-a-link"},
+        ])
+        page2 = "this is not json at all"
+        page3 = json.dumps([{"link": self.LINK_TAX}, "string-not-dict"])
+        page11 = json.dumps([{"link": f"{self.BASE}/another-post/"}])
+
+        _attach_fetch(s, {
+            f"{self.REST}?search=makan%20bergizi&per_page=20&page=1&_fields=link": page1,
+            f"{self.REST}?search=makan%20bergizi&per_page=20&page=2&_fields=link": page2,
+            f"{self.REST}?search=makan%20bergizi&per_page=20&page=3&_fields=link": page3,
+            f"{self.REST}?search=makan%20bergizi&per_page=20&page=10&_fields=link": page11,
+        })
+
+        assert s.parse_article_links(await s.build_search_url("makan bergizi", 1)) == [self.LINK_OK]
+        assert await s.build_search_url("makan bergizi", 11) is None
+        assert s.parse_article_links(await s.build_search_url("makan bergizi", 2)) is None
+        assert s.parse_article_links(await s.build_search_url("makan bergizi", 3)) is None
+        assert s.parse_article_links(await s.build_search_url("makan bergizi", 10)) == [f"{self.BASE}/another-post/"]
+
+    @pytest.mark.asyncio
+    async def test_article_schema_naive_date_and_future_cutoff(self):
+        link = self.LINK_OK
+        body = (
+            '<!doctype html><html><head>'
+            '<meta property="og:title" content="Infobank test headline">'
+            '<script type="application/ld+json">'
+            '{"@context":"https://schema.org","@type":"NewsArticle",'
+            '"datePublished":"2026-07-12T10:00:00+07:00"}'
+            '</script>'
+            '</head><body>'
+            '<div class="article-content"><p>Body paragraph one.</p>'
+            '<p>Body paragraph two with detail.</p></div>'
+            '</body></html>'
+        )
+
+        s = InfobanknewsScraper(
+            keywords="makan bergizi", queue_=asyncio.Queue(),
+        )
+        _attach_fetch(s, {link: body})
+        await s.get_article(link, "makan bergizi")
+        assert s.queue_.qsize() == 1
+        item = await s.queue_.get()
+        assert list(item.keys()) == list(_QUEUE_KEYS)
+        assert item["title"] == "Infobank test headline"
+        assert item["publish_date"] == datetime(2026, 7, 12, 10, 0, 0)
+        assert item["source"] == "infobanknews.com"
+        assert item["link"] == link
+
+        s2 = InfobanknewsScraper(
+            keywords="makan bergizi",
+            start_date=datetime(2099, 1, 1),
+            queue_=asyncio.Queue(),
+        )
+        _attach_fetch(s2, {link: body})
+        await s2.get_article(link, "makan bergizi")
+
+# ── 10. IDX Channel: sitemap discovery, keyword filter, article + cutoff ───
+
+
+class TestIDXChannelScraper:
+    """IDX Channel: required-news-sitemap discovery, every-token keyword
+    filter with cap, unfiltered latest, and DD/MM/YYYY HH:MM WIB article
+    extraction with start_date cutoff."""
+
+    BASE = "https://www.idxchannel.com"
+    INDEX = f"{BASE}/sitemap.xml"
+    SITEMAP_A = f"{BASE}/news/sitemap.xml"
+    SITEMAP_B = f"{BASE}/market-news/sitemap.xml"
+
+    SM_NS = "http://www.sitemaps.org/schemas/sitemap/0.9"
+    NEWS_NS = "http://www.google.com/schemas/sitemap-news/0.9"
+
+    @staticmethod
+    def _sitemap_index_xml(extra_loc: str | None = None) -> str:
+        locs = "".join(
+            f"<sm:sitemap><sm:loc>{u}</sm:loc></sm:sitemap>" for u in (
+                "https://www.idxchannel.com/news/sitemap.xml",
+                "https://www.idxchannel.com/market-news/sitemap.xml",
+            )
+        )
+        if extra_loc:
+            locs += f"<sm:sitemap><sm:loc>{extra_loc}</sm:loc></sm:sitemap>"
+        return (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            f'<urlset xmlns:sm="{TestIDXChannelScraper.SM_NS}">'
+            f"{locs}</urlset>"
+        )
+
+    def _news_sitemap_xml(self, entries: list[tuple[str, str]]) -> str:
+        body = "".join(
+            f"<url><loc>{loc}</loc>"
+            f"<news:news><news:title><![CDATA[{title}]]></news:title>"
+            f"</news:news></url>"
+            for loc, title in entries
+        )
+        return (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            f'<urlset xmlns="{TestIDXChannelScraper.SM_NS}" '
+            f'xmlns:news="{TestIDXChannelScraper.NEWS_NS}">'
+            f"{body}</urlset>"
+        )
+
+    @pytest.mark.asyncio
+    async def test_sitemap_discovery_filter_latest_and_article(self):
+        s = IDXChannelScraper(
+            keywords="makan bergizi", queue_=asyncio.Queue(),
+        )
+
+        sitemap_a = self._news_sitemap_xml([
+            ("https://www.idxchannel.com/news/makan-bergizi-gratis/", "Makan Bergizi title"),
+            ("https://www.idxchannel.com/news/unrelated-other-story/", "Other Story title"),
+            ("https://www.idxchannel.com/news/extra-skip/", "Extra title"),
+        ])
+        sitemap_b = self._news_sitemap_xml([
+            ("https://www.idxchannel.com/market-news/makan-bergizi-ipo/", "Makan Bergizi IPO title"),
+        ])
+        index_xml = self._sitemap_index_xml()
+
+        cache: dict[str, str] = {
+            self.INDEX: index_xml,
+            self.SITEMAP_A: sitemap_a,
+            self.SITEMAP_B: sitemap_b,
+        }
+        _attach_fetch(s, cache)
+
+        discovered = await s._discover_news_sitemaps()
+        assert discovered[:2] == [self.SITEMAP_A, self.SITEMAP_B]
+        assert [u for u, *_ in s.fetch.calls] == [self.INDEX]
+
+        search_entries = await s.build_search_url("makan bergizi", 1)
+        links = s.parse_article_links(search_entries)
+        assert links == [
+            "https://www.idxchannel.com/news/makan-bergizi-gratis/",
+            "https://www.idxchannel.com/market-news/makan-bergizi-ipo/",
+        ]
+        assert await s.build_search_url("makan bergizi", 2) is None
+
+        latest_entries = await s.build_latest_url(1)
+        assert s.parse_latest_article_links(latest_entries) == [
+            "https://www.idxchannel.com/news/makan-bergizi-gratis/",
+            "https://www.idxchannel.com/news/unrelated-other-story/",
+            "https://www.idxchannel.com/news/extra-skip/",
+        ]
+        assert await s.build_latest_url(0) is None
+
+        link = "https://www.idxchannel.com/news/makan-bergizi-gratis/"
+        article_body = (
+            '<!doctype html><html><head>'
+            '<meta property="og:title" content="IDX Channel test headline">'
+            '</head><body>'
+            '<div class="article--creator"><span class="text-body--2">'
+            '12/07/2026 10:00 WIB'
+            '</span></div>'
+            '<div class="article--content"><p>Body paragraph one has enough detail for extraction.</p>'
+            '<p>Body paragraph two has enough detail for extraction.</p></div>'
+            '</body></html>'
+        )
+        s2 = IDXChannelScraper(
+            keywords="makan bergizi", queue_=asyncio.Queue(),
+        )
+        _attach_fetch(s2, {link: article_body})
+        await s2.get_article(link, "makan bergizi")
+        assert s2.queue_.qsize() == 1
+        item = await s2.queue_.get()
+        assert list(item.keys()) == list(_QUEUE_KEYS)
+        assert item["title"] == "IDX Channel test headline"
+        assert item["publish_date"] == datetime(2026, 7, 12, 10, 0, 0)
+        assert item["source"] == "idxchannel.com"
+        assert item["link"] == link
+
+        s3 = IDXChannelScraper(
+            keywords="makan bergizi",
+            start_date=datetime(2099, 1, 1),
+            queue_=asyncio.Queue(),
+        )
+        _attach_fetch(s3, {link: article_body})
+        await s3.get_article(link, "makan bergizi")
+        assert s3.queue_.qsize() == 0
+        assert s3.continue_scraping is False
+
+
+# ── 11. Batch sources — discovery + extraction (per-adapter focus) ───────────
+
+
+def _alinea_search_html(*, url_substring: str = "") -> str:
+    return """<!doctype html><html><body>
+        <a href="/politik/foo-bar-b123">in-section</a>
+        <a href="/gaya-hidup/baz-qux-b456">in-section-gaya-hidup</a>
+        <a href="/search?q=foo">search page itself</a>
+        <a href="/lain/foo">unknown section</a>
+        <a href="https://example.com/politik/baz">off-site</a>
+        <a>no href</a>
+    </body></html>"""
+
+
+def _alinea_article_html() -> str:
+    return """<!doctype html><html><head>
+        <meta property="og:title" content="Alinea test headline">
+    </head><body>
+        <h1>Alinea test headline</h1>
+        <div class="frontdate">12 Juli 2026</div>
+        <div class="written__reporter">
+            <div class="reporter__nama">Reporter Satu</div>
+        </div>
+        <article><div>
+            <p>Alinea lead paragraph well over the forty character filter threshold for the body.</p>
+            <p>Alinea second paragraph retained by the article extractor.</p>
+        </div></article>
+    </body></html>"""
+
+
+class TestAlineaFocus:
+    """Alinea: search URL + parser, latest /indeks page 1, extraction."""
+
+    def _scraper(self):
+        return AlineaScraper(keywords="politik", queue_=asyncio.Queue())
+
+    @pytest.mark.asyncio
+    async def test_search_page_one_sets_q_and_page(self):
+        s = self._scraper()
+        stub = _attach_fetch(s, {"": _alinea_search_html()})
+        body = await s.build_search_url("politik", 1)
+        assert body is not None
+        assert len(stub.calls) == 1
+        assert "q=politik" in stub.calls[0][0]
+        assert "page=1" in stub.calls[0][0]
+
+    @pytest.mark.asyncio
+    async def test_search_page_two_appends_page_two(self):
+        s = self._scraper()
+        stub = _attach_fetch(s, {"": _alinea_search_html()})
+        await s.build_search_url("politik", 2)
+        assert "page=2" in stub.calls[0][0]
+
+    @pytest.mark.asyncio
+    async def test_search_keyword_is_url_encoded(self):
+        s = self._scraper()
+        stub = _attach_fetch(s, {"": _alinea_search_html()})
+        await s.build_search_url("ekonomi & bisnis", 1)
+        url = stub.calls[0][0]
+        # Spaces must encode as %20 and the ampersand must encode as %26; the
+        # raw '&' must NOT split the keyword from another query parameter.
+        assert "%26" in url or "+" in url
+        assert " " not in url
+
+    def test_search_parser_keeps_sections_and_drops_offsite(self):
+        s = self._scraper()
+        links = s.parse_article_links(_alinea_search_html())
+        assert links == {
+            "https://www.alinea.id/politik/foo-bar-b123",
+            "https://www.alinea.id/gaya-hidup/baz-qux-b456",
+        }
+
+    def test_search_parser_empty_body_stops_loop(self):
+        s = self._scraper()
+        assert s.parse_article_links("<html><body>no anchors</body></html>") is None
+        assert s.continue_scraping is False
+
+    @pytest.mark.asyncio
+    async def test_latest_targets_indeks_page_one_only(self):
+        s = AlineaScraper(keywords="politik", queue_=asyncio.Queue())
+        stub = _attach_fetch(s, {"indeks": "<html></html>"})
+        body = await s.build_latest_url(1)
+        assert body == "<html></html>"
+        assert stub.calls[0][0].endswith("/indeks")
+        assert await s.build_latest_url(2) is None
+
+    @pytest.mark.asyncio
+    async def test_extracts_full_queue_item_with_path_category(self):
+        link = "https://www.alinea.id/politik/foo-bar-b123"
+        s = AlineaScraper(keywords="politik", queue_=asyncio.Queue())
+        _attach_fetch(s, {link: _alinea_article_html()})
+        await s.get_article(link, "politik")
+
+        item = s.queue_.get_nowait()
+        assert item["title"] == "Alinea test headline"
+        assert item["publish_date"] == datetime(2026, 7, 12, 0, 0, 0)
+        assert item["author"] == "Reporter Satu"
+        assert item["category"] == "politik"
+        assert item["source"] == "www.alinea.id"
+        assert item["link"] == link
+        assert "Alinea lead paragraph" in item["content"]
+
+    @pytest.mark.asyncio
+    async def test_empty_body_short_circuits_without_put(self):
+        link = "https://www.alinea.id/politik/empty"
+        s = AlineaScraper(keywords="politik", queue_=asyncio.Queue())
+        _attach_fetch(s, {link: ""})
+        await s.get_article(link, "politik")
+        assert s.queue_.qsize() == 0
+
+
+def _gnfi_search_html() -> str:
+    return """<!doctype html><html><body>
+        <a href="/2026/07/12/some-article">dated</a>
+        <a href="https://www.goodnewsfromindonesia.id/2025/12/01/old-article">absolute</a>
+        <a href="/c/lingkungan">category</a>
+        <a href="/about">about</a>
+        <a href="https://other.example.com/2026/07/12/foreign">off-site</a>
+        <a href="/2026/7/12/no-leading-zero">bad month</a>
+    </body></html>"""
+
+
+def _gnfi_article_html() -> str:
+    ld_payload = json.dumps({
+        "@context": "https://schema.org",
+        "@type": "NewsArticle",
+        "datePublished": "2026-07-12T10:00:00+00:00",
+        "author": {"@type": "Person", "name": "JSON-LD Reporter"},
+    })
+    return (
+        '<!doctype html><html><head>'
+        '<meta property="og:title" content="GNFI test headline">'
+        '<meta name="author" content="GNFI Reporter">'
+        f'<script type="application/ld+json">{ld_payload}</script>'
+        '</head><body>'
+        '<div class="article-category"><a href="/c/lingkungan">Lingkungan</a></div>'
+        '<div class="article-sheet">'
+        '<p data-path-to-node="0">GNFI lead paragraph retained by the article-sheet extractor.</p>'
+        '<p data-path-to-node="1">GNFI second paragraph retained by the article-sheet extractor.</p>'
+        '</div>'
+        '</body></html>'
+    )
+
+
+class TestGNFIFocus:
+    """GNFI: search URL + parser, latest /explore page 1, extraction."""
+
+    def _scraper(self):
+        return GNFIScraper(keywords="bali", queue_=asyncio.Queue())
+
+    @pytest.mark.asyncio
+    async def test_search_page_one_omits_page_param(self):
+        s = self._scraper()
+        stub = _attach_fetch(s, {"": _gnfi_search_html()})
+        await s.build_search_url("bali", 1)
+        url = stub.calls[0][0]
+        assert url.startswith("https://www.goodnewsfromindonesia.id/search?")
+        assert "keyword=bali" in url
+        # Page 1 must omit page= so the upstream does not 404 on a stray param.
+        assert "page=" not in url
+
+    @pytest.mark.asyncio
+    async def test_search_page_two_appends_page_param(self):
+        s = self._scraper()
+        stub = _attach_fetch(s, {"": _gnfi_search_html()})
+        await s.build_search_url("bali", 2)
+        assert stub.calls[0][0].endswith("&page=2")
+
+    @pytest.mark.asyncio
+    async def test_search_keyword_is_percent_encoded(self):
+        s = self._scraper()
+        stub = _attach_fetch(s, {"": _gnfi_search_html()})
+        await s.build_search_url("ekonomi & bisnis/ihsg+market", 1)
+        url = stub.calls[0][0]
+        # The ampersand and space must be percent-encoded; raw '&' would split
+        # the keyword from the next query parameter and corrupt the search.
+        assert "keyword=ekonomi" in url
+        assert "%26" in url and "%20" in url
+        import re as _re
+        assert _re.search(r"keyword=ekonomi[^%][^&]*&", url) is None
+
+    def test_search_parser_keeps_dated_same_site_urls(self):
+        s = self._scraper()
+        links = s.parse_article_links(_gnfi_search_html())
+        assert links == {
+            "https://www.goodnewsfromindonesia.id/2026/07/12/some-article",
+            "https://www.goodnewsfromindonesia.id/2025/12/01/old-article",
+        }
+
+    @pytest.mark.asyncio
+    async def test_latest_targets_explore_page_one_only(self):
+        s = GNFIScraper(keywords="bali", queue_=asyncio.Queue())
+        stub = _attach_fetch(s, {"explore": "<html></html>"})
+        body = await s.build_latest_url(1)
+        assert body == "<html></html>"
+        assert stub.calls[0][0].endswith("/explore")
+        assert await s.build_latest_url(2) is None
+
+    @pytest.mark.asyncio
+    async def test_extracts_full_queue_item(self):
+        link = "https://www.goodnewsfromindonesia.id/2026/07/12/test-article"
+        s = GNFIScraper(keywords="bali", queue_=asyncio.Queue())
+        _attach_fetch(s, {link: _gnfi_article_html()})
+        await s.get_article(link, "bali")
+
+        item = s.queue_.get_nowait()
+        assert item["title"] == "GNFI test headline"
+        assert item["publish_date"] == datetime(2026, 7, 12, 10, 0, 0)
+        # meta[name=author] wins over the JSON-LD author.
+        assert item["author"] == "GNFI Reporter"
+        assert item["category"] == "Lingkungan"
+        assert item["source"] == "goodnewsfromindonesia.id"
+        assert item["link"] == link
+
+    @pytest.mark.asyncio
+    async def test_missing_date_short_circuits(self):
+        link = "https://www.goodnewsfromindonesia.id/2026/07/12/no-date"
+        html = """<!doctype html><html><head>
+            <meta property="og:title" content="t">
+            <meta name="author" content="a">
+        </head><body><div class="article-sheet">
+            <p data-path-to-node="0">body</p>
+        </div></body></html>"""
+        s = GNFIScraper(keywords="bali", queue_=asyncio.Queue())
+        _attach_fetch(s, {link: html})
+        await s.get_article(link, "bali")
+        assert s.queue_.qsize() == 0
+
+
+def _betahita_search_html() -> str:
+    return """<!doctype html><html><body>
+        <a href="/berita/12345/some-slug">berita</a>
+        <a href="/opini/99/opinion-slug">opini</a>
+        <a href="/sorot/100/featured-slug">sorot</a>
+        <a href="/berita/no-id/slug">no id</a>
+        <a href="/video/12345/some-slug">video</a>
+        <a href="https://other.example.com/berita/1/foo">off-site</a>
+        <a href="/sorot/keyword">sorot landing</a>
+        <a href="/berita/12345/">trailing slash, no slug</a>
+    </body></html>"""
+
+
+def _betahita_article_html(*, header_label: str = "Berita") -> str:
+    return f"""<!doctype html><html><head></head><body>
+        <article class="detail-artikel">
+            <div class="judul-artikel">
+                <h5>{header_label}</h5>
+                <h1>Betahita test headline</h1>
+                <h5 class="margin-bottom-sm">Sabtu, 11 Juli 2026</h5>
+            </div>
+            <div class="box-sumber">
+                <h5 class="title">Oleh: Betahita Reporter</h5>
+            </div>
+            <div class="detail-in">
+                <p>Intro paragraph that must be skipped — dateline not yet seen.</p>
+                <p>BETAHITA.ID — Betahita lead paragraph included after the dateline marker.</p>
+                <p>Betahita second paragraph also included because it follows the dateline.</p>
+                <div class="box-foto-artikel"><p>photo caption retained as text</p></div>
+            </div>
+        </article>
+    </body></html>"""
+
+
+class TestBetahitaFocus:
+    """Betahita: search /search?query=&pagenum=, latest homepage, extraction."""
+
+    def _scraper(self):
+        return BetahitaScraper(keywords="lingkungan", queue_=asyncio.Queue())
+
+    @pytest.mark.asyncio
+    async def test_search_pagination_uses_pagenum_no_landing_walk(self):
+        s = self._scraper()
+        stub = _attach_fetch(s, {"": _betahita_search_html()})
+        await s.build_search_url("lingkungan", 2)
+        url = stub.calls[0][0]
+        assert url.startswith("https://www.betahita.id/search?")
+        assert "query=lingkungan" in url
+        assert "pagenum=2" in url
+        # the canonical endpoint serves every page.
+        assert "/berita/lingkungan" not in url
+        assert "/opini/lingkungan" not in url
+        assert "/sorot/lingkungan" not in url
+
+    @pytest.mark.asyncio
+    async def test_search_keyword_is_percent_encoded(self):
+        s = self._scraper()
+        stub = _attach_fetch(s, {"": _betahita_search_html()})
+        await s.build_search_url("ekonomi & bisnis", 1)
+        expected = quote("ekonomi & bisnis", safe="")
+        assert expected in stub.calls[0][0]
+
+    def test_search_parser_keeps_berita_opini_and_sorot(self):
+        s = self._scraper()
+        links = s.parse_article_links(_betahita_search_html())
+        assert links == {
+            "https://www.betahita.id/berita/12345/some-slug",
+            "https://www.betahita.id/opini/99/opinion-slug",
+            "https://www.betahita.id/sorot/100/featured-slug",
+        }
+
+    def test_search_parser_rejects_empty_body(self):
+        s = self._scraper()
+        assert s.parse_article_links("") is None
+
+    @pytest.mark.asyncio
+    async def test_latest_targets_homepage_page_one_only(self):
+        s = BetahitaScraper(keywords="lingkungan", queue_=asyncio.Queue())
+        stub = _attach_fetch(s, {"betahita.id": "<html></html>"})
+        body = await s.build_latest_url(1)
+        assert body == "<html></html>"
+        assert stub.calls[0][0] == "https://www.betahita.id"
+        assert await s.build_latest_url(2) is None
+
+    def test_latest_parser_keeps_berita_and_opini_drops_others(self):
+        s = BetahitaScraper(keywords="lingkungan", queue_=asyncio.Queue())
+        html = """<!doctype html><html><body>
+            <a href="/berita/12345/some-slug">berita</a>
+            <a href="/opini/99/opinion-slug">opini</a>
+            <a href="/video/12345/some-slug">video</a>
+            <a href="/tentang-kami">about</a>
+            <a href="/berita/no-id/slug">no numeric id</a>
+            <a href="https://www.betahita.id/berita/7/leading-zero-id">leading-zero</a>
+        </body></html>"""
+        links = s.parse_latest_article_links(html)
+        assert links == {
+            "https://www.betahita.id/berita/12345/some-slug",
+            "https://www.betahita.id/opini/99/opinion-slug",
+            "https://www.betahita.id/berita/7/leading-zero-id",
+        }
+        assert s.parse_latest_article_links("") is None
+
+    @pytest.mark.asyncio
+    async def test_extracts_full_queue_item_with_dateline_filter(self):
+        link = "https://www.betahita.id/berita/12345/test-article"
+        s = BetahitaScraper(keywords="lingkungan", queue_=asyncio.Queue())
+        _attach_fetch(s, {link: _betahita_article_html()})
+        await s.get_article(link, "lingkungan")
+
+        item = s.queue_.get_nowait()
+        assert item["title"] == "Betahita test headline"
+        assert item["publish_date"] == datetime(2026, 7, 11, 0, 0, 0)
+        assert item["publish_date"].tzinfo is None
+        assert item["author"] == "Betahita Reporter"
+        assert item["category"] == "Berita"
+        assert item["source"] == "betahita.id"
+        assert item["link"] == link
+        # Everything before the dateline must be filtered out; the post-dateline
+        # paragraph and the photo caption must remain.
+        assert "Intro paragraph" not in item["content"]
+        assert "Betahita second paragraph" in item["content"]
+
+    @pytest.mark.asyncio
+    async def test_opini_path_derives_opini_category(self):
+        link = "https://www.betahita.id/opini/99/opinion-piece"
+        s = BetahitaScraper(keywords="lingkungan", queue_=asyncio.Queue())
+        _attach_fetch(s, {link: _betahita_article_html(header_label="Opini")})
+        await s.get_article(link, "lingkungan")
+        item = s.queue_.get_nowait()
+        assert item["category"] == "Opini"
+
+
+def _nusabali_search_html() -> str:
+    return """<!doctype html><html><body>
+        <a href="/berita/225365/pria-mabuk-diamankan-polisi">article</a>
+        <a href="/berita/7/leading-zero">short id</a>
+        <a href="/opini/123/foo">opini</a>
+        <a href="/tag/bali">tag</a>
+        <a href="/about">about</a>
+        <a href="/berita/not-a-number/slug">non-numeric</a>
+    </body></html>"""
+
+
+def _nusabali_article_html() -> str:
+    return """<!doctype html><html><head>
+        <meta property="og:title" content="NusaBali test headline">
+    </head><body>
+        <div class="entry-box-header">
+            <span class="month pull-left" itemprop="datePublished">12 Jul 2026 19:37:24</span>
+        </div>
+        <span itemprop="author">Penulis : I Putu Reporter</span>
+        <div class="breadcrumb">
+            <span class="article-category" itemprop="articleSection">Denpasar</span>
+        </div>
+        <div class="entry-content" itemprop="articleBody">
+            <p>NusaBali lead paragraph retained by the entry-content extractor.</p>
+            <p>NusaBali second paragraph retained because it sits inside articleBody.</p>
+        </div>
+    </body></html>"""
+
+
+class TestNusaBaliFocus:
+    """NusaBali: search keyword+page, latest homepage, extraction."""
+
+    def _scraper(self):
+        return NusaBaliScraper(keywords="bali", queue_=asyncio.Queue())
+
+    @pytest.mark.asyncio
+    async def test_search_keyword_quoted_and_page_param_present(self):
+        s = self._scraper()
+        stub = _attach_fetch(s, {"": _nusabali_search_html()})
+        await s.build_search_url("bali", 1)
+        url = stub.calls[0][0]
+        assert "keyword=bali" in url
+        assert "page=1" in url
+
+    @pytest.mark.asyncio
+    async def test_search_page_two_sets_page_two(self):
+        s = self._scraper()
+        stub = _attach_fetch(s, {"": _nusabali_search_html()})
+        await s.build_search_url("bali", 2)
+        assert "page=2" in stub.calls[0][0]
+    @pytest.mark.asyncio
+    async def test_search_keyword_is_percent_encoded(self):
+        s = self._scraper()
+        stub = _attach_fetch(s, {"": _nusabali_search_html()})
+        await s.build_search_url("ekonomi & bisnis", 1)
+        expected = quote("ekonomi & bisnis", safe="")
+        assert expected in stub.calls[0][0]
+    @pytest.mark.asyncio
+    async def test_search_empty_fetch_returns_none(self):
+        # No fetch stub attached — empty body bubbles up as None.
+        s = NusaBaliScraper(keywords="bali", queue_=asyncio.Queue())
+        assert await s.build_search_url("nobody-home", 1) is None
+
+    def test_search_parser_keeps_only_berita_numeric_id_slug(self):
+        s = self._scraper()
+        links = s.parse_article_links(_nusabali_search_html())
+        assert links == {
+            "https://www.nusabali.com/berita/225365/pria-mabuk-diamankan-polisi",
+            "https://www.nusabali.com/berita/7/leading-zero",
+        }
+
+    def test_search_parser_rejects_empty_body(self):
+        s = self._scraper()
+        assert s.parse_article_links("") is None
+
+    @pytest.mark.asyncio
+    async def test_latest_targets_homepage_page_one_only(self):
+        s = NusaBaliScraper(keywords="bali", queue_=asyncio.Queue())
+        stub = _attach_fetch(s, {"nusabali.com": "<html></html>"})
+        body = await s.build_latest_url(1)
+        assert body == "<html></html>"
+        assert stub.calls[0][0] == "https://www.nusabali.com"
+
+    def test_latest_parser_keeps_only_berita_numeric_id_slug(self):
+        s = NusaBaliScraper(keywords="bali", queue_=asyncio.Queue())
+        links = s.parse_latest_article_links(_nusabali_search_html())
+        assert links == {
+            "https://www.nusabali.com/berita/225365/pria-mabuk-diamankan-polisi",
+            "https://www.nusabali.com/berita/7/leading-zero",
+        }
+        assert s.parse_latest_article_links("") is None
+
+    @pytest.mark.asyncio
+    async def test_extracts_full_queue_item_with_author_prefix(self):
+        link = "https://www.nusabali.com/berita/225365/pria-mabuk-di-desa-keramas"
+        s = NusaBaliScraper(keywords="bali", queue_=asyncio.Queue())
+        _attach_fetch(s, {link: _nusabali_article_html()})
+        await s.get_article(link, "bali")
+
+        item = s.queue_.get_nowait()
+        assert item["title"] == "NusaBali test headline"
+        assert item["publish_date"] == datetime(2026, 7, 12, 19, 37, 24)
+        # "Penulis : " prefix must be preserved verbatim.
+        assert item["author"] == "Penulis : I Putu Reporter"
+        assert item["category"] == "Denpasar"
+        assert item["source"] == "nusabali.com"
+        assert item["link"] == link
+
+    @pytest.mark.asyncio
+    async def test_category_falls_back_to_unknown_when_no_breadcrumb(self):
+        link = "https://www.nusabali.com/berita/1/no-crumb"
+        html = """<!doctype html><html><head>
+            <meta property="og:title" content="t">
+        </head><body>
+            <span class="month pull-left" itemprop="datePublished">12 Jul 2026 19:37:24</span>
+            <span itemprop="author">Some Author</span>
+            <div class="entry-content" itemprop="articleBody">
+                <p>NusaBali body paragraph for the unknown-category fallback test path.</p>
+            </div>
+        </body></html>"""
+        s = NusaBaliScraper(keywords="bali", queue_=asyncio.Queue())
+        _attach_fetch(s, {link: html})
+        await s.get_article(link, "bali")
+
+        item = s.queue_.get_nowait()
+        assert item["category"] == "Unknown"
+
+
+def _conversation_search_html() -> str:
+    return """<!doctype html><html><body>
+        <a href="/some-article-12345">article</a>
+        <a href="https://theconversation.com/another-article-67890">absolute article</a>
+        <a href="/topics/climate-change">topics</a>
+        <a href="/authors/jane-doe">authors</a>
+        <a href="/partners/foo">partners</a>
+        <a href="/id/about-us">section about</a>
+        <a href="/newsletters/signup">newsletter</a>
+    </body></html>"""
+
+
+def _conversation_article_html() -> str:
+    return """<!doctype html><html><head>
+        <meta property="og:title" content="Conversation ID test headline">
+    </head><body>
+        <time datetime="2026-07-12T10:00:00Z">12 July 2026</time>
+        <a rel="author" href="/profile/author-one">Author One</a>
+        <a rel="author" href="/profile/author-two">Author Two</a>
+        <a href="/topics/politics">Politics</a>
+        <a href="/topics/economics">Economics</a>
+        <div itemprop="articleBody">
+            <p>Conversation ID lead paragraph retained by the articleBody extractor.</p>
+            <p>Conversation ID second paragraph retained by the articleBody extractor.</p>
+        </div>
+    </body></html>"""
+
+
+class TestConversationIDFocus:
+    """Conversation ID: search /id/search with full query string,
+    latest /id homepage, multi-author + multi-topic extraction, time→meta fallback."""
+
+    def _scraper(self):
+        return ConversationIDScraper(keywords="indonesia", queue_=asyncio.Queue())
+
+    @pytest.mark.asyncio
+    async def test_search_emits_full_canonical_query(self):
+        s = self._scraper()
+        stub = _attach_fetch(s, {"": _conversation_search_html()})
+        body = await s.build_search_url("politik", 1)
+        assert body is not None
+        url = stub.calls[0][0]
+        # Exact query-string contract: every parameter in the prescribed order.
+        assert "date=all" in url
+        assert "date_from=" in url
+        assert "date_to=" in url
+        assert "language=id" in url
+        assert "page=1" in url
+        assert "q=politik" in url
+        assert "sort=recency" in url
+
+    @pytest.mark.asyncio
+    async def test_search_page_two_swaps_page_param(self):
+        s = self._scraper()
+        stub = _attach_fetch(s, {"": _conversation_search_html()})
+        await s.build_search_url("politik", 2)
+        assert "page=2" in stub.calls[0][0]
+    @pytest.mark.asyncio
+    async def test_search_keyword_is_url_encoded(self):
+        s = self._scraper()
+        stub = _attach_fetch(s, {"": _conversation_search_html()})
+        await s.build_search_url("ekonomi & bisnis", 1)
+        expected = quote("ekonomi & bisnis", safe="")
+        assert f"q={expected}" in stub.calls[0][0]
+    @pytest.mark.asyncio
+    async def test_search_empty_fetch_returns_none(self):
+        # No fetch stub attached — empty body bubbles up as None.
+        s = ConversationIDScraper(keywords="indonesia", queue_=asyncio.Queue())
+        assert await s.build_search_url("nobody-home", 1) is None
+
+    def test_search_parser_keeps_articles_drops_section_paths(self):
+        s = self._scraper()
+        links = s.parse_article_links(_conversation_search_html())
+        assert links == {
+            "https://theconversation.com/some-article-12345",
+            "https://theconversation.com/another-article-67890",
+        }
+        assert s.parse_article_links("") is None
+
+    @pytest.mark.asyncio
+    async def test_latest_targets_id_homepage_page_one_only(self):
+        s = ConversationIDScraper(keywords="indonesia", queue_=asyncio.Queue())
+        stub = _attach_fetch(s, {"theconversation.com/id": "<html></html>"})
+        body = await s.build_latest_url(1)
+        assert body == "<html></html>"
+        assert stub.calls[0][0] == "https://theconversation.com/id"
+
+    def test_latest_parser_keeps_articles_drops_section_paths(self):
+        s = ConversationIDScraper(keywords="indonesia", queue_=asyncio.Queue())
+        links = s.parse_latest_article_links(_conversation_search_html())
+        assert links == {
+            "https://theconversation.com/some-article-12345",
+            "https://theconversation.com/another-article-67890",
+        }
+        assert s.parse_latest_article_links("") is None
+
+    @pytest.mark.asyncio
+    async def test_extracts_full_queue_item_multi_author_and_topic(self):
+        link = "https://theconversation.com/some-article-12345"
+        s = ConversationIDScraper(keywords="indonesia", queue_=asyncio.Queue())
+        _attach_fetch(s, {link: _conversation_article_html()})
+        await s.get_article(link, "indonesia")
+
+        item = s.queue_.get_nowait()
+        assert item["title"] == "Conversation ID test headline"
+        assert item["publish_date"] == datetime(2026, 7, 12, 10, 0, 0)
+        assert item["publish_date"].tzinfo is None
+        # Multiple authors joined with comma, preserving insertion order.
+        assert item["author"] == "Author One, Author Two"
+        # Multiple topic links joined into a single category string.
+        assert item["category"] == "Politics, Economics"
+        assert item["source"] == "theconversation.com"
+        assert item["link"] == link
+
+    @pytest.mark.asyncio
+    async def test_missing_time_falls_back_to_meta(self):
+        link = "https://theconversation.com/fallback-article-99999"
+        html = """<!doctype html><html><head>
+            <meta property="og:title" content="t">
+            <meta property="article:published_time" content="2026-07-12T12:00:00Z">
+        </head><body><div itemprop="articleBody">
+            <p>Conversation ID fallback body paragraph for the meta-only date path.</p>
+        </div></body></html>"""
+        s = ConversationIDScraper(keywords="indonesia", queue_=asyncio.Queue())
+        _attach_fetch(s, {link: html})
+        await s.get_article(link, "indonesia")
+
+        item = s.queue_.get_nowait()
+        assert item["publish_date"] == datetime(2026, 7, 12, 12, 0, 0)
+        assert item["publish_date"].tzinfo is None
+
+
+def _hukumonline_sitemap_xml(urls: list[str]) -> str:
+    body = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    body += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    for u in urls:
+        body += f"  <url><loc>{u}</loc></url>\n"
+    body += "</urlset>\n"
+    return body
+
+
+def _hukumonline_article_html() -> str:
+    ld_payload = json.dumps({
+        "@context": "https://schema.org",
+        "@type": "NewsArticle",
+        "datePublished": "2026-07-12T10:00:00+07:00",
+        "articleSection": "Hukum",
+        "author": {"@type": "Person", "name": "Hukumonline Reporter"},
+    })
+    return (
+        '<!doctype html><html><head>'
+        '<meta property="og:title" content="Hukumonline test headline">'
+        f'<script type="application/ld+json">{ld_payload}</script>'
+        '</head><body>'
+        '<article>'
+        '<p>Hukumonline lead paragraph included by the article-descendant extractor.</p>'
+        '<p>Hukumonline second paragraph continuing the joined article body.</p>'
+        '</article>'
+        '</body></html>'
+    )
+
+
+class TestHukumonlineFocus:
+    """Hukumonline: latest /berita/sitemap.xml + XML guard + extraction."""
+
+    @pytest.mark.asyncio
+    async def test_latest_targets_berita_sitemap_xml(self):
+        s = HukumonlineScraper(keywords="hukum", queue_=asyncio.Queue())
+        stub = _attach_fetch(s, {"": _hukumonline_sitemap_xml([])})
+        await s.build_latest_url(1)
+        assert stub.calls[0][0] == "https://www.hukumonline.com/berita/sitemap.xml"
+
+    def test_latest_parser_keeps_berita_a_slugs_drops_foto_stories(self):
+        s = HukumonlineScraper(keywords="hukum", queue_=asyncio.Queue())
+        xml = _hukumonline_sitemap_xml([
+            "https://www.hukumonline.com/berita/a/canonical-slug",
+            "https://www.hukumonline.com/berita/a/multi-segment/slug",
+            "https://www.hukumonline.com/berita/a/canonical-slug-with-trailing/",
+            "https://www.hukumonline.com/berita/foto/some-gallery",
+            "https://www.hukumonline.com/berita/stories/some-longform",
+            "https://www.hukumonline.com/berita/a/",
+            "https://www.hukumonline.com/lain/a/something",
+        ])
+        links = s.parse_latest_article_links(xml)
+        assert links == [
+            "https://www.hukumonline.com/berita/a/canonical-slug",
+            "https://www.hukumonline.com/berita/a/multi-segment/slug",
+            "https://www.hukumonline.com/berita/a/canonical-slug-with-trailing",
+        ]
+
+    def test_latest_parser_rejects_html_doc_html(self):
+        s = HukumonlineScraper(keywords="hukum", queue_=asyncio.Queue())
+        cloudflare = (
+            "<!doctype html><html><head><title>Just a moment...</title>"
+            "</head><body>Please enable JavaScript to continue.</body></html>"
+        )
+        assert s.parse_latest_article_links(cloudflare) is None
+
+    def test_latest_parser_rejects_html_without_doctype_marker(self):
+        s = HukumonlineScraper(keywords="hukum", queue_=asyncio.Queue())
+        assert s.parse_latest_article_links(
+            "<html><body>unexpected HTML body without sitemap markers</body></html>"
+        ) is None
+
+    def test_latest_parser_rejects_malformed_xml(self):
+        s = HukumonlineScraper(keywords="hukum", queue_=asyncio.Queue())
+        assert s.parse_latest_article_links(
+            "<?xml version='1.0'?><urlset><url><loc>oops</loc></url"
+        ) is None
+
+    @pytest.mark.asyncio
+    async def test_extracts_full_queue_item_with_jsonld(self):
+        link = "https://www.hukumonline.com/berita/a/canonical-slug"
+        s = HukumonlineScraper(keywords="hukum", queue_=asyncio.Queue())
+        _attach_fetch(s, {link: _hukumonline_article_html()})
+        await s.get_article(link, "hukum")
+
+        item = s.queue_.get_nowait()
+        assert item["title"] == "Hukumonline test headline"
+        # dateparser returns tz-aware for +07:00; assert the calendar value.
+        assert item["publish_date"].year == 2026
+        assert item["publish_date"].month == 7
+        assert item["publish_date"].day == 12
+        assert item["publish_date"].hour == 10
+        assert item["author"] == "Hukumonline Reporter"
+        assert item["category"] == "Hukum"
+        assert item["source"] == "hukumonline.com"
+        assert item["link"] == link
+
+    @pytest.mark.asyncio
+    async def test_section_falls_back_to_meta(self):
+        link = "https://www.hukumonline.com/berita/a/fallback-section"
+        ld_payload = json.dumps({
+            "@context": "https://schema.org",
+            "@type": "NewsArticle",
+            "datePublished": "2026-07-12T10:00:00+07:00",
+            "author": {"@type": "Person", "name": "x"},
+        })
+        html = (
+            '<!doctype html><html><head>'
+            '<meta property="og:title" content="t">'
+            '<meta property="article:section" content="Bisnis">'
+            f'<script type="application/ld+json">{ld_payload}</script>'
+            '</head><body>'
+            '<article>'
+            '<p>Hukumonline fallback body paragraph for the meta-section test path.</p>'
+            '</article>'
+            '</body></html>'
+        )
+        s = HukumonlineScraper(keywords="hukum", queue_=asyncio.Queue())
+        _attach_fetch(s, {link: html})
+        await s.get_article(link, "hukum")
+
+        item = s.queue_.get_nowait()
+        # article:section meta wins because JSON-LD omitted articleSection.
+        assert item["category"] == "Bisnis"
+
+
+def _independen_article_html() -> str:
+    return """<!doctype html><html><head>
+        <meta property="og:title" content="Independen test headline - Independen.id">
+        <meta property="article:published_time" content="2026-07-12T10:00:00+07:00">
+        <meta property="article:section" content="Investigasi">
+        <meta name="author" content="Independen Reporter">
+    </head><body>
+        <article>
+            <p class="lead">Independen lead paragraph surviving the 25-char filter inside the article.</p>
+            <p>Independen second paragraph continuing the joined article body from the markup.</p>
+            <div class="share-buttons"><a href="#">share</a></div>
+            <div class="related-articles"><p>related noise — must be removed</p></div>
+        </article>
+    </body></html>"""
+
+
+class TestIndependenFocus:
+    """Independen: Drupal-root slug homepage parser + article extraction
+    (og:title suffix stripped, share/related stripped, short-circuit paths)."""
+
+    def _scraper(self):
+        return IndependenScraper(keywords="indonesia", queue_=asyncio.Queue())
+
+    def test_latest_parser_keeps_root_level_slugs_only(self):
+        s = self._scraper()
+        html = """<!doctype html><html><body>
+            <a href="/judul-artikel-contoh">article slug</a>
+            <a href="https://independen.id/artikel/lainnya">absolute root</a>
+            <a href="/node/12345">drupal canonical node</a>
+            <a href="/taxonomy/term/7">taxonomy</a>
+            <a href="/user/42">user</a>
+            <a href="/users/42">users alias</a>
+            <a href="/tags/bencana">tags landing</a>
+            <a href="/tag/bencana">tag landing</a>
+            <a href="/agenda/2026-07-12">agenda</a>
+            <a href="/category/legacy">category alias</a>
+            <a href="/kategori/legacy">kategori alias</a>
+            <a href="/frontpages">front page</a>
+            <a href="/front-page">front page variant</a>
+            <a href="/about">about</a>
+            <a href="/contact">contact</a>
+            <a href="/kontak">kontak</a>
+            <a href="/pedoman">pedoman</a>
+            <a href="/ketentuan">ketentuan</a>
+            <a href="/privacy">privacy</a>
+            <a href="/advertise">advertise</a>
+            <a href="/iklan">iklan</a>
+            <a href="/redaksi">redaksi</a>
+            <a href="/penulis">penulis</a>
+            <a href="/kolom">kolom</a>
+            <a href="/search">search</a>
+            <a href="/berita">section landing</a>
+            <a href="/politik">section landing</a>
+            <a href="/hukum-dan-ham">section landing</a>
+            <a href="/ekonomi">section landing</a>
+            <a href="/lingkungan">section landing</a>
+            <a href="/kesehatan">section landing</a>
+            <a href="/teknologi">section landing</a>
+            <a href="/pendidikan">section landing</a>
+            <a href="/budaya">section landing</a>
+            <a href="/opini">section landing</a>
+            <a href="/feature">section landing</a>
+            <a href="/investigasi">section landing</a>
+            <a href="/infografis">section landing</a>
+            <a href="/video">section landing</a>
+            <a href="/foto">section landing</a>
+            <a href="/galeri">section landing</a>
+            <a href="/live">section landing</a>
+            <a href="/">homepage self</a>
+            <a href="/image.png">asset</a>
+            <a href="/document.pdf">asset</a>
+        </body></html>"""
+        links = s.parse_latest_article_links(html)
+        assert links == {
+            "https://independen.id/judul-artikel-contoh",
+            "https://independen.id/artikel/lainnya",
+        }
+
+    def test_latest_parser_strips_query_and_fragment(self):
+        s = self._scraper()
+        html = """<!doctype html><html><body>
+            <a href="/judul?ref=home">query — canonical</a>
+            <a href="/other-article#section">fragment — canonical</a>
+        </body></html>"""
+        links = s.parse_latest_article_links(html)
+        assert links == {
+            "https://independen.id/judul",
+            "https://independen.id/other-article",
+        }
+
+    def test_latest_parser_rejects_empty_body(self):
+        s = self._scraper()
+        assert s.parse_latest_article_links("") is None
+        assert s.parse_latest_article_links(None) is None  # type: ignore[arg-type]
+
+    @pytest.mark.asyncio
+    async def test_extracts_full_queue_item_with_ogtitle_suffix_stripped(self):
+        link = "https://independen.id/judul-artikel-contoh/"
+        s = IndependenScraper(keywords="indonesia", queue_=asyncio.Queue())
+        _attach_fetch(s, {link: _independen_article_html()})
+        await s.get_article(link, "indonesia")
+
+        item = s.queue_.get_nowait()
+        # og:title suffix "- Independen.id" must be stripped.
+        assert item["title"] == "Independen test headline"
+        assert item["publish_date"] == datetime(2026, 7, 12, 3, 0, 0)
+        assert item["publish_date"].tzinfo is None
+        assert item["author"] == "Independen Reporter"
+        assert item["category"] == "Investigasi"
+        assert item["source"] == "independen.id"
+        assert item["link"] == link
+        # Content must come from the <article> node and skip the share/related
+        # blocks. The 25-char filter keeps the lead paragraph and drops short
+        # noise inside share/related.
+        assert "Independen lead paragraph" in item["content"]
+        assert "Independen share" not in item["content"]
+        assert "related noise" not in item["content"]
+
+    @pytest.mark.asyncio
+    async def test_empty_body_short_circuits_without_put(self):
+        link = "https://independen.id/empty/"
+        s = IndependenScraper(keywords="indonesia", queue_=asyncio.Queue())
+        _attach_fetch(s, {link: ""})
+        await s.get_article(link, "indonesia")
+        assert s.queue_.qsize() == 0
+
+    @pytest.mark.asyncio
+    async def test_missing_title_short_circuits(self):
+        link = "https://independen.id/no-title/"
+        html = """<!doctype html><html><head>
+            <meta property="article:published_time" content="2026-07-12T10:00:00+07:00">
+        </head><body><article>
+            <p>body paragraph over twenty-five chars long for the short-circuit path</p>
+        </article></body></html>"""
+        s = IndependenScraper(keywords="indonesia", queue_=asyncio.Queue())
+        _attach_fetch(s, {link: html})
+        await s.get_article(link, "indonesia")
+        assert s.queue_.qsize() == 0

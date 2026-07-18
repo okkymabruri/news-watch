@@ -7,7 +7,7 @@
 <!-- BEGIN GENERATED: index-summary -->
 news-watch scrapes structured news data from Indonesia's top news websites with keyword/date search and latest-news monitoring.
 
-The current stable release supports 72 news scrapers (68 Indonesian/global sources with search mode, 72 with latest mode). 75 sources are registered in total: 3 sources under investigation.
+The current stable release supports 75 news scrapers (70 Indonesian/global sources with search mode, 75 with latest mode). 77 sources are registered in total: 1 source under investigation; 1 source quarantined.
 <!-- END GENERATED: index-summary -->
 
 ## Install

@@ -41,6 +41,7 @@ class GNFIScraper(BaseScraper):
         self.base_url = _BASE_URL
         self.start_date = start_date
         self.continue_scraping = True
+        self._current_keyword = ""
         self.headers = {
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -51,23 +52,30 @@ class GNFIScraper(BaseScraper):
 
     async def build_search_url(self, keyword, page):
         """Search: ?keyword={quoted}[&page=N]. page 1 omits page=."""
+        self._current_keyword = keyword
         encoded = quote(keyword, safe="")
         url = f"{self.base_url}/search?keyword={encoded}"
         if page > 1:
             url += f"&page={page}"
         return await self.fetch(url, headers=self.headers, timeout=30)
 
-    def parse_article_links(self, response_text):
+    def _collect_article_links(self, response_text, keyword=""):
         if not response_text:
             return None
+        tokens = [token.lower() for token in re.findall(r"\w+", keyword)]
         soup = BeautifulSoup(response_text, "html.parser")
         links = set()
         for a in soup.select("a[href]"):
             href = a.get("href", "")
             full = href if href.startswith("http") else urljoin(self.base_url, href)
-            if _ARTICLE_RE.match(full):
+            title = a.get("title", "") or a.get_text(" ", strip=True)
+            haystack = f"{full} {title}".lower()
+            if _ARTICLE_RE.match(full) and all(token in haystack for token in tokens):
                 links.add(full)
         return links or None
+
+    def parse_article_links(self, response_text):
+        return self._collect_article_links(response_text, self._current_keyword)
 
     async def build_latest_url(self, page):
         if page != 1:
@@ -75,7 +83,7 @@ class GNFIScraper(BaseScraper):
         return await self.fetch(f"{self.base_url}/explore", headers=self.headers, timeout=30)
 
     def parse_latest_article_links(self, response_text):
-        return self.parse_article_links(response_text)
+        return self._collect_article_links(response_text)
 
     async def get_article(self, link, keyword):
         response_text = await self.fetch(link, headers=self.headers, timeout=30)

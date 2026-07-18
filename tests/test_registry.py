@@ -2,8 +2,12 @@
 import pytest
 
 from newswatch.registry import (
+    SCRAPERS,
     ScraperEntry,
     build_registry,
+    get_available_scrapers_from_registry,
+    get_latest_scrapers,
+    get_search_scrapers,
     validate_registry,
 )
 
@@ -47,3 +51,24 @@ def test_validate_registry_clean():
     """validate_registry must report no issues: every scraper file is registered and every class imports."""
     issues = validate_registry()
     assert not issues, "Registry validation issues:\n" + "\n".join(issues)
+
+
+def test_capability_views_derive_from_stable_registry_entries():
+    stable = {slug: entry for slug, entry in SCRAPERS.items() if entry.status == "stable"}
+
+    assert set(get_search_scrapers()) == {
+        slug for slug, entry in stable.items() if entry.supports_search
+    }
+    assert set(get_latest_scrapers()) == {
+        slug for slug, entry in stable.items() if entry.supports_latest
+    }
+
+
+@pytest.mark.parametrize("method", ("search", "latest"))
+def test_available_scrapers_import_every_capability_entry(method):
+    entries = get_search_scrapers() if method == "search" else get_latest_scrapers()
+    available = get_available_scrapers_from_registry(method)
+
+    assert set(available) == set(entries)
+    for slug, loaded in available.items():
+        assert loaded["class"].__name__ == entries[slug].class_name

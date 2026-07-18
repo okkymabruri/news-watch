@@ -19,8 +19,9 @@ Behavior contract:
 
 Filter: stable + search-capable slugs only (mirrors the F1 test fix in
 ``tests/test_scrapers_minimal.py``). Latest-only scrapers
-(aljazeera, balipost, cnaindonesia) are excluded — they have
-``supports_search=False`` and would always fail under this contract.
+(``aljazeera``, ``balipost``, ``dandapala``, ``hukumonline``, ``independen``)
+are excluded — they have ``supports_search=False`` and would always fail
+under this contract.
 """
 from __future__ import annotations
 
@@ -79,8 +80,7 @@ def _latest_capable_class_slug_pairs() -> list[tuple[str, type]]:
 
     Covers every stable scraper whose registry entry sets
     ``supports_latest=True``. That set is a superset of
-    ``supports_search``; the three extras (``aljazeera``, ``balipost``,
-    ``cnaindonesia``) are latest-only — they have no working search
+    ``supports_search``; the latest-only entries have no working search
     endpoint and must be exercised via ``scrape(method="latest")``.
     """
     pairs: list[tuple[str, type]] = []
@@ -183,15 +183,13 @@ async def test_scraper_fetch_latest(slug: str, scraper_class: type) -> None:
     """Live latest-mode integration test for every stable+latest scraper.
 
     Mirrors ``test_scraper_fetch_data`` but drives ``scrape(method="latest")``:
-    the scraper hits its index/listing endpoint (no keyword filter) and
-    publishes whatever articles it finds onto the queue. The three
-    latest-only slugs (``aljazeera``, ``balipost``, ``cnaindonesia``) are
-    unreachable via search and are covered exclusively here.
+    the scraper hits its index/listing endpoint without a keyword filter and
+    publishes whatever articles it finds onto the queue. Latest-only entries
+    are unreachable via search and are covered exclusively here.
 
-    Failure mode is identical to the search test: timeout, transport
-    error, or an empty upstream yields ``pytest.skip`` with a one-line
-    reason so the visible skip count reflects the source's health
-    rather than silently passing via ``xfail``.
+    Failure mode is identical to the search test: timeout, transport error, or
+    an empty upstream yields ``pytest.skip`` with a one-line reason so the
+    visible skip count reflects source health instead of silently passing.
     """
     items: list[dict] = []
 

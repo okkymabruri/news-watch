@@ -19,7 +19,7 @@ Check:
 3. The requested date is within the source's exposed search history.
 4. The source is not returning a block page or empty search result.
 
-A supported source can legitimately return no articles for a keyword and date window. All 70 sources support latest mode, but four are latest-only.
+All 77 sources support latest mode, but five are latest-only.
 
 ## Timeout or access block
 

@@ -54,6 +54,8 @@ SOURCE_URLS: Dict[str, str] = {
     "harianjogja": "https://www.harianjogja.com",
     "hipwee": "https://www.hipwee.com",
     "independen": "https://independen.id",
+    "idxchannel": "https://www.idxchannel.com",
+    "infobanknews": "https://infobanknews.com",
     "idnfinancials": "https://www.idnfinancials.com/id/",
     "idntimes": "https://idntimes.com",
     "inews": "https://inews.id",

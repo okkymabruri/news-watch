@@ -33,8 +33,9 @@ Official program context and operating details:
 ## Collection Command
 
 Run the stable, search-capable registry subset against the MBG keywords for
-the declared window. `--scrapers all` resolves every stable entry with
-`supports_search=True`, not all 75 registered sources.
+the declared window. During the documented collection, `--scrapers all`
+resolved every stable entry with `supports_search=True`, not all 75 sources
+then registered.
 
 ```bash
 uv run newswatch \
