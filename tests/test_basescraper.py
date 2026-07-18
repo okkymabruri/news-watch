@@ -1,4 +1,4 @@
-import pytest
+import asyncio
 
 from newswatch.scrapers.basescraper import BaseScraper
 
@@ -14,8 +14,13 @@ class DummyScraper(BaseScraper):
         pass
 
 
-@pytest.mark.asyncio
-async def test_basescraper_initialization():
-    scraper = DummyScraper("test_keyword")
-    assert scraper.keywords == ["test_keyword"]
-    assert scraper.queue_ is None
+async def test_basescraper_initialization_normalizes_keywords_and_keeps_queue():
+    queue = asyncio.Queue()
+    scraper = DummyScraper("  ihsg ,  ekonomi , , saham  ", queue_=queue)
+    assert scraper.keywords == ["ihsg", "ekonomi", "saham"]
+    assert scraper.queue_ is queue
+
+
+async def test_basescraper_initialization_empty_keywords_yield_empty_list():
+    scraper = DummyScraper("")
+    assert scraper.keywords == []
