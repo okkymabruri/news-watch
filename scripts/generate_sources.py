@@ -43,6 +43,7 @@ SOURCE_URLS: Dict[str, str] = {
     "conversationid": "https://theconversation.com/id",
     "cnnindonesia": "https://cnnindonesia.com",
     "dandapala": "https://dandapala.com",
+    "ddtcnews": "https://news.ddtc.co.id",
     "dailysocial": "https://news.dailysocial.id",
     "detik": "https://detik.com",
     "fajar": "https://fajar.co.id",
@@ -53,6 +54,7 @@ SOURCE_URLS: Dict[str, str] = {
     "harianjogja": "https://www.harianjogja.com",
     "hipwee": "https://www.hipwee.com",
     "independen": "https://independen.id",
+    "idnfinancials": "https://www.idnfinancials.com/id/",
     "idntimes": "https://idntimes.com",
     "inews": "https://inews.id",
     "investor": "https://investor.id",
@@ -96,6 +98,7 @@ SOURCE_URLS: Dict[str, str] = {
     "tvone": "https://tvonenews.com",
     "tvrinews": "https://tvrinews.id",
     "voi": "https://voi.id",
+    "wartaekonomi": "https://wartaekonomi.co.id",
     "voaindonesia": "https://voaindonesia.com",
     "viva": "https://viva.co.id",
 }

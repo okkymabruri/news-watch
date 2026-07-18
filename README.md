@@ -159,7 +159,7 @@ The output file contains the following columns:
 - `latest` is intended for latest-news monitoring and does not require keywords.
 
 <!-- BEGIN GENERATED: readme-heading -->
-## Supported Websites (72)
+## Supported Websites (75)
 <!-- END GENERATED: readme-heading -->
 <!-- BEGIN GENERATED: readme-sources -->
 [Alinea.id](https://www.alinea.id),
@@ -180,6 +180,7 @@ The output file contains the following columns:
 [The Conversation Indonesia](https://theconversation.com/id),
 [DailySocial](https://news.dailysocial.id),
 [Dandapala](https://dandapala.com),
+[DDTC News](https://news.ddtc.co.id),
 [Detik](https://detik.com),
 [Fajar](https://fajar.co.id),
 [Galamedia](https://galamedia.pikiran-rakyat.com),
@@ -189,6 +190,7 @@ The output file contains the following columns:
 [Harian Jogja](https://www.harianjogja.com),
 [Hipwee](https://www.hipwee.com),
 [Hukumonline](https://www.hukumonline.com),
+[IDN Financials](https://www.idnfinancials.com/id/),
 [IDN Times](https://idntimes.com),
 [Independen.id](https://independen.id),
 [iNews](https://inews.id),
@@ -233,14 +235,15 @@ The output file contains the following columns:
 [TVRI News](https://tvrinews.id),
 [Viva](https://viva.co.id),
 [VOA Indonesia](https://voaindonesia.com),
-[VOI.id](https://voi.id)
+[VOI.id](https://voi.id),
+[Warta Ekonomi](https://wartaekonomi.co.id)
 <!-- END GENERATED: readme-sources -->
 
 <!-- BEGIN GENERATED: readme-counts -->
 > **Notes:**
-> - 72 registered sources: 67 with keyword search, 72 with latest mode.
-> - 70 stable scrapers in the current release: 66 with keyword search, 70 with latest mode.
-> - 2 sources under investigation.
+> - 75 registered sources: 70 with keyword search, 75 with latest mode.
+> - 72 stable scrapers in the current release: 68 with keyword search, 72 with latest mode.
+> - 3 sources under investigation.
 > - AP News uses topic hub pages with keyword-in-title filtering (robots disallows /search?q=*).
 > - Al Jazeera is latest-only via RSS feed (search page is JS-rendered).
 > - Reuters skipped (WAF blocked).
