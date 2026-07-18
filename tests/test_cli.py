@@ -118,6 +118,108 @@ def test_cli_scraper_timeout_arg(monkeypatch, capsys):
         assert args.scraper_timeout == 30
 
 
+def test_cli_daterange_arg(monkeypatch, capsys):
+    value = "2026-07-13/2026-07-15"
+    monkeypatch.setattr(sys, "argv", ["cli.py", "--daterange", value])
+
+    with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main:
+        cli()
+        capsys.readouterr()
+
+        mock_main.assert_called_once()
+        args = mock_main.call_args[0][0]
+        assert args.time_range == value
+
+def test_cli_daterange_canonical_no_deprecation_warning(monkeypatch, capsys):
+    """Canonical --daterange reaches run_main as args.time_range and emits no legacy warning."""
+    value = "2026-07-13/2026-07-15"
+    monkeypatch.setattr(sys, "argv", ["cli.py", "--daterange", value])
+
+    with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main:
+        cli()
+        captured = capsys.readouterr()
+
+        mock_main.assert_called_once()
+        args = mock_main.call_args[0][0]
+        assert args.time_range == value
+        assert "deprecated" not in captured.err.lower()
+
+def test_cli_legacy_time_range_warns_and_maps_to_daterange(monkeypatch, capsys):
+    """Under v1.1.x, --time-range warns on stderr naming --daterange and v1.2.0, then reaches run_main as args.time_range."""
+    value = "2026-07-13/2026-07-15"
+    monkeypatch.setattr(sys, "argv", ["cli.py", "--time-range", value])
+
+    with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main:
+        cli()
+        captured = capsys.readouterr()
+
+        mock_main.assert_called_once()
+        args = mock_main.call_args[0][0]
+        assert args.time_range == value
+        warning = captured.err.lower()
+        assert "--daterange" in warning
+        assert "v1.2.0" in warning
+
+def test_cli_legacy_and_canonical_collision_errors(monkeypatch, capsys):
+    """--time-range combined with --daterange (different values) exits 2 and skips run_main."""
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "cli.py",
+            "--time-range",
+            "2026-07-13/2026-07-15",
+            "--daterange",
+            "2026-08-01/2026-08-03",
+        ],
+    )
+
+    with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main:
+        with pytest.raises(SystemExit) as error:
+            cli()
+
+        assert error.value.code == 2
+        captured = capsys.readouterr()
+        assert "time-range" in captured.err.lower()
+        assert "daterange" in captured.err.lower()
+        mock_main.assert_not_called()
+
+def test_cli_legacy_time_range_unrecognized_at_removal(monkeypatch, capsys):
+    """At CURRENT_VERSION == (1, 2, 0), --time-range is unregistered and exits 2 as unrecognized."""
+    monkeypatch.setattr("newswatch.cli.CURRENT_VERSION", (1, 2, 0))
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["cli.py", "--time-range", "2026-07-13/2026-07-15"],
+    )
+
+    with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main:
+        with pytest.raises(SystemExit) as error:
+            cli()
+
+        assert error.value.code == 2
+        assert "unrecognized arguments" in capsys.readouterr().err.lower()
+        mock_main.assert_not_called()
+
+def test_cli_date_range_with_hyphen_unrecognized(monkeypatch, capsys):
+    """--date-range (hyphen between date and range) is never registered and always exits 2."""
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["cli.py", "--date-range", "2026-07-13/2026-07-15"],
+    )
+
+    with patch("newswatch.cli.run_main", new_callable=AsyncMock) as mock_main:
+        with pytest.raises(SystemExit) as error:
+            cli()
+
+        assert error.value.code == 2
+        assert "unrecognized arguments" in capsys.readouterr().err.lower()
+        mock_main.assert_not_called()
+
+
+
+
 def test_cli_progress_flag(monkeypatch, capsys):
     """Test that --progress flag is parsed."""
     monkeypatch.setattr(sys, "argv", ["cli.py", "--progress"])

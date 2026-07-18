@@ -1,10 +1,10 @@
+import asyncio
 import csv
 
-import pandas as pd
+from newswatch.main import write_csv
 
 
-def test_csv_roundtrip_quotes_newlines(tmp_path):
-    path = tmp_path / "out.csv"
+async def test_write_csv_roundtrip_preserves_embedded_specials(tmp_path):
     row = {
         "title": "t",
         "publish_date": "2026-01-17 00:00:00",
@@ -15,16 +15,30 @@ def test_csv_roundtrip_quotes_newlines(tmp_path):
         "source": "s",
         "link": "https://example.com",
     }
+    expected_fieldnames = [
+        "title",
+        "publish_date",
+        "author",
+        "content",
+        "keyword",
+        "category",
+        "source",
+        "link",
+    ]
 
-    with open(path, mode="w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(
-            f,
-            fieldnames=list(row.keys()),
-            quoting=csv.QUOTE_ALL,
-        )
-        w.writeheader()
-        w.writerow(row)
+    queue: asyncio.Queue = asyncio.Queue()
+    await queue.put(row)
+    await queue.put(None)
 
-    df = pd.read_csv(path)
-    assert list(df.columns) == list(row.keys())
-    assert df.loc[0, "content"] == row["content"]
+    out_path = tmp_path / "out.csv"
+    await write_csv(queue, output_label="test", filename=str(out_path))
+
+    with open(out_path, newline="", encoding="utf-8") as fh:
+        reader = csv.DictReader(fh)
+        assert reader.fieldnames == expected_fieldnames
+        rows = list(reader)
+
+    assert len(rows) == 1
+    parsed = rows[0]
+    for key in expected_fieldnames:
+        assert parsed[key] == row[key]

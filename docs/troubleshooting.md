@@ -1,168 +1,136 @@
 # Troubleshooting
 
-## Blocking / anti-bot on servers
+Reduce a failing run to one source, one broad keyword, and a recent date before changing code.
 
-If scrapers work locally but get blocked on a server, CI, or Colab, route requests through a proxy. It applies to every layer (aiohttp, rnet, Playwright fallback):
+## No results
 
 ```bash
-newswatch -k ihsg -sd 2025-01-01 --proxy "http://proxy.example.com:8080"
-# or via env (also honors standard HTTPS_PROXY / HTTP_PROXY)
+newswatch \
+  --keywords "indonesia" \
+  --start_date "2026-07-01" \
+  --scrapers kompas \
+  --verbose
+```
+
+Check:
+
+1. The source supports search: `newswatch --method search --list_scrapers`.
+2. The keyword appears in Indonesian coverage.
+3. The requested date is within the source's exposed search history.
+4. The source is not returning a block page or empty search result.
+
+A supported source can legitimately return no articles for a keyword and date window. All 70 sources support latest mode, but four are latest-only.
+
+## Timeout or access block
+
+Run fewer sources and set an explicit per-source timeout:
+
+```bash
+newswatch \
+  --keywords "politik" \
+  --start_date "2026-07-01" \
+  --scrapers "kompas,tempo" \
+  --scraper-timeout 60 \
+  --progress
+```
+
+Cloud, CI, and shared IP addresses are blocked more often. Configure one proxy for all HTTP and browser layers:
+
+```bash
+newswatch --keywords ihsg --start_date 2026-07-01 \
+  --proxy "http://proxy.example.com:8080"
+
 export NEWSWATCH_PROXY="socks5://proxy.example.com:1080"
 ```
 
+Python:
+
 ```python
 import newswatch as nw
-df = nw.scrape_to_dataframe("ihsg", "2025-01-01", proxy="http://proxy.example.com:8080"
+
+result = nw.scrape_to_dataframe(
+    "ihsg",
+    "2026-07-01",
+    scrapers="kompas",
+    proxy="http://proxy.example.com:8080",
+)
 ```
 
-Further overrides via env: `NEWSWATCH_USER_AGENT` (custom UA to reduce fingerprinting), `NEWSWATCH_MAX_RETRIES` (default 3).
+Optional environment controls:
 
-## Installation
+- `NEWSWATCH_USER_AGENT`: custom user agent
+- `NEWSWATCH_MAX_RETRIES`: request retry limit; default 3
 
-### Playwright
+## Browser-backed source fails
 
-If `playwright install chromium` fails:
+Install the browser once in the active environment:
+
 ```bash
-# Install playwright browser for news-watch
-conda activate newswatch-env
 playwright install chromium
+```
 
-# For system dependencies
+On Linux, Playwright can install system packages when permitted:
+
+```bash
 playwright install-deps chromium
-
-# For Docker/Linux environments
-apt-get update && apt-get install -y \
-    libnss3 libatk-bridge2.0-0 libdrm2 libxcomposite1 \
-    libxdamage1 libxrandr2 libgbm1 libxss1 libasound2
 ```
 
-### Package install
+If browser installation is unavailable, select HTTP-only sources instead.
 
-If install/import fails:
+## Missing or truncated content
+
+Possible causes: a changed page structure, paywall, block page, or source response without a full body.
+
+Inspect one source with verbose output and preserve an example URL when reporting the problem:
+
 ```bash
-# If uv is not available, fallback to pip
-pip install news-watch
+newswatch --keywords ekonomi --start_date 2026-07-01 \
+  --scrapers kompas --verbose
+```
 
-# Development setup (recommended)
-git clone https://github.com/okkymabruri/news-watch.git
-cd news-watch
+Do not replace missing bodies with fabricated text. Empty extraction should remain visible.
+
+## Duplicates
+
+Multiple keywords and publishers can return the same URL or syndicated headline. Use `--dedup-file` across runs, then apply documented URL and normalized-title rules during analysis.
+
+```bash
+newswatch --keywords ihsg --start_date 2026-07-01 \
+  --dedup-file previous-output.csv
+```
+
+## Command not found or import failure
+
+Installed package:
+
+```bash
+python -m pip show news-watch
+python -c "import newswatch; print(newswatch.__file__)"
+```
+
+Repository checkout:
+
+```bash
 uv sync --all-extras
-uv run playwright install chromium
-```
-
-## Runtime
-
-### No results
-
-Quick checks:
-```bash
-newswatch --list_scrapers
-newswatch --keywords indonesia --start_date 2025-01-15 -v
-newswatch --method latest --scrapers "antaranews,kompas,viva" -v
-```
-
-Common causes:
-
-- keywords too specific → try `ekonomi,bisnis,indonesia`
-- date too old → try a recent date first
-- blocked in cloud/Linux → try fewer scrapers or run locally
-- some supported scrapers may legitimately return zero results for a given keyword/date window
-- latest mode is only enabled for a subset of sources, so narrow scrapers if needed
-
-### Timeout
-
-Try:
-```bash
-newswatch --keywords politik --start_date 2025-01-01 --scrapers "kompas,tempo"
-```
-
-### Memory
-
-For large runs, write to a file:
-```bash
-newswatch --keywords ekonomi --start_date 2024-01-01 --output_format xlsx
-```
-
-## Platform notes
-
-### Linux / cloud
-
-Some sites block server/cloud IPs more aggressively.
-
-Some sources (e.g., Tirto) may require browser automation. Ensure Playwright is installed:
-
-```bash
-playwright install chromium
-```
-
-All 70 scrapers are stable and included in the runtime. No investigating or quarantined sources remain.
-
-Try:
-```bash
-newswatch --keywords berita --start_date 2025-01-01
-```
-
-## Data quality
-
-### Missing/truncated content
-
-Causes:
-
-- HTML structure changed
-- paywall
-- blocked
-
-Check with verbose + single scraper:
-```bash
-newswatch --keywords ekonomi --start_date 2025-01-01 -v
-newswatch --keywords ekonomi --start_date 2025-01-01 --scrapers kompas -v
-newswatch --keywords ekonomi --start_date 2025-01-01 --scrapers tempo -v
-```
-
-### Duplicates
-
-Normal when multiple sites cover the same story. Deduplicate in post-processing.
-
-### Encoding
-
-If text has broken characters, try another source:
-```bash
-newswatch --keywords berita --start_date 2025-01-01 --scrapers "kompas,tempo" -v
-```
-
-## CLI
-
-### Command not found
-
-If `newswatch` is not found:
-```bash
-conda activate newswatch-env
-which newswatch
-uv sync --all-extras
-```
-
-### Arguments
-
-Check:
-```bash
-newswatch --help
+uv run newswatch --help
 ```
 
 ## Tests
 
-### Running tests
-
 ```bash
-pytest tests/
-pytest -m network
-pytest -m "not network"
+uv run --extra dev pytest -m "not network"
+uv run --extra dev pytest tests/test_scrapers.py -m network
 ```
 
-## Reporting bugs
+Network tests are advisory. Known upstream failures may skip; parser and programming defects must fail.
+
+## Report a bug
 
 Include:
 
-- OS + Python version
-- command you ran
+- OS and Python version
+- exact command
 - full error output
-- one example URL if relevant
+- source slug
+- one example URL, if applicable
+- whether the failure reproduces locally and from another network
