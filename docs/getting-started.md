@@ -1,6 +1,6 @@
 # Getting Started
 
-`news-watch` requires Python 3.10 or newer. It provides keyword/date search and latest-news collection through the CLI and Python API.
+`news-watch` supports Python 3.10 through 3.12. It provides keyword/date search and latest-news collection through the CLI and Python API.
 
 ## Install
 
