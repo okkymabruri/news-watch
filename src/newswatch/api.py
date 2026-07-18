@@ -423,7 +423,7 @@ def scrape(
         method (str): Retrieval method - "search" or "latest"
         limit (int | None): Maximum number of articles to collect (latest mode)
         max_pages (int | None): Maximum pages to fetch per scraper (latest mode)
-        time_range (str | None): Filter articles by time range. Format: ISO8601/ISO8601.
+        time_range (str | None): Filter articles by date window. Format: YYYY-MM-DD/YYYY-MM-DD, inclusive of both full calendar days (start 00:00:00, end 23:59:59.999999).
         dedup_file (str | None): Path to previous output file for deduplication.
         proxy (str | None): Proxy URL for all requests (e.g. 'http://user:pass@proxy.example.com:8080', 'socks5://proxy.example.com:1080'). Sets NEWSWATCH_PROXY.
         **kwargs: Additional parameters (for future compatibility)
@@ -502,7 +502,7 @@ def scrape_to_dataframe(
         limit (int | None): Maximum number of articles to collect (latest mode)
         max_pages (int | None): Maximum pages to fetch per scraper (latest mode)
         scraper_timeout (int | None): Per-scraper timeout in seconds
-        time_range (str | None): Filter articles by time range. Format: ISO8601/ISO8601.
+        time_range (str | None): Filter articles by date window. Format: YYYY-MM-DD/YYYY-MM-DD, inclusive of both full calendar days (start 00:00:00, end 23:59:59.999999).
         dedup_file (str | None): Path to previous output file for deduplication.
         proxy (str | None): Proxy URL for all requests. Sets NEWSWATCH_PROXY.
         **kwargs: Additional parameters (for future compatibility)
@@ -583,7 +583,7 @@ def scrape_to_file(
         limit (int | None): Maximum number of articles to collect (latest mode)
         max_pages (int | None): Maximum pages to fetch per scraper (latest mode)
         scraper_timeout (int | None): Per-scraper timeout in seconds
-        time_range (str | None): Filter articles by time range. Format: ISO8601/ISO8601.
+        time_range (str | None): Filter articles by date window. Format: YYYY-MM-DD/YYYY-MM-DD, inclusive of both full calendar days (start 00:00:00, end 23:59:59.999999).
         dedup_file (str | None): Path to previous output file for deduplication.
         proxy (str | None): Proxy URL for all requests. Sets NEWSWATCH_PROXY.
         **kwargs: Additional parameters (for future compatibility)

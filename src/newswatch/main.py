@@ -61,19 +61,37 @@ def _load_dedup_links(file_path: str) -> set:
 
 
 def _parse_time_range(time_range: str):
-    """Parse time range string into start and end datetime objects.
+    """Parse a date-only time range string into start and end datetime objects.
 
-    Format: ISO8601/ISO8601, e.g. '2026-04-30T16:30:00/2026-05-01T08:00:00'.
+    Format: ``YYYY-MM-DD/YYYY-MM-DD`` (inclusive of both full calendar days).
+    Example: ``'2026-07-13/2026-07-14'`` resolves to start
+    ``2026-07-13 00:00:00`` and end ``2026-07-14 23:59:59.999999``.
     """
     parts = time_range.split("/")
     if len(parts) != 2:
         raise ValueError(
-            f"Invalid time range format: {time_range}. Expected ISO8601/ISO8601."
+            f"Invalid time range format: {time_range!r}. Expected YYYY-MM-DD/YYYY-MM-DD."
         )
-
-    start_dt = datetime.fromisoformat(parts[0])
-    end_dt = datetime.fromisoformat(parts[1])
-
+    start_str, end_str = parts
+    try:
+        start_dt = datetime.strptime(start_str, "%Y-%m-%d")
+        end_dt_raw = datetime.strptime(end_str, "%Y-%m-%d")
+        if start_dt.strftime("%Y-%m-%d") != start_str or end_dt_raw.strftime(
+            "%Y-%m-%d"
+        ) != end_str:
+            raise ValueError
+    except ValueError as e:
+        raise ValueError(
+            f"Invalid time range format: {time_range!r}. Expected YYYY-MM-DD/YYYY-MM-DD."
+        ) from e
+    end_date = end_dt_raw.date()
+    start_date = start_dt.date()
+    if end_date < start_date:
+        raise ValueError(
+            f"Invalid time range: end {end_str} is before start {start_str}."
+        )
+    start_dt = start_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_dt = datetime.combine(end_date, datetime.max.time())
     return start_dt, end_dt
 
 

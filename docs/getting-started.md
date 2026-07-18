@@ -1,255 +1,114 @@
-# Getting Started with news-watch
+# Getting Started
 
-This guide will get you up and running with news-watch in just a few minutes. We'll cover installation, basic usage, and walk through your first scraping session.
+`news-watch` requires Python 3.10 or newer. It provides keyword/date search and latest-news collection through the CLI and Python API.
 
-## Installation
-
-### Basic Installation
-
-news-watch requires Python 3.10+.
+## Install
 
 ```bash
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install news-watch
 ```
 
-Optional, only for local browser-backed experiments:
+Browser-backed sources also require Chromium:
 
 ```bash
 playwright install chromium
 ```
 
-### Development Environment
-
-If you're planning to contribute or want the latest development version:
+For repository development:
 
 ```bash
-# Clone and setup
 git clone https://github.com/okkymabruri/news-watch.git
 cd news-watch
-
-# Install dependencies (recommended)
 uv sync --all-extras
-
-# Run commands/tests via uv
 uv run newswatch --list_scrapers
-uv run pytest
 ```
 
-### Virtual Environment (Recommended)
-
-For conda users (recommended setup):
+## Verify
 
 ```bash
-conda create -n newswatch-env python=3.9
-conda activate newswatch-env
-pip install news-watch
-playwright install chromium
-```
-
-For venv users:
-
-```bash
-python -m venv newswatch-env
-source newswatch-env/bin/activate  # On Windows: newswatch-env\Scripts\activate
-pip install news-watch
-playwright install chromium
-```
-
-## Verify Installation
-
-Test that everything works:
-
-```bash
-# Check available scrapers
+newswatch --help
 newswatch --list_scrapers
-
-# Should show 70 stable scrapers
+newswatch --method latest --list_scrapers
 ```
 
-## Your First Scraping Session
+The current registry contains 70 sources: 66 support search and all 70 support latest mode.
 
-Let's start with a simple example - scraping recent news about Indonesian banks.
-
-### Command Line Interface
-
-The easiest way to get started is with the command line:
+## Search by topic and date
 
 ```bash
-# Basic usage: scrape bank-related news from January 1, 2025
-newswatch --keywords "bank" --start_date "2025-01-01"
-
-# This will create an Excel file with your results
-# Look for: news-watch-bank-[timestamp].xlsx
+newswatch \
+  --method search \
+  --keywords "ihsg,saham" \
+  --start_date "2025-01-01" \
+  --scrapers "cnbcindonesia,kontan,kompas" \
+  --output_format csv \
+  --output_path ihsg-news.csv
 ```
 
-Add more keywords and options:
+Search mode requires keywords and a start date. The CLI defaults to CSV when `--output_format` is omitted.
+
+## Collect latest articles
 
 ```bash
-# Multiple keywords, specific sources, with verbose output
-newswatch --keywords "bank,kredit,pinjaman" --start_date "2025-01-01" \
-          --scrapers "kompas,bisnis,tempo" --output_format "csv" --verbose
-
-# Save as JSON for API integration
-newswatch --keywords "teknologi,startup" --start_date "2025-01-01" \
-          --scrapers "kompas,tempo" --output_format "json" --verbose
+newswatch \
+  --method latest \
+  --scrapers "antaranews,kompas,viva" \
+  --limit 20 \
+  --output_path latest.csv
 ```
 
-### Python API
+Latest mode ignores keywords and the search start date.
 
-For programmatic access and data analysis:
+## Python API
 
 ```python
 import newswatch as nw
 
-# Scrape articles and get a pandas DataFrame
-df = nw.scrape_to_dataframe("bank", "2025-01-01")
-
-print(f"Found {len(df)} articles")
-print(f"Sources: {df['source'].unique()}")
-print(f"Date range: {df['publish_date'].min()} to {df['publish_date'].max()}")
-```
-
-## Understanding the Results
-
-Each article includes these fields:
-
-- **title**: Article headline
-- **author**: Article author (when available)
-- **publish_date**: Publication date and time
-- **content**: Full article text
-- **keyword**: Which search keyword matched this article
-- **category**: Article category (news, business, sports, etc.)
-- **source**: News website name
-- **link**: Original article URL
-
-## Common Usage Patterns
-
-### Financial News Research
-
-Monitor Indonesian financial markets:
-
-```python
-import newswatch as nw
-
-# Banking sector analysis
-banking_news = nw.scrape_to_dataframe(
-    "bank,bca,mandiri,bri,bni", 
-    "2025-01-01"
+search = nw.scrape_to_dataframe(
+    keywords="ihsg,saham",
+    start_date="2025-01-01",
+    scrapers="cnbcindonesia,kontan,kompas",
 )
 
-# Compare coverage across financial news sources
-financial_sources = nw.scrape_to_dataframe(
-    "ekonomi,inflasi,bi rate", 
-    "2025-01-01",
-    scrapers="bisnis,kontan,cnbcindonesia"
+latest = nw.latest_to_dataframe(
+    scrapers="antaranews,kompas,viva",
+    limit=20,
 )
 ```
 
-### Political Coverage Analysis
+Every article contains eight output fields:
 
-Track political developments:
+| Field | Meaning |
+|---|---|
+| `title` | Headline |
+| `publish_date` | Publication date and time |
+| `author` | Author when available |
+| `content` | Extracted article text |
+| `keyword` | Search term that matched |
+| `category` | Source section or category |
+| `source` | Registry slug |
+| `link` | Canonical article URL |
 
-```python
-import newswatch as nw
+## Reliability controls
 
-# Recent political news
-politics = nw.quick_scrape("politik,pemerintah,dpr", days_back=1)
+Start with a few sources and a short date window. Expand only after checking output quality.
 
-# Election coverage comparison
-election_news = nw.scrape_to_dataframe(
-    "pemilu,pilkada,kpu", 
-    "2025-01-01",
-    scrapers="kompas,tempo"
-)
+```bash
+newswatch \
+  --keywords "ekonomi" \
+  --start_date "2026-07-01" \
+  --scrapers "kompas,antaranews" \
+  --scraper-timeout 60 \
+  --progress
 ```
 
-### Technology and Startup News
+Cloud and shared IPs are blocked more often than local connections. See [Troubleshooting](troubleshooting.md) for proxies and source-level diagnosis.
 
-Monitor Indonesian tech scene:
+## Next
 
-```python
-import newswatch as nw
-
-# Startup and fintech news
-tech_news = nw.scrape_to_dataframe(
-    "startup,fintech,gojek,tokopedia", 
-    "2025-01-01",
-    scrapers="kompas,bisnis"
-)
-
-# Quick daily tech roundup
-daily_tech = nw.quick_scrape("teknologi,digital,ai", days_back=1)
-```
-
-## Working with the Data
-
-Once you have your DataFrame, you can perform various analyses:
-
-```python
-import newswatch as nw
-import pandas as pd
-
-# Get the data
-df = nw.scrape_to_dataframe("ekonomi", "2025-01-01")
-
-# Basic analysis
-print("Articles per source:")
-print(df['source'].value_counts())
-
-print("\nDaily article counts:")
-df['date'] = pd.to_datetime(df['publish_date']).dt.date
-print(df['date'].value_counts().sort_index())
-
-# Content analysis
-df['word_count'] = df['content'].str.split().str.len()
-print(f"\nAverage article length: {df['word_count'].mean():.0f} words")
-
-# Filter recent articles
-recent = df[df['publish_date'] >= '2025-01-15']
-print(f"\nRecent articles (>= Jan 15): {len(recent)}")
-```
-
-## Command Line Options Reference
-
-| Option | Description | Example |
-|--------|-------------|---------|
-| `-k, --keywords` | Comma-separated search terms | `"bank,kredit,fintech"` |
-| `-sd, --start_date` | Start date (YYYY-MM-DD) | `"2025-01-01"` |
-| `-s, --scrapers` | Specific scrapers or "auto"/"all" | `"kompas,tempo"` |
-| `-of, --output_format` | Output format: csv, xlsx, json, or jsonl | `"csv"` |
-| `-o, --output_path` | Custom output file path | `"news-watch-output.csv"` |
-| `-v, --verbose` | Show detailed progress | (flag only) |
-| `--list_scrapers` | Show available scrapers | (flag only) |
-| `--max-pages` | Max pages per scraper (latest mode) | `2` |
-| `--scraper-timeout` | Timeout per scraper in seconds | `30` |
-| `--time-range` | Filter by ISO8601 time range | `"2025-01-01T00:00:00/2025-01-31T23:59:59"` |
-| `--dedup-file` | Skip articles already in this file | `"previous-output.csv"` |
-| `--proxy` | Proxy URL for all requests | `"http://proxy:8080"` |
-| `--progress` | Show progress bar (requires tqdm) | (flag only) |
-| `--health-report` | Run health checks instead of scraping | (flag only) |
-
-## Next Steps
-
-Now that you have the basics down:
-
-1. **Explore the [API Reference](api-reference.md)** for detailed function documentation
-2. **Check [Troubleshooting](troubleshooting.md)** if you encounter any issues
-3. **Experiment with different keyword combinations** to find the news you need
-
-## Performance Tips
-
-- **Local is better**: news-watch performs best on local machines rather than cloud environments
-- **Respect rate limits**: Use reasonable delays between requests (built-in)
-- **Choose your scrapers**: Use specific scrapers for better performance than "all"
-- **Start small**: Test with recent dates before running large historical scrapes
-
-## Getting Help
-
-If you run into issues:
-
-1. Check the [Troubleshooting guide](troubleshooting.md)
-2. Look at existing [GitHub Issues](https://github.com/okkymabruri/news-watch/issues)
-3. Create a new issue with:
-   - error message
-   - your OS + Python version
-   - the command you ran
+- [Practical Guide](practical-guide.md): retrieval patterns and reliability controls
+- [MBG Use Case](use-case-mbg.md): a real policy-news collection and analysis workflow
+- [API Reference](api-reference.md): public functions and parameters
+- [Architecture](architecture.md): registry and scraper lifecycle

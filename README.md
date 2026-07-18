@@ -75,7 +75,8 @@ newswatch --method <search|latest> -k <keywords> -sd <start_date> -s [<scrapers>
 | `--max-pages` | Maximum pages to fetch per scraper in latest mode |
 | `--scraper-timeout` | Per-scraper timeout in seconds |
 | `--progress` | Print per-scraper progress lines |
-| `--time-range` | Filter articles by time window. Format: `ISO8601/ISO8601` (e.g. `2026-04-30T16:30:00/2026-05-01T08:00:00`) |
+| `--daterange` | Filter articles by an inclusive date window. Format: `YYYY-MM-DD/YYYY-MM-DD` (e.g. `2026-07-13/2026-07-14`); start = 00:00:00, end = 23:59:59.999999 of the same day |
+| `--time-range` | **Deprecated** compatibility alias for `--daterange`. Emits a stderr warning in v1.1.x; rejected (unrecognized argument) beginning v1.2.0. Use `--daterange`. |
 | `--dedup-file` | Path to a previous output file (JSON/JSONL/CSV); articles with matching links are skipped |
 | `--proxy` | Proxy URL for all requests (e.g. `http://proxy.example.com:8080` or `socks5://proxy.example.com:1080`). Also via `NEWSWATCH_PROXY` env |
 
@@ -128,7 +129,7 @@ sources = nw.list_scrapers()
 print("Available sources:", sources)
 ```
 
-See the [comprehensive guide](docs/comprehensive-guide.md) for detailed usage examples and advanced patterns.
+See the [practical guide](docs/practical-guide.md) for end-to-end CLI and Python-API examples and common research patterns.
 For interactive examples, see the [API reference notebook](notebook/api-reference.ipynb).
 
 ## Run on Google Colab
@@ -158,7 +159,7 @@ The output file contains the following columns:
 - `latest` is intended for latest-news monitoring and does not require keywords.
 
 <!-- BEGIN GENERATED: readme-heading -->
-## Supported Websites (70)
+## Supported Websites (75)
 <!-- END GENERATED: readme-heading -->
 <!-- BEGIN GENERATED: readme-sources -->
 [Alinea.id](https://www.alinea.id),
@@ -166,6 +167,7 @@ The output file contains the following columns:
 [Antara News](https://antaranews.com),
 [AP News](https://apnews.com),
 [Bali Post](https://www.balipost.com),
+[Banten News](https://www.bantennews.co.id),
 [BBC News](https://bbc.com),
 [Berita Jatim](https://beritajatim.com),
 [BeritaSatu](https://www.beritasatu.com),
@@ -177,6 +179,8 @@ The output file contains the following columns:
 [CNN Indonesia](https://cnnindonesia.com),
 [The Conversation Indonesia](https://theconversation.com/id),
 [DailySocial](https://news.dailysocial.id),
+[Dandapala](https://dandapala.com),
+[DDTC News](https://news.ddtc.co.id),
 [Detik](https://detik.com),
 [Fajar](https://fajar.co.id),
 [Galamedia](https://galamedia.pikiran-rakyat.com),
@@ -186,6 +190,7 @@ The output file contains the following columns:
 [Harian Jogja](https://www.harianjogja.com),
 [Hipwee](https://www.hipwee.com),
 [Hukumonline](https://www.hukumonline.com),
+[IDN Financials](https://www.idnfinancials.com/id/),
 [IDN Times](https://idntimes.com),
 [Independen.id](https://independen.id),
 [iNews](https://inews.id),
@@ -230,12 +235,15 @@ The output file contains the following columns:
 [TVRI News](https://tvrinews.id),
 [Viva](https://viva.co.id),
 [VOA Indonesia](https://voaindonesia.com),
-[VOI.id](https://voi.id)
+[VOI.id](https://voi.id),
+[Warta Ekonomi](https://wartaekonomi.co.id)
 <!-- END GENERATED: readme-sources -->
 
 <!-- BEGIN GENERATED: readme-counts -->
 > **Notes:**
-> - 70 total sources: 66 with keyword search, 70 with latest mode.
+> - 75 registered sources: 70 with keyword search, 75 with latest mode.
+> - 72 stable scrapers in the current release: 68 with keyword search, 72 with latest mode.
+> - 3 sources under investigation.
 > - AP News uses topic hub pages with keyword-in-title filtering (robots disallows /search?q=*).
 > - Al Jazeera is latest-only via RSS feed (search page is JS-rendered).
 > - Reuters skipped (WAF blocked).
@@ -245,7 +253,9 @@ The output file contains the following columns:
 <!-- END GENERATED: readme-counts -->
 ## Contributing
 
-Contributions are welcome! If you'd like to add support for more websites or improve the existing code, please open an issue or submit a pull request.
+Contributions are welcome. Open an issue or pull request to add a source or improve an existing one.
+
+Keep tests with their owning behavior: shared scraper contracts in `tests/test_basescraper.py`, registry metadata and discovery in `tests/test_registry.py`, and source-specific parsing and extraction in `tests/test_scrapers_focused.py`. Do not add catch-all files such as `tests/test_new_scrapers.py`. Before adding coverage, search the owning module and extend or parameterize an existing test when it already exercises the same observable behavior. Keep another case only for a distinct boundary, precedence rule, transition, or real error path; avoid assertions on source text, private plumbing, or registry counts.
 
 ## License
 

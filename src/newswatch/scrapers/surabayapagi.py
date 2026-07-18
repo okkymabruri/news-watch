@@ -1,7 +1,8 @@
 """
-SurabayaPagi scraper — uses tag page with keyword filtering.
+SurabayaPagi scraper — uses bounded search pages and the latest RSS feed.
 
-https://surabayapagi.com/tag/{keyword}
+https://surabayapagi.com/search/{keyword}
+https://surabayapagi.com/feed
 """
 
 import logging
@@ -20,28 +21,34 @@ class SurabayaPagiScraper(BaseScraper):
         self.start_date = start_date
         self.continue_scraping = True
         self.max_pages = 10
-        self._article_re = re.compile(r"https?://surabayapagi\.com/news-\d+-")
+        self._article_re = re.compile(
+            r"https?://surabayapagi\.com/news-\d+-[^/?#]+/?"
+        )
 
     async def build_search_url(self, keyword, page):
-        if page == 1:
-            url = f"{self.base_url}/tag/{quote(keyword, safe='')}"
-        else:
-            url = f"{self.base_url}/tag/{quote(keyword, safe='')}?page={page}"
-        return await self.fetch(url, timeout=30)
+        if page > self.max_pages:
+            return None
+        path = f"/search/{quote(keyword, safe='')}"
+        if page > 1:
+            path = f"{path}/{page}"
+        return await self.fetch(
+            f"{self.base_url}{path}", retries=self.max_retries, timeout=15
+        )
 
     def parse_article_links(self, response_text):
         soup = BeautifulSoup(response_text, "html.parser")
-        links = set()
-
-        for a in soup.select("a[href]"):
-            href = a.get("href", "")
-            if self._article_re.match(href):
-                links.add(href if href.startswith("http") else f"{self.base_url}{href}")
+        links = {
+            href
+            for anchor in soup.select(".category-text-wrap h2 a[href]")
+            if (href := anchor.get("href", "")) and self._article_re.fullmatch(href)
+        }
 
         return links or None
 
     async def get_article(self, link, keyword):
-        response_text = await self.fetch(link, timeout=30)
+        response_text = await self.fetch(
+            link, retries=self.max_retries, timeout=10
+        )
         if not response_text:
             return
 
@@ -97,12 +104,21 @@ class SurabayaPagiScraper(BaseScraper):
         await self.queue_.put(item)
 
     async def build_latest_url(self, page):
-        if page == 1:
-            return await self.fetch(self.base_url, timeout=30)
-        else:
-            return await self.fetch(f"{self.base_url}/?page={page}", timeout=30)
+        if page != 1:
+            return None
+        return await self.fetch(
+            f"{self.base_url}/feed", retries=self.max_retries, timeout=15
+        )
 
     def parse_latest_article_links(self, response_text):
         if not response_text:
             return None
-        return self.parse_article_links(response_text)
+        soup = BeautifulSoup(response_text, "xml")
+        links = {
+            href
+            for item in soup.find_all("item")
+            if (link := item.find("link"))
+            and (href := link.get_text(strip=True))
+            and self._article_re.fullmatch(href)
+        }
+        return links or None

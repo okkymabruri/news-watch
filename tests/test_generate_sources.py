@@ -36,10 +36,12 @@ def gs():
 
 
 SAMPLE_STATS: Dict[str, int] = {
-    "total": 7,
-    "stable": 5,
-    "search": 4,
-    "latest": 6,
+    "registered_total": 7,
+    "registered_search": 5,
+    "registered_latest": 7,
+    "stable_total": 5,
+    "stable_search": 4,
+    "stable_latest": 5,
     "quarantined": 1,
     "investigating": 1,
 }
@@ -56,9 +58,9 @@ class TestRenderers:
 
     def test_render_readme_counts(self, gs):
         out = gs.render_readme_counts(SAMPLE_STATS)
-        assert "7 total sources" in out
-        assert "4 with keyword search" in out
-        assert "6 with latest mode" in out
+        assert "7 registered sources" in out
+        assert "5 with keyword search" in out
+        assert "7 with latest mode" in out
         # notes mention the policy items
         assert "AP News" in out
         assert "Al Jazeera" in out
@@ -66,6 +68,7 @@ class TestRenderers:
 
     def test_render_architecture_state(self, gs):
         out = gs.render_architecture_state(SAMPLE_STATS)
+        assert "| registered | 7 |" in out
         assert "| stable | 5 |" in out
         assert "| quarantined | 1 |" in out
         assert "| investigating | 1 |" in out
@@ -73,22 +76,22 @@ class TestRenderers:
 
     def test_render_index_summary(self, gs):
         out = gs.render_index_summary(SAMPLE_STATS)
-        assert "supports 7 news scrapers" in out
-        assert "all 7 with latest mode" in out
+        assert "supports 5 news scrapers" in out
+        assert "7 sources are registered in total" in out
         assert out.endswith("\n")
 
     def test_render_api_notes(self, gs):
         out = gs.render_api_notes(SAMPLE_STATS)
         assert "## Stable API Notes" in out
         assert "All 7 registered scrapers" in out
-        assert "4 of them support the `search` method" in out
+        assert "5 of them support the `search` method" in out
         assert "all 7 support `latest`" in out
 
     def test_render_guide_counts(self, gs):
         out = gs.render_guide_counts(SAMPLE_STATS)
-        assert "currently exposes 7 supported scrapers" in out
-        assert "No investigating or quarantined sources remain" in out
-        assert "6 of 7 sources support latest monitoring" in out
+        assert "currently exposes 5 supported scrapers" in out
+        assert "1 source under investigation" in out
+        assert "5 support latest monitoring" in out
 
 
 # ── TestRenderBlock ────────────────────────────────────────────────────────

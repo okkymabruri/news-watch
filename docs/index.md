@@ -1,137 +1,59 @@
-# news-watch: Indonesia's top news websites scraper
+# news-watch
 
 [![PyPI version](https://badge.fury.io/py/news-watch.svg)](https://badge.fury.io/py/news-watch)
 [![Build Status](https://github.com/okkymabruri/news-watch/actions/workflows/test.yml/badge.svg)](https://github.com/okkymabruri/news-watch/actions)
 [![PyPI Downloads](https://static.pepy.tech/badge/news-watch)](https://pepy.tech/projects/news-watch)
 
-news-watch scrapes structured news data from Indonesia's top news websites with keyword/date search and latest-news monitoring.
-
 <!-- BEGIN GENERATED: index-summary -->
 news-watch scrapes structured news data from Indonesia's top news websites with keyword/date search and latest-news monitoring.
 
-The current stable release supports 70 news scrapers (66 Indonesian/global sources with search mode, all 70 with latest mode).
+The current stable release supports 72 news scrapers (68 Indonesian/global sources with search mode, 72 with latest mode). 75 sources are registered in total: 3 sources under investigation.
 <!-- END GENERATED: index-summary -->
 
-## Installation
+## Install
 
 ```bash
 pip install news-watch
+newswatch --help
 ```
 
-Optional, only for local experiments with browser-backed scrapers:
+Browser-backed sources also require:
 
 ```bash
 playwright install chromium
 ```
 
-Development setup: https://okky.dev/news-watch/getting-started/
-
-## Quick Start
+## Start
 
 ```bash
-newswatch --keywords ihsg --start_date 2025-01-01
+newswatch --keywords ihsg --start_date 2026-07-01
 newswatch --method latest --scrapers "antaranews,kompas,viva"
 ```
 
 ```python
 import newswatch as nw
 
-df = nw.scrape_to_dataframe("ihsg", "2025-01-01")
-print(len(df))
-
+df = nw.scrape_to_dataframe("ihsg", "2026-07-01")
 latest = nw.latest_to_dataframe(scrapers="antaranews,kompas,viva")
-print(len(latest))
 ```
 
-## Docs
+## Documentation
 
 - [Getting Started](getting-started.md)
-- [Comprehensive Guide](comprehensive-guide.md)
+- [Practical Guide](practical-guide.md)
+- [MBG Use Case](use-case-mbg.md)
 - [API Reference](api-reference.md)
+- [Architecture](architecture.md)
 - [Troubleshooting](troubleshooting.md)
 - [Changelog](changelog.md)
 
-## Supported News Sources
+## Source capabilities
 
-| Source | Slug | Search | Latest | Notes |
-|--------|------|--------|--------|-------|
-| **Global Sources** | | | | |
-| AP News | `apnews` | Yes | Yes | Topic hub search; keyword filtering |
-| Al Jazeera | `aljazeera` | No | Yes | Latest-only via RSS; search JS-rendered |
-| **Indonesian Sources** | | | | |
-| Alinea.id | `alinea` | Yes | Yes | Server-rendered search and index |
-| Betahita | `betahita` | Yes | Yes | Server-rendered keyword search |
-| Antara News | `antaranews` | Yes | Yes | Strict search |
-| BBC News | `bbc` | Yes | Yes | Strict search |
-| Bali Post | `balipost` | No | Yes | Latest-only |
-| Berita Jatim | `beritajatim` | Yes | Yes | Strict search |
-| BeritaSatu | `beritasatu` | Yes | Yes | Strict search |
-| Bisnis.com | `bisnis` | Yes | Yes | Browser required; Strict search |
-| Bloomberg Technoz | `bloombergtechnoz` | Yes | Yes | Strict search |
-| CNA Indonesia | `cnaindonesia` | Yes | Yes | Server-rendered topic search |
-| CNBC Indonesia | `cnbcindonesia` | Yes | Yes | Strict search |
-| Good News From Indonesia | `gnfi` | Yes | Yes | Keyword search and explore index |
-| Hukumonline | `hukumonline` | No | Yes | Latest-only news sitemap; Cloudflare-sensitive |
-| CNN Indonesia | `cnnindonesia` | Yes | Yes | Strict search |
-| DailySocial | `dailysocial` | Yes | Yes | Strict search |
-| Detik | `detik` | Yes | Yes | Strict search |
-| Fajar | `fajar` | Yes | Yes | Strict search |
-| Galamedia | `galamedia` | Yes | Yes | Strict search |
-| Gatra | `gatra` | Yes | Yes | Strict search |
-| Grid | `grid` | Yes | Yes | Strict search |
-| Harian Jogja | `harianjogja` | Yes | Yes | Strict search |
-| Hipwee | `hipwee` | Yes | Yes | Strict search |
-| IDN Times | `idntimes` | Yes | Yes | Browser required; Strict search |
-| Independen.id | `independen` | No | Yes | Latest-only current reporting |
-| Investor.id | `investor` | Yes | Yes | Strict search |
-| JPNN (Jawa Pos News Network) | `jpnn` | Yes | Yes | Strict search |
-| Jakarta Globe | `jakartaglobe` | Yes | Yes | Strict search |
-| Jakarta Selaras | `jakartaselarascoid` | Yes | Yes | Tag/sitemap filtered |
-| Jawa Pos | `jawapos` | Yes | Yes | Strict search |
-| KBR | `kbr` | Yes | Yes | Strict search |
-| Kaltim Post (Borneo24) | `kaltimpost` | Yes | Yes | Strict search |
-| Katadata | `katadata` | Yes | Yes | Strict search |
-| Kompas | `kompas` | Yes | Yes | Strict search |
-| Kontan | `kontan` | Yes | Yes | Strict search |
-| Kumparan | `kumparan` | Yes | Yes | Strict search |
-| Liputan6 | `liputan6` | Yes | Yes | Browser required; Strict search |
-| Media Indonesia | `mediaindonesia` | Yes | Yes | Strict search |
-| Merdeka | `merdeka` | Yes | Yes | Strict search |
-| MetroTV News | `metrotvnews` | Yes | Yes | Strict search |
-| Mojok | `mojok` | Yes | Yes | Strict search |
-| Mongabay Indonesia | `mongabay` | Yes | Yes | Strict search |
-| Niaga.Asia | `niagaasia` | Yes | Yes | Strict search |
-| NusaBali | `nusabali` | Yes | Yes | Server-rendered keyword search |
-| Okezone | `okezone` | Yes | Yes | Strict search |
-| Pantau.com | `pantau` | Yes | Yes | Strict search |
-| Pikiran Rakyat | `pikiranrakyat` | Yes | Yes | Browser required; Strict search |
-| Poskota | `poskota` | Yes | Yes | Strict search |
-| Project Multatuli | `projectmultatuli` | Yes | Yes | Strict search |
-| RM.ID (Rakyat Merdeka) | `rmid` | Yes | Yes | Strict search |
-| RMOL | `rmol` | Yes | Yes | Tag/sitemap filtered |
-| RRI (RRI.co.id) | `rri` | Yes | Yes | Strict search |
-| Republika | `republika` | Yes | Yes | Browser required; Strict search |
-| SINDOnews | `sindonews` | Yes | Yes | Strict search |
-| SWA | `swa` | Yes | Yes | Strict search |
-| Suara | `suara` | Yes | Yes | Browser required; Strict search |
-| Suara Merdeka | `suaramerdeka` | Yes | Yes | Strict search |
-| Surabaya Pagi | `surabayapagi` | Yes | Yes | Strict search |
-| TVOne | `tvone` | Yes | Yes | Strict search |
-| TVRI News | `tvrinews` | Yes | Yes | Strict search |
-| Tempo | `tempo` | Yes | Yes | Strict search |
-| The Jakarta Post | `jakartapost` | Yes | Yes | Browser required; Strict search |
-| The Conversation Indonesia | `conversationid` | Yes | Yes | Server-rendered Indonesian search |
-| Tirto | `tirto` | Yes | Yes | Browser required; Strict search |
-| Tribunnews | `tribunnews` | Yes | Yes | Strict search |
-| VOA Indonesia | `voaindonesia` | Yes | Yes | Strict search |
-| VOI.id | `voi` | Yes | Yes | Strict search |
-| Viva | `viva` | Yes | Yes | Strict search |
-| iNews | `inews` | Yes | Yes | Strict search |
+The registry is the source of truth. List current slugs at runtime:
 
-## Important Considerations
+```bash
+newswatch --method search --list_scrapers
+newswatch --method latest --list_scrapers
+```
 
-**Ethical Use**: Always respect website terms of service and implement appropriate delays between requests.
-
-**Performance**: Works best in local environments. Cloud platforms may experience reduced performance due to anti-bot measures.
-
-**Strict search policy**: Sources marked `Yes` in the Search column have verified keyword-search workflows.
+Search support means the source has a verified arbitrary-keyword workflow. Latest support means it can collect current articles without a keyword. Availability can still vary by network, rate limit, and upstream changes.
