@@ -1,6 +1,6 @@
 # news-watch Practical Guide
 
-A short, end-to-end walkthrough of `news-watch` covering both retrieval methods and common research and monitoring patterns. For exhaustive function signatures, see the [API Reference](api-reference.md). For installation, see [Getting Started](getting-started.md). For the MBG research workflow, see the [MBG use case guide](use-case-mbg.md).
+A short, end-to-end walkthrough of `news-watch` covering both retrieval methods and common research and monitoring patterns. For exhaustive function signatures, see the [API Reference](api-reference.md). For installation, see [Getting Started](getting-started.md). For the MBG research workflow, see the [Use Case MBG guide](use-case-mbg.md).
 
 ## Retrieval methods
 
@@ -102,6 +102,8 @@ df = nw.scrape_to_dataframe(
 )
 ```
 
+`time_range=` is the Python API keyword (date-only `START/END` as `YYYY-MM-DD/YYYY-MM-DD`). The CLI equivalent is the canonical `--daterange` flag; the previously deprecated `--time-range` CLI alias was removed in 1.2.0 and is not interchangeable with the Python keyword.
+
 ### Dedup against a previous run
 
 ```bash
@@ -132,4 +134,4 @@ All knobs also work as keyword arguments (`proxy=`, `scraper_timeout=`) or CLI f
 - [API Reference](api-reference.md) — function signatures and parameters.
 - [Architecture](architecture.md) — registry, scraper states, validation gate.
 - [Troubleshooting](troubleshooting.md) — install, runtime, and platform notes.
-- [MBG use case](use-case-mbg.md) — end-to-end MBG research workflow with quality gates.
+- [Use Case MBG](use-case-mbg.md) — end-to-end MBG research workflow with quality gates.

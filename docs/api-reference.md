@@ -33,7 +33,7 @@ scrape(
 - `limit`: maximum collected articles; mainly useful for latest mode.
 - `max_pages`: latest pages per scraper.
 - `scraper_timeout`: timeout for each scraper.
-- `time_range`: inclusive date-only window, `START/END` as `YYYY-MM-DD/YYYY-MM-DD` (start 00:00:00, end 23:59:59.999999).
+- `time_range`: inclusive date-only window, `START/END` as `YYYY-MM-DD/YYYY-MM-DD` (start 00:00:00, end 23:59:59.999999). This is the Python keyword only — CLI users pass the same value via the canonical `--daterange` flag. The previously deprecated `--time-range` CLI alias was removed in 1.2.0; the Python `time_range=` keyword remains supported and is distinct from that removed flag.
 - `dedup_file`: prior CSV, JSON, or JSONL output whose links should be skipped.
 - `proxy`: proxy URL used by HTTP and browser request layers.
 
