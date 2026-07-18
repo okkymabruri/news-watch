@@ -34,6 +34,20 @@ Tests pin:
 - Cross-adapter queue schema (title, publish_date, author, content, keyword,
   category, source, link) — exact eight keys, value types, canonical source
   domain — exercised once per adapter by a parametrized contract.
+- Indopolitika search-mode parser (first page ``/?s=politik`` raw quote;
+  subsequent page ``/page/N/?s=politik``; bounded ``MAX_SEARCH_PAGES=10``;
+  every-token keyword gate); latest-mode parser (page 1
+  ``/indeks-berita/``; page N ``/indeks-berita/page/N/``); result-card
+  scoping (only ``.widget.indeks .widget-box .media.media-item h2.media-title
+  a.media-link``); canonical main-domain root-slug acceptance and rejection
+  of header/sidebar, taxonomy (``/kategori/``, ``/tag/``, ``/author/``),
+  page (``/page/``, ``/amp/``, ``/feed``), media (``/wp-content/``), admin
+  (``/wp-``), and network subdomains (``cdn.*``, ``m.*``, etc.); article
+  extraction (``.post-title h1``, ``.post-authorname a``,
+  ``article:published_time`` + JSON-LD ``datePublished`` fallback,
+  JSON-LD ``articleSection`` + breadcrumb fallback, ``.post-body
+  .post-content .post-article`` content); start_date future cutoff drops
+  the article and flips ``continue_scraping``.
 """
 
 from __future__ import annotations
@@ -62,6 +76,7 @@ from newswatch.scrapers.surabayapagi import SurabayaPagiScraper
 from newswatch.scrapers.wartaekonomi import WartaEkonomiScraper
 from newswatch.scrapers.idxchannel import IDXChannelScraper
 from newswatch.scrapers.infobanknews import InfobanknewsScraper
+from newswatch.scrapers.indopolitika import IndopolitikaScraper
 
 
 # ── Shared offline test scaffolding ────────────────────────────────────────
@@ -2950,3 +2965,222 @@ class TestIndependenFocus:
         _attach_fetch(s, {link: html})
         await s.get_article(link, "indonesia")
         assert s.queue_.qsize() == 0
+
+# ── 12. Indopolitika: search/latest URL shape, parser, article contract ──────
+
+
+def _indopolitika_search_html() -> str:
+    """Page-1 search HTML carrying scoped cards, a body-only title that lacks
+    the keyword, and every reject class (header / sidebar / taxonomy / page /
+    media / network subdomain / external / two-segment slug)."""
+    return """<!doctype html><html><body>
+<header><a class="media-link" href="/header-leak">h</a></header>
+<aside class="sidebar"><a class="media-link" href="/sidebar-leak">s</a></aside>
+<main>
+  <div class="widget indeks"><div class="widget-box">
+    <div class="media media-item">
+      <h2 class="media-title"><a class="media-link" href="/partai-politik-di-indonesia-hari-ini">Partai Politik di Indonesia Hari Ini</a></h2>
+    </div>
+    <div class="media media-item">
+      <h2 class="media-title"><a class="media-link" href="/partai-politik-di-indonesia-hari-ini/">Trailing Slash Duplicate</a></h2>
+    </div>
+    <div class="media media-item">
+      <h2 class="media-title"><a class="media-link" href="/preferensi-sumber-google-xyz">Preferensi Sumber Google Hari Ini</a></h2>
+    </div>
+  </div></div>
+  <a class="media-link" href="/kategori/nasional/">taxonomy</a>
+  <a class="media-link" href="/page/2/">page link</a>
+  <a class="media-link" href="/wp-content/x.jpg">media</a>
+  <a class="media-link" href="https://cdn.indopolitika.com/x.jpg">cdn sub</a>
+  <a class="media-link" href="https://example.com/politik">external</a>
+  <a class="media-link" href="/partai-politik-yang-mana">two segment</a>
+</main></body></html>"""
+
+
+def _indopolitika_latest_html() -> str:
+    """Latest carries both root-slug cards; no keyword filter applied."""
+    return """<!doctype html><html><body>
+<main>
+  <div class="widget indeks"><div class="widget-box">
+    <div class="media media-item">
+      <h2 class="media-title"><a class="media-link" href="/partai-politik-di-indonesia-hari-ini">Partai Politik di Indonesia Hari Ini</a></h2>
+    </div>
+    <div class="media media-item">
+      <h2 class="media-title"><a class="media-link" href="/preferensi-sumber-google-xyz">Preferensi Sumber Google Hari Ini</a></h2>
+    </div>
+  </div></div>
+  <a class="media-link" href="/kategori/nasional/">taxonomy</a>
+</main></body></html>"""
+
+
+def _indopolitika_article_html(*, with_jsonld: bool = True) -> str:
+    """Article HTML — body uses three nested ``.post-body`` -> ``.post-content``
+    -> ``.post-article`` divs (descendant-chain selector)."""
+    jsonld = ""
+    if with_jsonld:
+        jsonld = (
+            '<script type="application/ld+json">'
+            + json.dumps({
+                "@context": "https://schema.org",
+                "@type": "NewsArticle",
+                "headline": "Partai Politik di Indonesia Hari Ini",
+                "datePublished": "2026-07-12T10:00:00+07:00",
+                "articleSection": "Politik",
+            })
+            + '</script>'
+        )
+    breadcrumb = (
+        '<nav class="breadcrumb">'
+        '<a href="/">Home</a>'
+        '<span>Politik</span>'
+        '</nav>'
+    ) if not with_jsonld else '<nav class="breadcrumb"><a href="/">Home</a></nav>'
+    return f"""<!doctype html><html><head>
+<meta property="article:published_time" content="2026-07-12T10:00:00+07:00">
+{jsonld}
+</head><body>
+<article>
+  <header class="post-title"><h1>Partai Politik di Indonesia Hari Ini</h1></header>
+  <div class="post-authorname"><a href="/author/redaksi/">Redaksi Indopolitika</a></div>
+  {breadcrumb}
+  <div class="post-body"><div class="post-content"><div class="post-article">
+    <p>Indopolitika lead paragraph retained as content text.</p>
+    <p>Indopolitika second paragraph retained as content text.</p>
+    <div class="baca-juga-box"><p>baca-juga cross-promo must be stripped.</p></div>
+    <aside class="sidebar"><p>Sidebar promo must be stripped.</p></aside>
+  </div></div></div>
+</article></body></html>"""
+
+
+class TestIndopolitikaFocus:
+    """Indopolitika: ``/?s=politik`` first page + ``/page/N/?s=politik``
+    subsequent pages bounded at ``MAX_SEARCH_PAGES=10``; ``/indeks-berita/``
+    first + ``/indeks-berita/page/N/`` subsequent; search parser scopes to
+    ``.widget.indeks .widget-box .media.media-item`` cards, accepts only
+    canonical one-segment root slugs on the main domain, dedupes in order,
+    and filters keyword tokens against card titles (body-only matches
+    without the keyword are dropped); latest parser accepts root slugs with
+    no keyword filter; article title/author/date/category/content with
+    content cleanup and naive datetime; future start_date cutoff drops the
+    article and flips ``continue_scraping``."""
+
+    BASE = "https://indopolitika.com"
+    SOURCE = "indopolitika.com"
+    KEYWORD = "politik"
+    CANON = f"{BASE}/partai-politik-di-indonesia-hari-ini/"
+
+    @pytest.mark.asyncio
+    async def test_search_url_encoding_and_bounded_pages(self):
+        s = IndopolitikaScraper(keywords=self.KEYWORD, queue_=asyncio.Queue())
+        stub = _attach_fetch(s, {"": _indopolitika_search_html()})
+
+        # Page 1 — raw quote, no /page prefix.
+        await s.build_search_url(self.KEYWORD, 1)
+        assert stub.calls[0][0] == f"{self.BASE}/?s={self.KEYWORD}"
+        assert s.MAX_SEARCH_PAGES == 10
+
+        # Page N — /page/N/?s=keyword.
+        await s.build_search_url(self.KEYWORD, 3)
+        assert stub.calls[-1][0] == f"{self.BASE}/page/3/?s={self.KEYWORD}"
+
+        # Keyword with special chars is percent-encoded; spaces → %20.
+        await s.build_search_url("politik & ekonomi", 1)
+        url = stub.calls[-1][0]
+        assert "%20" in url and "politik%20%26%20ekonomi" in url
+        assert "&+ekonomi" not in url
+
+        # Boundary: 0 and 11 are out of range, no fetch.
+        before = len(stub.calls)
+        assert await s.build_search_url(self.KEYWORD, 0) is None
+        assert await s.build_search_url(self.KEYWORD, 11) is None
+        assert len(stub.calls) == before
+
+    @pytest.mark.asyncio
+    async def test_latest_pagination_targets_indeks_berita(self):
+        s = IndopolitikaScraper(keywords=self.KEYWORD, queue_=asyncio.Queue())
+        stub = _attach_fetch(s, {"indeks-berita": _indopolitika_latest_html()})
+
+        await s.build_latest_url(1)
+        assert stub.calls[-1][0] == f"{self.BASE}/indeks-berita/"
+
+        await s.build_latest_url(4)
+        assert stub.calls[-1][0] == f"{self.BASE}/indeks-berita/page/4/"
+
+        before = len(stub.calls)
+        assert await s.build_latest_url(0) is None
+        assert len(stub.calls) == before
+
+    def test_search_parser_scopes_canonical_filters_every_token_and_dedupes(self):
+        s = IndopolitikaScraper(keywords=self.KEYWORD, queue_=asyncio.Queue())
+        links = s.parse_article_links(_indopolitika_search_html(), keyword=self.KEYWORD)
+
+        # Only the canonical one-segment root slug survives. The body-only
+        # "Preferensi Sumber Google…" title lacks the keyword → DROPPED.
+        # Trailing-slash duplicate of the canonical card → dedup'd.
+        # Two-segment slug, taxonomy, page, wp-content, cdn sub, external,
+        # header / sidebar scope leaks → all rejected.
+        assert list(links) == [self.CANON]
+        assert s.parse_article_links("") is None
+
+    def test_latest_parser_accepts_root_slug_without_keyword_filter(self):
+        s = IndopolitikaScraper(keywords=self.KEYWORD, queue_=asyncio.Queue())
+        links = s.parse_latest_article_links(_indopolitika_latest_html())
+
+        # No keyword filter: both root-slug cards survive (one matches,
+        # one is body-only); taxonomic bleed still dropped by scoping.
+        assert set(links) == {
+            self.CANON,
+            f"{self.BASE}/preferensi-sumber-google-xyz/",
+        }
+        assert f"{self.BASE}/kategori/nasional/" not in links
+        assert s.parse_latest_article_links("") is None
+
+    @pytest.mark.asyncio
+    async def test_article_full_schema_with_cleanup_and_naive_date(self):
+        s = IndopolitikaScraper(keywords=self.KEYWORD, queue_=asyncio.Queue())
+        _attach_fetch(s, {self.CANON: _indopolitika_article_html(with_jsonld=True)})
+        await s.get_article(self.CANON, self.KEYWORD)
+
+        assert s.queue_.qsize() == 1
+        item = await s.queue_.get()
+        assert list(item.keys()) == list(_QUEUE_KEYS)
+        assert item["title"] == "Partai Politik di Indonesia Hari Ini"
+        assert item["author"] == "Redaksi Indopolitika"
+        assert item["category"] == "Politik"
+        assert item["source"] == self.SOURCE
+        assert item["keyword"] == self.KEYWORD
+        assert item["link"] == self.CANON
+        # Naive datetime — tzinfo stripped even though source was +07:00.
+        assert item["publish_date"] == datetime(2026, 7, 12, 10, 0, 0)
+        assert item["publish_date"].tzinfo is None
+        # Content kept real paragraphs, stripped cross-promo + sidebar.
+        assert "Indopolitika lead paragraph" in item["content"]
+        assert "Indopolitika second paragraph" in item["content"]
+        assert "baca-juga" not in item["content"].lower()
+        assert "Sidebar promo" not in item["content"]
+
+    @pytest.mark.asyncio
+    async def test_article_falls_back_to_meta_date_and_breadcrumb_category(self):
+        s = IndopolitikaScraper(keywords=self.KEYWORD, queue_=asyncio.Queue())
+        _attach_fetch(s, {self.CANON: _indopolitika_article_html(with_jsonld=False)})
+        await s.get_article(self.CANON, self.KEYWORD)
+
+        assert s.queue_.qsize() == 1
+        item = await s.queue_.get()
+        # Meta ``article:published_time`` carries the date when JSON-LD is gone.
+        assert item["publish_date"] == datetime(2026, 7, 12, 10, 0, 0)
+        # Last non-Home breadcrumb value carries the category when JSON-LD is gone.
+        assert item["category"] == "Politik"
+
+    @pytest.mark.asyncio
+    async def test_future_start_date_drops_and_flips_continue_scraping(self):
+        s = IndopolitikaScraper(
+            keywords=self.KEYWORD,
+            start_date=datetime(2099, 1, 1),
+            queue_=asyncio.Queue(),
+        )
+        _attach_fetch(s, {self.CANON: _indopolitika_article_html()})
+        await s.get_article(self.CANON, self.KEYWORD)
+
+        assert s.queue_.qsize() == 0
+        assert s.continue_scraping is False

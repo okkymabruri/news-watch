@@ -62,8 +62,8 @@ Latest support is validated independently; a source can be latest-only.
 
 | State | Count |
 |---|---|
-| registered | 77 |
-| stable | 75 |
+| registered | 78 |
+| stable | 76 |
 | quarantined | 1 |
 | investigating | 1 |
 <!-- END GENERATED: architecture-state -->

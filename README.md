@@ -160,7 +160,7 @@ The output file contains the following columns:
 - `latest` is intended for latest-news monitoring and does not require keywords.
 
 <!-- BEGIN GENERATED: readme-heading -->
-## Supported Websites (77)
+## Supported Websites (78)
 <!-- END GENERATED: readme-heading -->
 <!-- BEGIN GENERATED: readme-sources -->
 [Alinea.id](https://www.alinea.id),
@@ -195,6 +195,7 @@ The output file contains the following columns:
 [IDN Times](https://idntimes.com),
 [IDX Channel](https://www.idxchannel.com),
 [Independen.id](https://independen.id),
+[Indopolitika](https://indopolitika.com),
 [iNews](https://inews.id),
 [Infobanknews](https://infobanknews.com),
 [Investor.id](https://investor.id),
@@ -244,8 +245,8 @@ The output file contains the following columns:
 
 <!-- BEGIN GENERATED: readme-counts -->
 > **Notes:**
-> - 77 registered sources: 72 with keyword search, 77 with latest mode.
-> - 75 stable scrapers in the current release: 70 with keyword search, 75 with latest mode.
+> - 78 registered sources: 73 with keyword search, 78 with latest mode.
+> - 76 stable scrapers in the current release: 71 with keyword search, 76 with latest mode.
 > - 1 source under investigation; 1 source quarantined.
 > - AP News uses topic hub pages with keyword-in-title filtering (robots disallows /search?q=*).
 > - Al Jazeera is latest-only via RSS feed (search page is JS-rendered).

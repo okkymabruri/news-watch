@@ -179,6 +179,18 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         note="WordPress REST API discovery; banking and financial-sector coverage; 2026-07-18",
     ),
     ScraperEntry(
+        "indopolitika",
+        "Indopolitika",
+        "indopolitika", "IndopolitikaScraper",
+        status="stable",
+        strict_search=True,
+        concurrency=5,
+        smoke_keyword="politik",
+        supports_search=True,
+        supports_latest=True,
+        note="Native HTML search and latest index; bounded canonical card discovery; 2026-07-19",
+    ),
+    ScraperEntry(
         "idntimes",
         "IDN Times",
         "idntimes", "IDNTimesScraper",

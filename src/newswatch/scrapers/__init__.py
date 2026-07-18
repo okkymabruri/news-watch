@@ -21,6 +21,7 @@ from .harianjogja import HarianJogjaScraper as HarianJogjaScraper
 from .hipwee import HipweeScraper as HipweeScraper
 from .idntimes import IDNTimesScraper as IDNTimesScraper
 from .idnfinancials import IDNFinancialsScraper as IDNFinancialsScraper
+from .indopolitika import IndopolitikaScraper as IndopolitikaScraper
 from .inews import INewsScraper as INewsScraper
 from .investor import InvestorScraper as InvestorScraper
 from .jakartaglobe import JakartaGlobeScraper as JakartaGlobeScraper
@@ -89,6 +90,7 @@ __all__ = [
     "HipweeScraper",
     "IDNTimesScraper",
     "IDNFinancialsScraper",
+    "IndopolitikaScraper",
     "INewsScraper",
     "InvestorScraper",
     "JakartaGlobeScraper",

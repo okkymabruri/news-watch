@@ -7,7 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-07-19
+
 ### Added
+- Indopolitika (`indopolitika`) with bounded native HTML search and latest-index discovery
 - Infobanknews (`infobanknews`) with WordPress REST search/latest discovery and IDX Channel (`idxchannel`) with bounded sitemap-based search/latest discovery
 
 ### Changed
@@ -15,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Consolidated temporary new-source scraper contracts into their permanent focused, registry, and shared test modules
 
 ### Fixed
-- Enforced every-token relevance filtering for GNFI keyword search while leaving latest-mode discovery unfiltered
+- Enforced every-token relevance filtering for GNFI and Indopolitika keyword search while leaving latest-mode discovery unfiltered
 
 ## [1.2.1] - 2026-07-18
 
