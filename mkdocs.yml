@@ -19,7 +19,7 @@ nav:
   - Getting Started: getting-started.md
   - Architecture: architecture.md
   - Practical Guide: practical-guide.md
-  - MBG Use Case: use-case.md
+  - MBG Use Case: use-case-mbg.md
   - API Reference: api-reference.md
   - Troubleshooting: troubleshooting.md
   - Changelog: changelog.md
