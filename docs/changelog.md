@@ -7,15 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-18
+
 ### Added
 - DDTC News (`ddtcnews`), IDN Financials (`idnfinancials`), and Warta Ekonomi (`wartaekonomi`) with search and latest support
 - Banten News (`bantennews`) as investigating with search and latest support, and Dandapala (`dandapala`) as investigating with latest support
+- Aggregate-only MBG research guide covering collection, topic modeling, sentiment, named entities, person co-mentions, and cleaned-news document similarity
 
 ### Changed
-- `--daterange` is now date-only: format `YYYY-MM-DD/YYYY-MM-DD`, inclusive of both full calendar days (start 00:00:00, end 23:59:59.999999). The Python `time_range=` parameter accepts the same date-only syntax; datetime-bearing values are rejected.
+- `--daterange` is the canonical CLI date filter, and Python `time_range=` accepts the same inclusive, date-only `YYYY-MM-DD/YYYY-MM-DD` value; internal names `args.time_range` and `_parse_time_range` remain unchanged
+- Registry status for Investor changed to `investigating` because current HTTP and browser paths return persistent CloudFront 403 responses
+- Scraper contracts are consolidated by behavior and capability instead of temporary catch-all test modules
 
-### Deprecated
-- `--time-range` CLI flag: compatibility alias for `--daterange`. Emits a stderr warning in v1.1.x and is removed/rejected (unrecognized argument) beginning v1.2.0. Use `--daterange`.
+### Fixed
+- Kumparan latest collection uses its active RSS feed
+- SurabayaPagi search is bounded and latest collection uses its RSS feed
+- Suara, RMOL, Banten News, Dandapala, DDTC News, IDN Financials, and Warta Ekonomi parsing and retrieval behavior is aligned with current publisher pages
+
+### Removed
+- Removed `--time-range` CLI compatibility alias; use `--daterange`
 
 ## [1.1.0] - 2026-07-13
 ### Added

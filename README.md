@@ -4,21 +4,24 @@
 [![Build Status](https://github.com/okkymabruri/news-watch/actions/workflows/test.yml/badge.svg)](https://github.com/okkymabruri/news-watch/actions)
 [![PyPI Downloads](https://static.pepy.tech/badge/news-watch)](https://pepy.tech/projects/news-watch)
 
+**Scope:** Reproducible MBG topic-modeling pass over the approved window
+**2025-01-05 → 2026-07-17**, after `nr_topics=15` reduction (14 substantive
+topics + 3,192 outliers). Final cleaned-corpus fingerprint
+`470acdf80dbad4c4c66a42716c53be78eea08e04109b926bff101af58025f666`.
+## placeholder
 
-news-watch is a Python package that scrapes structured news data from [Indonesia's top news websites](#supported-websites), offering keyword and date filtering queries for targeted research
+**Corpus identity (final cutoff, derived from the authoritative
+`data/analysis/gate_report.json` and `tables/run_summary.json`; the legacy
+`data/clean/gate_report.json` is a byte-identical private mirror of the
+same report):**
 
-
-> ### ⚠️ Ethical Considerations & Disclaimer ⚠️  
-> **Purpose:** For educational and research purposes only. Not designed for commercial use that could be detrimental to news source providers.
->
-> **User Responsibility:** Users must comply with each website's Terms of Service and robots.txt. Aggressive scraping may lead to IP blocking. Scrape responsibly and respect server limitations.
-
-
-## Installation
-
-### Using pip (standard)
-```bash
-pip install news-watch
+| Stage | Count |
+|---|---:|
+| Raw rows ingested across all increments | 25,288 |
+| Rows surviving the relevance gate | 18,406 |
+| Link-unique rows after dedup | 8,895 |
+| Cleaned rows that drive BERTopic | **8,862** |
+| Distinct contributing sources | 48 |
 playwright install chromium
 ```
 
@@ -76,7 +79,6 @@ newswatch --method <search|latest> -k <keywords> -sd <start_date> -s [<scrapers>
 | `--scraper-timeout` | Per-scraper timeout in seconds |
 | `--progress` | Print per-scraper progress lines |
 | `--daterange` | Filter articles by an inclusive date window. Format: `YYYY-MM-DD/YYYY-MM-DD` (e.g. `2026-07-13/2026-07-14`); start = 00:00:00, end = 23:59:59.999999 of the same day |
-| `--time-range` | **Deprecated** compatibility alias for `--daterange`. Emits a stderr warning in v1.1.x; rejected (unrecognized argument) beginning v1.2.0. Use `--daterange`. |
 | `--dedup-file` | Path to a previous output file (JSON/JSONL/CSV); articles with matching links are skipped |
 | `--proxy` | Proxy URL for all requests (e.g. `http://proxy.example.com:8080` or `socks5://proxy.example.com:1080`). Also via `NEWSWATCH_PROXY` env |
 
