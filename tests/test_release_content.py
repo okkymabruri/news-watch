@@ -240,5 +240,3 @@ def test_cli_exits_nonzero_on_validation_violation(tmp_path, capsys):
         f"validator should exit nonzero on a broken README; got rc={result.returncode}"
     )
     assert combined.strip(), "validator should print actionable diagnostic text"
-
-
