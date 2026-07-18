@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [1.2.1] - 2026-07-18
+
+### Changed
+- Declared Python 3.10–3.12 support explicitly because the pinned browser dependency chain is not compatible with Python 3.13
+
+### Fixed
+- Restored the package introduction, ethical-use notice, installation instructions, and valid Python examples in the README and PyPI long description
+- Published the MBG person co-mention network on an opaque white canvas and improved the UMAP figure's width fit
+- Added release validation for temporary README markers, Markdown fences, Python examples, installation commands, and PNG transparency
+
 
 ## [1.2.0] - 2026-07-18
 

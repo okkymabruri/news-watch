@@ -23,6 +23,8 @@ release-validate:
 		echo "Add release notes to docs/changelog.md before publishing."; \
 		exit 1; \
 	fi
+	@echo "Checking user-visible release content..."
+	@uv run --extra dev python scripts/validate_release_content.py
 	@echo "Release validation passed for v$(VERSION)"
 
 release-notes: release-validate
