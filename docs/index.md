@@ -41,7 +41,7 @@ latest = nw.latest_to_dataframe(scrapers="antaranews,kompas,viva")
 
 - [Getting Started](getting-started.md)
 - [Practical Guide](practical-guide.md)
-- [MBG Use Case](use-case-mbg.md)
+- [Use Case MBG](use-case-mbg.md)
 - [API Reference](api-reference.md)
 - [Architecture](architecture.md)
 - [Troubleshooting](troubleshooting.md)

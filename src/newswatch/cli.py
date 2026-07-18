@@ -2,18 +2,13 @@ import argparse
 import asyncio
 import logging
 import os
-import sys
 from datetime import datetime
 
-from . import __version__
 from .config import get_health_history_path
 from .main import get_available_scrapers
 from .main import main as run_main
 from .health import append_health_history, health_report, health_report_to_file, _print_health_summary
 
-TIME_RANGE_REMOVAL_VERSION = (1, 2, 0)
-CURRENT_VERSION = tuple(map(int, __version__.split(".")))
-LEGACY_TIME_RANGE_DEST = "_legacy_time_range"
 
 def cli():
     scraper_classes = get_available_scrapers(method="search")
@@ -102,14 +97,6 @@ def cli():
         action="store_true",
         help="Print per-scraper progress lines (implies some verbosity).",
     )
-    if CURRENT_VERSION < TIME_RANGE_REMOVAL_VERSION:
-        parser.add_argument(
-            "--time-range",
-            dest=LEGACY_TIME_RANGE_DEST,
-            type=str,
-            default=None,
-            help=argparse.SUPPRESS,
-        )
     parser.add_argument(
         "--daterange",
         dest="time_range",
@@ -142,18 +129,6 @@ def cli():
     )
     args = parser.parse_args()
 
-    legacy_value = getattr(args, LEGACY_TIME_RANGE_DEST, None)
-    if legacy_value is not None:
-        if args.time_range is not None:
-            parser.error("--time-range cannot be combined with --daterange; use --daterange.")
-        print(
-            "warning: --time-range is deprecated and will be removed in v1.2.0; use --daterange.",
-            file=sys.stderr,
-        )
-        args.time_range = legacy_value
-        delattr(args, LEGACY_TIME_RANGE_DEST)
-    elif hasattr(args, LEGACY_TIME_RANGE_DEST):
-        delattr(args, LEGACY_TIME_RANGE_DEST)
 
     if args.proxy:
         os.environ["NEWSWATCH_PROXY"] = args.proxy
