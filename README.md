@@ -253,7 +253,9 @@ The output file contains the following columns:
 <!-- END GENERATED: readme-counts -->
 ## Contributing
 
-Contributions are welcome! If you'd like to add support for more websites or improve the existing code, please open an issue or submit a pull request.
+Contributions are welcome. Open an issue or pull request to add a source or improve an existing one.
+
+Keep tests with their owning behavior: shared scraper contracts in `tests/test_basescraper.py`, registry metadata and discovery in `tests/test_registry.py`, and source-specific parsing and extraction in `tests/test_scrapers_focused.py`. Do not add catch-all files such as `tests/test_new_scrapers.py`. Before adding coverage, search the owning module and extend or parameterize an existing test when it already exercises the same observable behavior. Keep another case only for a distinct boundary, precedence rule, transition, or real error path; avoid assertions on source text, private plumbing, or registry counts.
 
 ## License
 
