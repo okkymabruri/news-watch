@@ -1,6 +1,6 @@
 # news-watch Practical Guide
 
-A short, end-to-end walkthrough of `news-watch` covering both retrieval methods and common research and monitoring patterns. For exhaustive function signatures, see the [API Reference](api-reference.md). For installation, see [Getting Started](getting-started.md). For the MBG research workflow, see the [MBG use case guide](use-case.md).
+A short, end-to-end walkthrough of `news-watch` covering both retrieval methods and common research and monitoring patterns. For exhaustive function signatures, see the [API Reference](api-reference.md). For installation, see [Getting Started](getting-started.md). For the MBG research workflow, see the [MBG use case guide](use-case-mbg.md).
 
 ## Retrieval methods
 
@@ -132,4 +132,4 @@ All knobs also work as keyword arguments (`proxy=`, `scraper_timeout=`) or CLI f
 - [API Reference](api-reference.md) — function signatures and parameters.
 - [Architecture](architecture.md) — registry, scraper states, validation gate.
 - [Troubleshooting](troubleshooting.md) — install, runtime, and platform notes.
-- [MBG use case](use-case.md) — end-to-end MBG research workflow with quality gates.
+- [MBG use case](use-case-mbg.md) — end-to-end MBG research workflow with quality gates.
