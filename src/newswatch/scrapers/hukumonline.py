@@ -38,6 +38,17 @@ class HukumonlineScraper(BaseScraper):
         re.IGNORECASE,
     )
     EXCLUDE_RE = re.compile(r"/berita/(?:foto|stories)/", re.IGNORECASE)
+    ARTICLE_ALIAS_RE = re.compile(
+        r"^https?://(?:www\.)?hukumonline\.com/berita/a/([a-z0-9][a-z0-9-]*)/?$",
+        re.IGNORECASE,
+    )
+    PHOTO_RE = re.compile(
+        r"^https?://(?:www\.)?hukumonline\.com/berita/foto/f/([a-z0-9][a-z0-9-]*)/?$",
+        re.IGNORECASE,
+    )
+    LASTMOD_RE = re.compile(
+        r"^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2}))?$"
+    )
 
     def __init__(self, keywords, concurrency=5, start_date=None, queue_=None):
         super().__init__(keywords, concurrency, queue_)
@@ -91,16 +102,46 @@ class HukumonlineScraper(BaseScraper):
             return None
 
         ns = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-        links = []
-        for url in root.findall(".//sm:url/sm:loc", ns):
-            loc = (url.text or "").strip().rstrip("/")
-            if not loc:
+        records = []
+        for url_node in root.findall(".//sm:url", ns):
+            loc_node = url_node.find("sm:loc", ns)
+            lastmod_node = url_node.find("sm:lastmod", ns)
+            loc = (loc_node.text or "").strip().rstrip("/") if loc_node is not None else ""
+            lastmod = (
+                (lastmod_node.text or "").strip() if lastmod_node is not None else ""
+            )
+            if loc:
+                records.append(
+                    (loc, lastmod if self.LASTMOD_RE.fullmatch(lastmod) else "")
+                )
+
+        photo_slugs = set()
+        for loc, _ in records:
+            match = self.PHOTO_RE.fullmatch(loc)
+            if match:
+                photo_slugs.add(match.group(1).lower())
+
+        dated = []
+        undated = []
+        seen = set()
+        for loc, lastmod in records:
+            if loc in seen or self.EXCLUDE_RE.search(loc):
                 continue
-            if self.EXCLUDE_RE.search(loc):
+            if not self.ARTICLE_RE.match(loc + "/"):
                 continue
-            if self.ARTICLE_RE.match(loc + "/"):
-                links.append(loc)
-        return links or None
+            alias = self.ARTICLE_ALIAS_RE.fullmatch(loc)
+            if alias and alias.group(1).lower() in photo_slugs:
+                continue
+
+            seen.add(loc)
+            candidate = (loc, lastmod)
+            (dated if lastmod else undated).append(candidate)
+
+        dated.sort(key=lambda candidate: candidate[1], reverse=True)
+        links = [loc for loc, _ in dated]
+        links.extend(loc for loc, _ in undated)
+        return links[:10] or None
+
 
     async def get_article(self, link, keyword):
         response_text = await self.fetch(link, headers=self.headers, timeout=30)

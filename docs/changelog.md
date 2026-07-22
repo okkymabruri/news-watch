@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Applied `--max-pages` to both search and latest retrieval, with independent per-mode scraper bounds.
+
+### Fixed
+- Scoped Alinea search discovery to primary result cards and bounded repeated search pagination.
+- Updated Grid, Kaltim Post, Hukumonline, NusaBali, Kumparan, DailySocial, Katadata, and VOI extraction or discovery contracts to match current publisher pages.
 
 ## [1.2.2] - 2026-07-19
 

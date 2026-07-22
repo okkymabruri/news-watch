@@ -62,12 +62,10 @@ class GridScraper(BaseScraper):
         if not title:
             return
 
-        # Content
-        content_div = soup.select_one(".detail-read__content")
-        if not content_div:
-            content_div = soup.select_one(".entry-content")
-        if not content_div:
-            content_div = soup.select_one("article")
+        # Content: Grid's live article body.  Restrict extraction to paragraphs
+        # inside this container so navigation and adjacent recommendation text
+        # cannot leak into the article body.
+        content_div = soup.select_one(".read__article")
         if not content_div:
             return
 
@@ -76,13 +74,18 @@ class GridScraper(BaseScraper):
         for tag in content_div.find_all(
             ["section", "div", "footer"],
             class_=re.compile(
-                r"related|popular|most|sidebar|share|social|newsletter|ad|subscribe|embed|block_related|td-related|author-box|post-tags|comments|wp-block|bacajuga|bacajuga__|tags__|detail-read__comment",
+                r"related|popular|most|sidebar|share|social|newsletter|advert|(^|[-_ ])ad([-_ ]|$)|subscribe|embed|block_related|td-related|author-box|post-tags|comments|wp-block|bacajuga|bacajuga__|tags__|detail-read__comment",
                 re.IGNORECASE,
             ),
         ):
             tag.extract()
 
-        content = content_div.get_text(separator=" ", strip=True)
+        paragraphs = []
+        for paragraph in content_div.select("p"):
+            text = paragraph.get_text(" ", strip=True)
+            if text:
+                paragraphs.append(text)
+        content = " ".join(paragraphs)
         if not content:
             return
 

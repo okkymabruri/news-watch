@@ -39,14 +39,12 @@ class DailySocialScraper(BaseScraper):
             return None
         soup = BeautifulSoup(response_text, "html.parser")
 
-        # Find article containers
-        items = soup.select(".wp-block-post")
-        if not items:
+        anchors = soup.select("article.type-post .entry-title a[href]")
+        if not anchors:
             return None
 
         links = set()
-        for item in items:
-            a = item.select_one("a[href]")
+        for a in anchors:
             if a:
                 href = a["href"]
                 full_url = urljoin(self.base_url, href) if not href.startswith("http") else href
@@ -193,9 +191,8 @@ class DailySocialScraper(BaseScraper):
             return None
         soup = BeautifulSoup(response_text, "html.parser")
         links = set()
-        items = soup.select(".wp-block-post")
-        for item in items:
-            a = item.select_one("a[href]")
+        anchors = soup.select("article.type-post .entry-title a[href]")
+        for a in anchors:
             if a:
                 href = a["href"]
                 full_url = urljoin(self.base_url, href) if not href.startswith("http") else href

@@ -5,6 +5,7 @@ No search API available, but sitemaps provide article URLs
 that can be filtered by keyword presence.
 """
 
+import json
 import logging
 import xml.etree.ElementTree as ET
 
@@ -73,8 +74,7 @@ class KumparanScraper(BaseScraper):
             if not title:
                 return
 
-            meta_date = soup.find("meta", {"property": "article:published_time"})
-            publish_date_str = meta_date.get("content", "") if meta_date else ""
+            publish_date = self._extract_date(soup)
 
             content_div = soup.select_one("div.article-content") or soup.select_one("article")
             if not content_div:
@@ -90,9 +90,8 @@ class KumparanScraper(BaseScraper):
             meta_author = soup.find("meta", {"name": "author"})
             author = meta_author.get("content", "Unknown") if meta_author else "Unknown"
 
-            publish_date = self.parse_date(publish_date_str)
             if not publish_date:
-                logging.debug("Kumparan date parse failed | url: %s | date: %r", link, publish_date_str[:50])
+                logging.debug("Kumparan date parse failed | url: %s", link)
                 return
 
             if self.start_date and publish_date < self.start_date:
@@ -118,6 +117,47 @@ class KumparanScraper(BaseScraper):
             await self.queue_.put(item)
         except Exception as e:
             logging.error("Error parsing article %s: %s", link, e)
+
+    def _extract_date(self, soup):
+        meta_date = soup.find("meta", {"property": "article:published_time"})
+        if meta_date and meta_date.get("content"):
+            parsed = self.parse_date(meta_date["content"])
+            if parsed:
+                return parsed
+
+        for script in soup.find_all("script", type="application/ld+json"):
+            raw = script.string or script.get_text()
+            if not raw:
+                continue
+            try:
+                payload = json.loads(raw)
+            except (json.JSONDecodeError, TypeError):
+                continue
+            for node in self._json_ld_nodes(payload):
+                node_type = node.get("@type")
+                is_news_article = node_type == "NewsArticle" or (
+                    isinstance(node_type, list) and "NewsArticle" in node_type
+                )
+                if not is_news_article:
+                    continue
+                date_published = node.get("datePublished")
+                if not isinstance(date_published, str):
+                    continue
+                parsed = self.parse_date(date_published)
+                if parsed:
+                    return parsed
+        return None
+
+    @staticmethod
+    def _json_ld_nodes(payload):
+        candidates = payload if isinstance(payload, list) else (payload,)
+        for candidate in candidates:
+            if not isinstance(candidate, dict):
+                continue
+            graph = candidate.get("@graph")
+            if isinstance(graph, list):
+                yield from (node for node in graph if isinstance(node, dict))
+            yield candidate
 
     async def build_search_url(self, keyword, page):
         return None

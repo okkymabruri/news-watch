@@ -60,13 +60,17 @@ from typing import Any
 from urllib.parse import quote
 
 import pytest
+from bs4 import BeautifulSoup
 
 from newswatch.scrapers.alinea import AlineaScraper
 from newswatch.scrapers.betahita import BetahitaScraper
 from newswatch.scrapers.conversationid import ConversationIDScraper
 from newswatch.scrapers.ddtcnews import DDTCNewsScraper
 from newswatch.scrapers.gnfi import GNFIScraper
+from newswatch.scrapers.dailysocial import DailySocialScraper
+from newswatch.scrapers.katadata import KatadataScraper
 from newswatch.scrapers.hukumonline import HukumonlineScraper
+from newswatch.scrapers.kaltimpost import KaltimPostScraper
 from newswatch.scrapers.idnfinancials import IDNFinancialsScraper
 from newswatch.scrapers.independen import IndependenScraper
 from newswatch.scrapers.kumparan import KumparanScraper
@@ -77,6 +81,7 @@ from newswatch.scrapers.wartaekonomi import WartaEkonomiScraper
 from newswatch.scrapers.idxchannel import IDXChannelScraper
 from newswatch.scrapers.infobanknews import InfobanknewsScraper
 from newswatch.scrapers.indopolitika import IndopolitikaScraper
+from newswatch.scrapers.voi import VOIScraper
 
 
 # ── Shared offline test scaffolding ────────────────────────────────────────
@@ -162,6 +167,134 @@ class TestKumparanXMLParser:
         assert await scraper.build_latest_url(1) == self.RSS_XML
         assert await scraper.build_latest_url(2) is None
         assert calls == [(scraper.rss_url, {"headers": scraper.headers, "timeout": 30})]
+
+def _kumparan_article_html(payload: Any, meta_date: str | None = None) -> str:
+    meta = (
+        f'<meta property="article:published_time" content="{meta_date}">'
+        if meta_date
+        else ""
+    )
+    return (
+        '<!doctype html><html><head>'
+        '<meta property="og:title" content="Kumparan fixture headline">'
+        '<meta name="author" content="Kumparan Fixture Reporter">'
+        f'{meta}<script type="application/ld+json">{json.dumps(payload)}</script>'
+        '</head><body><div class="article-content">'
+        '<p>Fixture lead paragraph long enough for Kumparan content filtering.</p>'
+        '<p>Fixture follow-up paragraph also stays inside the article content.</p>'
+        '</div></body></html>'
+    )
+
+
+class TestKumparanArticleDateFallback:
+    LINK = "https://kumparan.com/kumparannews/fixture-article"
+    JSONLD_DATE = "2026-07-21T08:15:30+07:00"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "payload",
+        (
+            pytest.param(
+                {"@type": "NewsArticle", "datePublished": JSONLD_DATE},
+                id="object",
+            ),
+            pytest.param(
+                [
+                    {"@type": "WebSite"},
+                    {"@type": "NewsArticle", "datePublished": JSONLD_DATE},
+                ],
+                id="list",
+            ),
+            pytest.param(
+                {
+                    "@graph": [
+                        {"@type": "WebPage"},
+                        {"@type": "NewsArticle", "datePublished": JSONLD_DATE},
+                    ]
+                },
+                id="graph",
+            ),
+        ),
+    )
+    async def test_newsarticle_jsonld_supplies_missing_meta_date(self, payload):
+        scraper = KumparanScraper("ekonomi", queue_=asyncio.Queue())
+        _attach_fetch(scraper, {self.LINK: _kumparan_article_html(payload)})
+
+        await scraper.get_article(self.LINK, "ekonomi")
+
+        item = scraper.queue_.get_nowait()
+        assert tuple(item) == _QUEUE_KEYS
+        assert item["publish_date"] == datetime(2026, 7, 21, 8, 15, 30)
+
+    @pytest.mark.asyncio
+    async def test_valid_meta_date_keeps_precedence_over_jsonld(self):
+        payload = {
+            "@type": "NewsArticle",
+            "datePublished": "2025-01-02T03:04:05+07:00",
+        }
+        html = _kumparan_article_html(
+            payload,
+            meta_date="2026-07-20T09:10:11+07:00",
+        )
+        scraper = KumparanScraper("ekonomi", queue_=asyncio.Queue())
+        _attach_fetch(scraper, {self.LINK: html})
+
+        await scraper.get_article(self.LINK, "ekonomi")
+
+        item = scraper.queue_.get_nowait()
+        assert item["publish_date"] == datetime(2026, 7, 20, 9, 10, 11)
+
+
+def _dailysocial_cards_html() -> str:
+    return """<!doctype html><html><body>
+        <header><a href="/post/header-leak">Header link</a></header>
+        <article class="type-post">
+            <a href="/post/image-link-leak">Image link outside title</a>
+            <h2 class="entry-title"><a href="/post/relative-fixture">Relative fixture</a></h2>
+        </article>
+        <article class="type-post featured">
+            <h2 class="entry-title">
+                <a href="https://news.dailysocial.id/post/absolute-fixture">Absolute fixture</a>
+            </h2>
+        </article>
+        <article class="type-post">
+            <h2 class="entry-title"><a href="/category/startup">Category</a></h2>
+        </article>
+        <article class="type-post">
+            <h2 class="entry-title">
+                <a href="https://other.example.com/post/offsite">Off-site article</a>
+            </h2>
+        </article>
+        <div class="wp-block-post"><a href="/post/legacy-card">Legacy card</a></div>
+    </body></html>"""
+
+
+class TestDailySocialPrimaryCards:
+    @pytest.mark.parametrize(
+        "parser_name",
+        ("parse_article_links", "parse_latest_article_links"),
+        ids=("search", "latest"),
+    )
+    def test_scopes_primary_entry_title_links_and_preserves_url_validation(
+        self, parser_name,
+    ):
+        scraper = DailySocialScraper("startup", queue_=asyncio.Queue())
+        links = getattr(scraper, parser_name)(_dailysocial_cards_html())
+
+        assert links == {
+            "https://news.dailysocial.id/post/relative-fixture",
+            "https://news.dailysocial.id/post/absolute-fixture",
+        }
+
+    @pytest.mark.parametrize(
+        "parser_name",
+        ("parse_article_links", "parse_latest_article_links"),
+        ids=("search", "latest"),
+    )
+    def test_empty_listing_returns_none(self, parser_name):
+        scraper = DailySocialScraper("startup", queue_=asyncio.Queue())
+        assert getattr(scraper, parser_name)("") is None
+
 
 
 # ── 2. SINDO: latest parser consumes RSS XML from /feed ──────────────────
@@ -1626,10 +1759,11 @@ class TestNewAdapterQueueSchema:
                 '<span class="article-category" itemprop="articleSection">Denpasar</span>'
                 '</div>'
                 '<span itemprop="author">Penulis : I Putu Reporter</span>'
-                '<div class="entry-content" itemprop="articleBody">'
+                '<div class="entry-box" itemprop="articleBody">'
+                '<div class="entry-content">'
                 '<p>NusaBali lead paragraph pulled into the body by the entry-content extractor.</p>'
                 '<p>NusaBali second paragraph retained because it sits inside articleBody.</p>'
-                '</div>'
+                '</div></div>'
                 '</body></html>'
             )
         elif cls is ConversationIDScraper:
@@ -1812,7 +1946,7 @@ class TestNewAdapterStartDateCutoff:
                 '</head><body>'
                 '<span class="month pull-left" itemprop="datePublished">12 Jul 2026 19:37:24</span>'
                 '<span itemprop="author">Penulis : Author</span>'
-                '<div class="entry-content" itemprop="articleBody"><p>x</p></div>'
+                '<div class="entry-box" itemprop="articleBody"><div class="entry-content"><p>x</p></div></div>'
                 '</body></html>'
             )
         elif cls is ConversationIDScraper:
@@ -2467,9 +2601,13 @@ def _nusabali_article_html() -> str:
         <div class="breadcrumb">
             <span class="article-category" itemprop="articleSection">Denpasar</span>
         </div>
-        <div class="entry-content" itemprop="articleBody">
-            <p>NusaBali lead paragraph retained by the entry-content extractor.</p>
-            <p>NusaBali second paragraph retained because it sits inside articleBody.</p>
+        <div class="entry-box" itemprop="articleBody">
+            <p>Outer summary paragraph must not leak into collected content.</p>
+            <div class="entry-content">
+                <p>NusaBali lead paragraph retained by the entry-content extractor.</p>
+                <p>NusaBali second paragraph retained because it sits inside articleBody.</p>
+            </div>
+            <p>Outer recommendation paragraph must not leak into collected content.</p>
         </div>
     </body></html>"""
 
@@ -2552,6 +2690,20 @@ class TestNusaBaliFocus:
         assert item["category"] == "Denpasar"
         assert item["source"] == "nusabali.com"
         assert item["link"] == link
+        assert "NusaBali lead paragraph" in item["content"]
+        assert "NusaBali second paragraph" in item["content"]
+        assert "Outer summary" not in item["content"]
+        assert "Outer recommendation" not in item["content"]
+
+    def test_content_falls_back_to_article_body_root_without_inner_content(self):
+        html = """<!doctype html><html><body>
+            <div class="entry-box" itemprop="articleBody">
+                <p>NusaBali root paragraph retained when entry-content is absent.</p>
+            </div>
+        </body></html>"""
+        assert self._scraper()._extract_content(BeautifulSoup(html, "html.parser")) == (
+            "NusaBali root paragraph retained when entry-content is absent."
+        )
 
     @pytest.mark.asyncio
     async def test_category_falls_back_to_unknown_when_no_breadcrumb(self):
@@ -2561,8 +2713,10 @@ class TestNusaBaliFocus:
         </head><body>
             <span class="month pull-left" itemprop="datePublished">12 Jul 2026 19:37:24</span>
             <span itemprop="author">Some Author</span>
-            <div class="entry-content" itemprop="articleBody">
-                <p>NusaBali body paragraph for the unknown-category fallback test path.</p>
+            <div class="entry-box" itemprop="articleBody">
+                <div class="entry-content">
+                    <p>NusaBali body paragraph for the unknown-category fallback test path.</p>
+                </div>
             </div>
         </body></html>"""
         s = NusaBaliScraper(keywords="bali", queue_=asyncio.Queue())
@@ -2704,12 +2858,47 @@ class TestConversationIDFocus:
         assert item["publish_date"] == datetime(2026, 7, 12, 12, 0, 0)
         assert item["publish_date"].tzinfo is None
 
+class TestKaltimPostFocus:
+    @pytest.mark.asyncio
+    async def test_search_uses_current_endpoint_and_stops_after_page_one(self):
+        scraper = KaltimPostScraper(keywords="nasional", queue_=asyncio.Queue())
+        stub = _attach_fetch(scraper, {"": "<html></html>"})
 
-def _hukumonline_sitemap_xml(urls: list[str]) -> str:
+        await scraper.build_search_url("nasional", 1)
+
+        assert stub.calls[0][0] == "https://borneo24.com/search?q=nasional"
+        assert await scraper.build_search_url("nasional", 2) is None
+
+    def test_search_scopes_primary_cards_while_latest_accepts_pagewide_roots(self):
+        scraper = KaltimPostScraper(keywords="nasional", queue_=asyncio.Queue())
+        html = """<html><body>
+            <div class="post-item"><h3 class="title">
+                <a href="/primary-story">Primary</a>
+                <a href="/category/news">Nested</a>
+                <a href="https://example.com/offsite">Offsite</a>
+            </h3></div>
+            <aside><a href="/sidebar-story">Sidebar</a></aside>
+            <a href="/query-story?ref=home">Query</a>
+            <a href="/category/">Category</a>
+        </body></html>"""
+
+        assert scraper.parse_article_links(html) == {
+            "https://borneo24.com/primary-story"
+        }
+        assert scraper.parse_latest_article_links(html) == {
+            "https://borneo24.com/primary-story",
+            "https://borneo24.com/sidebar-story",
+        }
+
+
+
+def _hukumonline_sitemap_xml(urls: list[str | tuple[str, str]]) -> str:
     body = '<?xml version="1.0" encoding="UTF-8"?>\n'
     body += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-    for u in urls:
-        body += f"  <url><loc>{u}</loc></url>\n"
+    for record in urls:
+        url, lastmod = record if isinstance(record, tuple) else (record, "")
+        lastmod_xml = f"<lastmod>{lastmod}</lastmod>" if lastmod else ""
+        body += f"  <url><loc>{url}</loc>{lastmod_xml}</url>\n"
     body += "</urlset>\n"
     return body
 
@@ -2761,6 +2950,41 @@ class TestHukumonlineFocus:
             "https://www.hukumonline.com/berita/a/canonical-slug",
             "https://www.hukumonline.com/berita/a/multi-segment/slug",
             "https://www.hukumonline.com/berita/a/canonical-slug-with-trailing",
+        ]
+    def test_latest_parser_excludes_photo_aliases_and_selects_newest_ten(self):
+        scraper = HukumonlineScraper(keywords="hukum", queue_=asyncio.Queue())
+        base = "https://www.hukumonline.com/berita"
+        records = [
+            (f"{base}/foto/f/photo-alias", "2026-07-22"),
+            (f"{base}/a/photo-alias", "2026-07-22"),
+            (f"{base}/a/old-section", "2026-05-01"),
+            (f"{base}/a/story-03", "2026-07-20"),
+            (f"{base}/a/story-01", "2026-07-22"),
+            (f"{base}/a/story-02", "2026-07-22"),
+            (f"{base}/a/story-04", "2026-07-19"),
+            (f"{base}/a/story-05", "2026-07-18"),
+            (f"{base}/a/story-06", "2026-07-17"),
+            (f"{base}/a/story-07", "2026-07-16"),
+            (f"{base}/a/story-08", "2026-07-15"),
+            (f"{base}/a/story-09", "2026-07-14"),
+            (f"{base}/a/story-10", "2026-07-13"),
+            (f"{base}/a/story-11", "2026-07-12"),
+            (f"{base}/a/story-01", "2026-07-22"),
+        ]
+
+        links = scraper.parse_latest_article_links(_hukumonline_sitemap_xml(records))
+
+        assert links == [
+            f"{base}/a/story-01",
+            f"{base}/a/story-02",
+            f"{base}/a/story-03",
+            f"{base}/a/story-04",
+            f"{base}/a/story-05",
+            f"{base}/a/story-06",
+            f"{base}/a/story-07",
+            f"{base}/a/story-08",
+            f"{base}/a/story-09",
+            f"{base}/a/story-10",
         ]
 
     def test_latest_parser_rejects_html_doc_html(self):
@@ -3188,3 +3412,120 @@ class TestIndopolitikaFocus:
 
         assert s.queue_.qsize() == 0
         assert s.continue_scraping is False
+
+
+# ── 13. Katadata and VOI: current latest-card URL contracts ───────────────
+
+
+def _katadata_latest_html() -> str:
+    return """<!doctype html><html><body>
+<header><a href="/ekonomi/aabbcc11/outside-card">scoped out</a></header>
+<article class="article--berita">
+  <a href="/ekonomi/makro/686FAB01/current-headline?utm_source=index#summary">relative current</a>
+  <a href="https://katadata.co.id/digital/teknologi/a1b2c3d4/deeper-category-story/">absolute current</a>
+  <a href="https://katadata.co.id/digital/teknologi/a1b2c3d4/deeper-category-story/">duplicate</a>
+  <a href="https://katadata.co.id/indeks/a1b2c3d4/not-an-article">index</a>
+  <a href="https://katadata.co.id/tag/a1b2c3d4/not-an-article">taxonomy</a>
+  <a href="https://katadata.co.id/ekonomi/read/old-article-shape">old shape</a>
+  <a href="https://www.katadata.co.id/ekonomi/aabbcc11/wrong-host">www host</a>
+  <a href="https://example.test/ekonomi/aabbcc11/offsite">offsite</a>
+</article>
+<article><a href="/ekonomi/aabbcc11/wrong-card-class">wrong card</a></article>
+</body></html>"""
+
+
+class TestKatadataLatestDiscovery:
+    BASE = "https://katadata.co.id"
+
+    @pytest.mark.asyncio
+    async def test_page_one_fetches_absolute_index_and_higher_pages_stop(self):
+        scraper = KatadataScraper(keywords="ekonomi")
+        stub = _attach_fetch(scraper, {f"{self.BASE}/indeks": _katadata_latest_html()})
+
+        assert await scraper.build_latest_url(1) == _katadata_latest_html()
+        assert stub.calls == [(f"{self.BASE}/indeks", None, None)]
+
+        assert await scraper.build_latest_url(2) is None
+        assert stub.calls == [(f"{self.BASE}/indeks", None, None)]
+
+    def test_scoped_cards_canonicalize_current_same_host_article_paths(self):
+        scraper = KatadataScraper(keywords="ekonomi")
+
+        assert scraper.parse_latest_article_links(_katadata_latest_html()) == {
+            f"{self.BASE}/ekonomi/makro/686FAB01/current-headline",
+            f"{self.BASE}/digital/teknologi/a1b2c3d4/deeper-category-story",
+        }
+        assert scraper.parse_latest_article_links("") is None
+
+    @pytest.mark.asyncio
+    async def test_search_api_contract_is_preserved(self):
+        scraper = KatadataScraper(keywords="pasar modal")
+        stub = _attach_fetch(scraper, {scraper.api_url: '{"results": []}'})
+
+        assert await scraper.build_search_url("pasar modal", 3) == '{"results": []}'
+        url, method, request = stub.calls[0]
+        assert url == scraper.api_url
+        assert method == "POST"
+        assert json.loads(request["data"]) == {
+            "q": "pasar modal",
+            "source": "katadata",
+            "sort": "newest",
+            "limit": 10,
+            "page": 3,
+        }
+        assert request["headers"] == {
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0",
+        }
+        assert request["timeout"] == 30
+
+
+def _voi_index_html() -> str:
+    return """<!doctype html><html><body>
+<div class="section-item-title">
+  <a href="/en/economy/123456?utm_source=index#summary">relative current</a>
+</div>
+<div class="section-item-title">
+  <a href="https://voi.id/en/technology/987654/">absolute current</a>
+  <a href="https://voi.id/en/technology/987654/">duplicate</a>
+  <a href="https://voi.id/en/index/22">index</a>
+  <a href="https://voi.id/en/search/33">search</a>
+  <a href="https://voi.id/en/artikel/44">listing namespace</a>
+  <a href="https://voi.id/en/economy/not-numeric">non-numeric id</a>
+  <a href="https://www.voi.id/en/economy/55">www host</a>
+  <a href="https://example.test/en/economy/66">offsite</a>
+</div>
+<a href="/en/economy/777777">right path outside live selector</a>
+</body></html>"""
+
+
+class TestVOIDiscovery:
+    BASE = "https://voi.id"
+
+    @pytest.mark.asyncio
+    async def test_latest_keeps_index_endpoint(self):
+        scraper = VOIScraper(keywords="ekonomi")
+        stub = _attach_fetch(scraper, {"/en/artikel/indeks": _voi_index_html()})
+
+        assert await scraper.build_latest_url(1) == _voi_index_html()
+        assert stub.calls[0][0] == f"{self.BASE}/en/artikel/indeks"
+
+    def test_live_title_selector_keeps_only_current_same_host_article_paths(self):
+        scraper = VOIScraper(keywords="ekonomi")
+        expected = {
+            f"{self.BASE}/en/economy/123456",
+            f"{self.BASE}/en/technology/987654",
+        }
+
+        assert scraper.parse_latest_article_links(_voi_index_html()) == expected
+        assert scraper.parse_article_links(_voi_index_html()) == expected
+        assert scraper.parse_latest_article_links("") is None
+
+    @pytest.mark.asyncio
+    async def test_search_url_contract_and_zero_result_marker_are_preserved(self):
+        scraper = VOIScraper(keywords="pasar modal")
+        stub = _attach_fetch(scraper, {"/en/artikel/cari": _voi_index_html()})
+
+        assert await scraper.build_search_url("pasar modal", 2) == _voi_index_html()
+        assert stub.calls[0][0] == f"{self.BASE}/en/artikel/cari?q=pasar+modal&page=2"
+        assert scraper.parse_article_links("<p>Found 0 articles</p>") is None
