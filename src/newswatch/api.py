@@ -252,9 +252,11 @@ async def _async_scrape_to_list(
                 queue_=queue,
                 **scraper_params,
             )
-            # Apply max_pages limit for latest mode
             if max_pages is not None:
-                scraper_instance.max_latest_pages = max_pages
+                if method == "search":
+                    scraper_instance.max_pages = max_pages
+                else:
+                    scraper_instance.max_latest_pages = max_pages
             # Wire dedup and time window to scraper for pre-fetch filtering
             if dedup_links is not None:
                 scraper_instance.dedup_links = dedup_links
@@ -422,7 +424,7 @@ def scrape(
         timeout (int): Maximum time in seconds for scraping operation
         method (str): Retrieval method - "search" or "latest"
         limit (int | None): Maximum number of articles to collect (latest mode)
-        max_pages (int | None): Maximum pages to fetch per scraper (latest mode)
+        max_pages (int | None): Maximum pages to fetch per scraper
         time_range (str | None): Filter articles by date window. Format: YYYY-MM-DD/YYYY-MM-DD, inclusive of both full calendar days (start 00:00:00, end 23:59:59.999999).
         dedup_file (str | None): Path to previous output file for deduplication.
         proxy (str | None): Proxy URL for all requests (e.g. 'http://user:pass@proxy.example.com:8080', 'socks5://proxy.example.com:1080'). Sets NEWSWATCH_PROXY.
@@ -500,7 +502,7 @@ def scrape_to_dataframe(
         timeout (int): Maximum time in seconds for scraping operation
         method (str): Retrieval method - "search" or "latest"
         limit (int | None): Maximum number of articles to collect (latest mode)
-        max_pages (int | None): Maximum pages to fetch per scraper (latest mode)
+        max_pages (int | None): Maximum pages to fetch per scraper
         scraper_timeout (int | None): Per-scraper timeout in seconds
         time_range (str | None): Filter articles by date window. Format: YYYY-MM-DD/YYYY-MM-DD, inclusive of both full calendar days (start 00:00:00, end 23:59:59.999999).
         dedup_file (str | None): Path to previous output file for deduplication.
@@ -581,7 +583,7 @@ def scrape_to_file(
         timeout (int): Maximum time in seconds for scraping operation
         method (str): Retrieval method - "search" or "latest"
         limit (int | None): Maximum number of articles to collect (latest mode)
-        max_pages (int | None): Maximum pages to fetch per scraper (latest mode)
+        max_pages (int | None): Maximum pages to fetch per scraper
         scraper_timeout (int | None): Per-scraper timeout in seconds
         time_range (str | None): Filter articles by date window. Format: YYYY-MM-DD/YYYY-MM-DD, inclusive of both full calendar days (start 00:00:00, end 23:59:59.999999).
         dedup_file (str | None): Path to previous output file for deduplication.

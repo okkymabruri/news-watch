@@ -2085,12 +2085,16 @@ class TestIDXChannelScraper:
 
 def _alinea_search_html(*, url_substring: str = "") -> str:
     return """<!doctype html><html><body>
-        <a href="/politik/foo-bar-b123">in-section</a>
-        <a href="/gaya-hidup/baz-qux-b456">in-section-gaya-hidup</a>
-        <a href="/search?q=foo">search page itself</a>
-        <a href="/lain/foo">unknown section</a>
-        <a href="https://example.com/politik/baz">off-site</a>
-        <a>no href</a>
+        <div class="hasilcari">
+            <div class="box1"><a href="/politik/foo-bar-b123">in-section</a></div>
+            <div class="box1"><a href="/gaya-hidup/baz-qux-b456">in-section-gaya-hidup</a></div>
+            <div class="box1"><a href="/search?q=foo">search page itself</a></div>
+            <div class="box1"><a href="/lain/foo">unknown section</a></div>
+            <div class="box1"><a href="https://example.com/politik/baz">off-site</a></div>
+        </div>
+        <div class="section-popular">
+            <div class="box1"><a href="/politik/sidebar-b999">sidebar</a></div>
+        </div>
     </body></html>"""
 
 
