@@ -1,9 +1,20 @@
 import json
 import logging
+import re
+from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
 
 from .basescraper import BaseScraper
+
+
+_LATEST_URL = "https://katadata.co.id/indeks"
+_ARTICLE_ID_RE = re.compile(r"[0-9a-fA-F]+")
+_ARTICLE_SLUG_RE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
+_NON_ARTICLE_PATHS = frozenset({
+    "author", "category", "indeks", "kategori", "pencarian", "search",
+    "tag", "tags", "topic", "topik",
+})
 
 
 class KatadataScraper(BaseScraper):
@@ -134,19 +145,39 @@ class KatadataScraper(BaseScraper):
             logging.error(f"Error parsing article {link}: {e}")
 
     async def build_latest_url(self, page):
-        # Katadata search API rejects empty queries — use HTML page instead
+        # Page 2+ uses a POST cursor, which latest mode does not support yet.
         if page > 1:
-            return await self.fetch(f"{self.base_url}/berita/indeks?page={page}")
-        return await self.fetch(f"{self.base_url}/berita/indeks")
+            return None
+        return await self.fetch(_LATEST_URL)
 
     def parse_latest_article_links(self, response_text):
         if not response_text:
             return None
         soup = BeautifulSoup(response_text, "html.parser")
-        links = set()
-        for a in soup.select("a[href]"):
-            href = a.get("href", "")
-            if "/berita/" in href and "/read/" in href:
-                full_url = href if href.startswith("http") else f"https://www.{self.base_url}{href}"
-                links.add(full_url)
+        links = {
+            link
+            for anchor in soup.select("article.article--berita a[href]")
+            if (link := self._canonical_article_url(anchor.get("href", "")))
+        }
         return links or None
+
+    @staticmethod
+    def _canonical_article_url(href):
+        if not isinstance(href, str) or not href.strip():
+            return None
+        parsed = urlparse(urljoin(f"{_LATEST_URL}/", href.strip()))
+        if (
+            parsed.scheme not in {"http", "https"}
+            or parsed.netloc.lower() != "katadata.co.id"
+            or parsed.params
+        ):
+            return None
+        parts = [part for part in parsed.path.split("/") if part]
+        if (
+            len(parts) < 2
+            or any(part.lower() in _NON_ARTICLE_PATHS for part in parts[:-2])
+            or not _ARTICLE_ID_RE.fullmatch(parts[-2])
+            or not _ARTICLE_SLUG_RE.fullmatch(parts[-1])
+        ):
+            return None
+        return f"https://katadata.co.id/{'/'.join(parts)}"

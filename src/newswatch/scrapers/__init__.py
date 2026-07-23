@@ -42,6 +42,7 @@ from .metrotvnews import MetrotvnewsScraper as MetrotvnewsScraper
 from .niagaasia import NiagaAsiaScraper as NiagaAsiaScraper
 from .mojok import MojokScraper as MojokScraper
 from .mongabay import MongabayScraper as MongabayScraper
+from .ntvnews import NTVNewsScraper as NTVNewsScraper
 from .okezone import OkezoneScraper as OkezoneScraper
 from .pantau import PantauScraper as PantauScraper
 from .pikiranrakyat import PikiranRakyatScraper as PikiranRakyatScraper
@@ -111,6 +112,7 @@ __all__ = [
     "NiagaAsiaScraper",
     "MojokScraper",
     "MongabayScraper",
+    "NTVNewsScraper",
     "OkezoneScraper",
     "PantauScraper",
     "PikiranRakyatScraper",

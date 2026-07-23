@@ -507,9 +507,11 @@ async def main(args):
             scraper_instance = scraper_class(
                 keywords, start_date=start_date, queue_=queue_, **scraper_params
             )
-            # Apply max_pages limit for latest mode
             if max_pages is not None:
-                scraper_instance.max_latest_pages = max_pages
+                if method == "search":
+                    scraper_instance.max_pages = max_pages
+                else:
+                    scraper_instance.max_latest_pages = max_pages
             scrapers.append(scraper_instance)
         else:
             logging.warning(f"scraper '{scraper_name}' is not recognized.")

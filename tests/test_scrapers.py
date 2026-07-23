@@ -210,8 +210,8 @@ async def test_scraper_fetch_latest(slug: str, scraper_class: type) -> None:
         keywords=SCRAPERS[slug].smoke_keyword,
         queue_=queue,
     )
-    if hasattr(scraper, "max_pages"):
-        scraper.max_pages = 2
+    if hasattr(scraper, "max_latest_pages"):
+        scraper.max_latest_pages = 2
 
     consumer_task = asyncio.create_task(item_consumer(queue))
 

@@ -1,14 +1,14 @@
 """
 Kaltim Post (Borneo24) scraper — uses WordPress search with HTML parsing.
 
-https://borneo24.com/?s={keyword}
+https://borneo24.com/search?q={keyword}
 Article pattern: /{slug}
 """
 
 import json
 import logging
 import re
-from urllib.parse import urlencode, urljoin
+from urllib.parse import urlencode, urljoin, urlparse
 
 from bs4 import BeautifulSoup
 
@@ -22,39 +22,50 @@ class KaltimPostScraper(BaseScraper):
         self.start_date = start_date
         self.continue_scraping = True
         self.max_pages = 10
-        # Article URLs are like /{category}/{slug}
+        # Current canonical article URLs are root-level /{slug} paths.
         self._skip_paths = [
             "/profile/", "/page/", "/category/", "/tag/", "/author/",
         ]
 
     async def build_search_url(self, keyword, page):
-        params = {"s": keyword}
-        if page > 1:
-            params["paged"] = page
-        url = f"{self.base_url}/?{urlencode(params)}"
+        if page != 1:
+            return None
+        url = f"{self.base_url}/search?{urlencode({'q': keyword})}"
         return await self.fetch(url)
 
     def parse_article_links(self, response_text):
+        return self._collect_article_links(
+            response_text, ".post-item h3.title a[href]"
+        )
+
+    def _collect_article_links(self, response_text, selector):
         if not response_text:
             return None
         soup = BeautifulSoup(response_text, "html.parser")
 
-        # Find all links that look like articles (contain dates or category patterns)
         links = set()
-        for a in soup.select("a[href]"):
-            href = a["href"]
-            full_url = urljoin(self.base_url, href) if not href.startswith("http") else href
-            # Must be on borneo24.com and not a navigation/admin link
-            if full_url.startswith(self.base_url):
-                path = full_url.replace(self.base_url, "").strip("/")
-                # Skip non-article paths
-                if any(skip in full_url for skip in self._skip_paths):
-                    continue
-                # Must have a meaningful path (not just domain)
-                if path and "/" in path:
-                    text = a.get_text(strip=True)
-                    if text:  # Has visible text = likely an article link
-                        links.add(full_url)
+        for anchor in soup.select(selector):
+            href = anchor.get("href", "")
+            if not href or not anchor.get_text(strip=True):
+                continue
+
+            full_url = urljoin(f"{self.base_url}/", href)
+            parsed = urlparse(full_url)
+            parts = [part for part in parsed.path.split("/") if part]
+            if (
+                parsed.scheme not in {"http", "https"}
+                or parsed.hostname != "borneo24.com"
+                or parsed.params
+                or parsed.query
+                or parsed.fragment
+                or len(parts) != 1
+                or any(
+                    parts[0].lower() == skip.strip("/").lower()
+                    for skip in self._skip_paths
+                )
+            ):
+                continue
+            links.add(full_url)
         return links or None
 
     async def get_article(self, link, keyword):
@@ -179,19 +190,4 @@ class KaltimPostScraper(BaseScraper):
         return await self.fetch(f"{self.base_url}/page/{page}/")
 
     def parse_latest_article_links(self, response_text):
-        if not response_text:
-            return None
-        soup = BeautifulSoup(response_text, "html.parser")
-        links = set()
-        for a in soup.select("a[href]"):
-            href = a["href"]
-            full_url = urljoin(self.base_url, href) if not href.startswith("http") else href
-            if full_url.startswith(self.base_url):
-                if any(skip in full_url for skip in self._skip_paths):
-                    continue
-                path = full_url.replace(self.base_url, "").strip("/")
-                if path and "/" in path:
-                    text = a.get_text(strip=True)
-                    if text:
-                        links.add(full_url)
-        return links or None
+        return self._collect_article_links(response_text, "a[href]")

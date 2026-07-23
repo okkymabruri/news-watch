@@ -81,6 +81,7 @@ SOURCE_URLS: Dict[str, str] = {
     "mojok": "https://mojok.co",
     "mongabay": "https://mongabay.co.id",
     "nusabali": "https://www.nusabali.com",
+    "ntvnews": "https://www.ntvnews.id",
     "okezone": "https://okezone.com",
     "pantau": "https://www.pantau.com",
     "pikiranrakyat": "https://pikiran-rakyat.com",
