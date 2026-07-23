@@ -7,11 +7,17 @@ https://voi.id/en/artikel/cari?q={keyword}
 import json
 import logging
 import re
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urljoin, urlparse
 
 from bs4 import BeautifulSoup
 
 from .basescraper import BaseScraper
+
+
+_ARTICLE_CATEGORY_RE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
+_NON_ARTICLE_CATEGORIES = frozenset({
+    "artikel", "cari", "index", "indeks", "search",
+})
 
 
 class VOIScraper(BaseScraper):
@@ -37,12 +43,7 @@ class VOIScraper(BaseScraper):
         if no_result:
             return None
 
-        links = set()
-        for title_elem in soup.select(".section-item-title a"):
-            href = title_elem.get("href", "")
-            if href:
-                links.add(href)
-        return links or None
+        return self._collect_article_links(soup)
 
     async def get_article(self, link, keyword):
         response_text = await self.fetch(link)
@@ -171,11 +172,33 @@ class VOIScraper(BaseScraper):
     def parse_latest_article_links(self, response_text):
         if not response_text:
             return None
-        soup = BeautifulSoup(response_text, "html.parser")
-        links = set()
-        for title_elem in soup.select(".section-item-title a"):
-            href = title_elem.get("href", "")
-            if href and "/en/artikel/" in href and "/cari" not in href and "/indeks" not in href:
-                # Filter to article pages only, exclude search/index listing pages
-                links.add(href)
+        return self._collect_article_links(BeautifulSoup(response_text, "html.parser"))
+
+    def _collect_article_links(self, soup):
+        links = {
+            link
+            for anchor in soup.select(".section-item-title a[href]")
+            if (link := self._canonical_article_url(anchor.get("href", "")))
+        }
         return links or None
+
+    def _canonical_article_url(self, href):
+        if not isinstance(href, str) or not href.strip():
+            return None
+        parsed = urlparse(urljoin(f"{self.base_url}/", href.strip()))
+        if (
+            parsed.scheme not in {"http", "https"}
+            or parsed.netloc.lower() != "voi.id"
+            or parsed.params
+        ):
+            return None
+        parts = [part for part in parsed.path.split("/") if part]
+        if (
+            len(parts) != 3
+            or parts[0] != "en"
+            or parts[1] in _NON_ARTICLE_CATEGORIES
+            or not _ARTICLE_CATEGORY_RE.fullmatch(parts[1])
+            or not parts[2].isdigit()
+        ):
+            return None
+        return f"{self.base_url}/{'/'.join(parts)}"

@@ -47,14 +47,17 @@ class AlineaScraper(BaseScraper):
             return None
         soup = BeautifulSoup(response_text, "html.parser")
         links = set()
-        for a in soup.find_all("a", href=True):
-            href = a["href"]
-            if href.startswith("/"):
-                href = f"{self.BASE_URL}{href}"
-            if not href.startswith("http"):
+        for card in soup.select(".hasilcari .box1"):
+            if card.find_parent(class_="section-popular"):
                 continue
-            if self.ARTICLE_RE.match(href):
-                links.add(href)
+            for a in card.select("a[href]"):
+                href = a["href"]
+                if href.startswith("/"):
+                    href = f"{self.BASE_URL}{href}"
+                if not href.startswith("http"):
+                    continue
+                if self.ARTICLE_RE.match(href):
+                    links.add(href)
         if not links:
             self.continue_scraping = False
         return links or None

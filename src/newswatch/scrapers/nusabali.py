@@ -15,8 +15,8 @@ https://www.nusabali.com/berita/225365/pria-mabuk-di-desa-keramas-diamankan-poli
             (preceded by "Penulis : ")
 - category: .breadcrumb span.article-category[itemprop="articleSection"];
             falls back to "Unknown"
-- body:     <p> children of div.entry-content[itemprop="articleBody"];
-            strips related/nav/share/sidebar/terkait blocks before extraction.
+- body:     .entry-box[itemprop="articleBody"], scoped to its inner
+            .entry-content when present; strips related/nav/share/sidebar blocks.
 """
 
 import logging
@@ -177,11 +177,12 @@ class NusaBaliScraper(BaseScraper):
 
     @staticmethod
     def _extract_content(soup):
-        body = soup.select_one("div.entry-content[itemprop='articleBody']")
+        body = soup.select_one(".entry-box[itemprop='articleBody']")
         if not body:
             return ""
+        content = body.select_one(".entry-content") or body
         # Strip nav/share/sidebar blocks before collecting paragraphs.
-        for tag in body.find_all(
+        for tag in content.find_all(
             [
                 "aside",
                 "nav",
@@ -193,11 +194,11 @@ class NusaBaliScraper(BaseScraper):
             ]
         ):
             tag.decompose()
-        for tag in body.find_all(True, {"class": _NAV_CLASS_RE}):
+        for tag in content.find_all(True, {"class": _NAV_CLASS_RE}):
             tag.decompose()
 
         paragraphs = []
-        for p in body.find_all("p"):
+        for p in content.find_all("p"):
             text = p.get_text(" ", strip=True)
             if text:
                 paragraphs.append(text)

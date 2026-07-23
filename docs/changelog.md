@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - NTVNews.id (`ntvnews`) with bounded Google News sitemap search and latest discovery
 
+### Changed
+- Applied `--max-pages` to both search and latest retrieval, with independent per-mode scraper bounds.
+
+### Fixed
+- Scoped Alinea search discovery to primary result cards and bounded repeated search pagination.
+- Updated Grid, Kaltim Post, Hukumonline, NusaBali, Kumparan, DailySocial, Katadata, and VOI extraction or discovery contracts to match current publisher pages.
+
 ## [1.2.2] - 2026-07-19
 
 ### Added

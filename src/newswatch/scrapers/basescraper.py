@@ -16,6 +16,7 @@ class BaseScraper(AsyncScraper, ABC):
         dedup_links=None,
         start_datetime=None,
         end_datetime=None,
+        max_pages=None,
     ):
         super().__init__(concurrency)
         self.keywords = (
@@ -26,6 +27,7 @@ class BaseScraper(AsyncScraper, ABC):
         self.queue_ = queue_
         self.continue_scraping = True
         self.max_latest_pages = max_latest_pages if max_latest_pages is not None else 1
+        self.max_pages = max_pages
         self.dedup_links = dedup_links or set()
         self.start_datetime = start_datetime
         self.end_datetime = end_datetime
@@ -59,7 +61,10 @@ class BaseScraper(AsyncScraper, ABC):
         page = 1
         found_articles = False
 
-        while self.continue_scraping:
+        while (
+            self.continue_scraping
+            and (self.max_pages is None or page <= self.max_pages)
+        ):
             response_text = await self.build_search_url(keyword, page)
             if not response_text:
                 break

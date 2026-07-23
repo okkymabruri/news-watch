@@ -84,7 +84,7 @@ def cli():
         "--max-pages",
         type=int,
         default=None,
-        help="Maximum number of pages to fetch per scraper in latest mode.",
+        help="Maximum number of pages to fetch per scraper.",
     )
     parser.add_argument(
         "--scraper-timeout",
