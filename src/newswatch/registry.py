@@ -453,6 +453,18 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         supports_latest=True,
     ),
     ScraperEntry(
+        "ntvnews",
+        "NTVNews.id",
+        "ntvnews", "NTVNewsScraper",
+        status="stable",
+        strict_search=True,
+        concurrency=5,
+        smoke_keyword="indonesia",
+        supports_search=True,
+        supports_latest=True,
+        note="single Google News sitemap search (title-only); latest unfiltered; Dewan Pers verified 2024-11-25",
+    ),
+    ScraperEntry(
         "sindonews",
         "SINDOnews",
         "sindonews", "SindonewsScraper",

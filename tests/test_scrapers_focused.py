@@ -77,7 +77,7 @@ from newswatch.scrapers.wartaekonomi import WartaEkonomiScraper
 from newswatch.scrapers.idxchannel import IDXChannelScraper
 from newswatch.scrapers.infobanknews import InfobanknewsScraper
 from newswatch.scrapers.indopolitika import IndopolitikaScraper
-
+from newswatch.scrapers.ntvnews import NTVNewsScraper
 
 # ── Shared offline test scaffolding ────────────────────────────────────────
 
@@ -3184,3 +3184,384 @@ class TestIndopolitikaFocus:
 
         assert s.queue_.qsize() == 0
         assert s.continue_scraping is False
+
+
+
+# ── 13. NTVNews: news-sitemap discovery, title-only keyword gate, extraction ─
+
+
+_NTV_NS_SM = "http://www.sitemaps.org/schemas/sitemap/0.9"
+_NTV_NS_NEWS = "http://www.google.com/schemas/sitemap-news/0.9"
+_NTV_SITEMAP_URL = "https://www.ntvnews.id/sitemap-news.xml"
+
+
+def _ntv_news_sitemap_xml(entries: list[tuple[str, str]]) -> str:
+    """Render a Google-news sitemap. Each tuple is (loc, news:title)."""
+    body = "".join(
+        f"<url><loc>{loc}</loc>"
+        f"<news:news><news:title><![CDATA[{title}]]></news:title>"
+        f"</news:news></url>"
+        for loc, title in entries
+    )
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        f'<urlset xmlns="{_NTV_NS_SM}" xmlns:news="{_NTV_NS_NEWS}">'
+        f"{body}</urlset>"
+    )
+
+
+def _ntv_article_html(
+    *,
+    title: str = "NTV test headline",
+    writer: str = "NTV Writer",
+    editor: str = "NTV Editor",
+    date_iso: str = "2026-07-12T10:00:00+07:00",
+    section: str = "Nasional",
+    breadcrumb_label: str = "Nasional",
+    paragraphs: tuple[str, ...] = (
+        "NTV lead paragraph included by the article-descendant extractor.",
+        "NTV second paragraph continuing the joined article body.",
+    ),
+    extra_blocks: str = "",
+) -> str:
+    ld_payload = json.dumps({
+        "@context": "https://schema.org",
+        "@type": "NewsArticle",
+        "datePublished": date_iso,
+        "articleSection": section,
+        "author": {"@type": "Person", "name": writer or editor},
+    })
+    paras = "".join(f"<p>{p}</p>" for p in paragraphs)
+    return (
+        '<!doctype html><html><head>'
+        f'<script type="application/ld+json">{ld_payload}</script>'
+        '</head><body>'
+        '<nav class="breadcrumb">'
+        f'<a href="/">Home</a> <a href="/news">{breadcrumb_label}</a>'
+        '</nav>'
+        '<article>'
+        f'<h1 class="title">{title}</h1>'
+        '<div class="penulis">'
+        f'<span class="nama">{writer}</span><span class="detail">Penulis</span>'
+        '</div>'
+        '<div class="penulis">'
+        f'<span class="nama">{editor}</span><span class="detail">Editor</span>'
+        '</div>'
+        '<div class="article-content">'
+        f'{paras}'
+        f'{extra_blocks}'
+        '</div>'
+        '</article>'
+        '</body></html>'
+    )
+
+
+class TestNTVNewsSearchOnePageAndKeywordGate:
+    """NTV search-mode parser:
+    - hits ``/sitemap-news.xml`` once on page 1, short-circuits on later pages
+    - canonicalizes /<category>/<8-digit-id>/<slug> on same host only,
+      dropping query/fragment/nested/taxonomy and dedupes
+    - filters every keyword token against ``<news:title>`` ONLY (URL or
+      metadata alone MUST NOT satisfy the gate).
+    """
+
+    BASE = "https://www.ntvnews.id"
+    KEYWORDS = "makan bergizi"
+
+    def _xml(self, entries: list[tuple[str, str]]) -> str:
+        return _ntv_news_sitemap_xml(entries)
+
+    @pytest.mark.asyncio
+    async def test_search_fetches_sitemap_once_and_short_circuits_later_pages(self):
+        s = NTVNewsScraper(keywords=self.KEYWORDS, queue_=asyncio.Queue())
+        stub = _attach_fetch(s, {_NTV_SITEMAP_URL: "<xml/>"})
+
+        result = await s.build_search_url(self.KEYWORDS, 1)
+        assert isinstance(result, list) or isinstance(result, str)
+        assert stub.calls and stub.calls[-1][0] == _NTV_SITEMAP_URL
+
+        # Page 2 / 0 must NOT fetch again.
+        calls_after_page1 = len(stub.calls)
+        assert await s.build_search_url(self.KEYWORDS, 2) is None
+        assert await s.build_search_url(self.KEYWORDS, 0) is None
+        assert len(stub.calls) == calls_after_page1
+
+    def test_search_parser_dedupes_and_rejects_off_pattern_urls(self):
+        s = NTVNewsScraper(keywords=self.KEYWORDS, queue_=asyncio.Queue())
+        xml = self._xml([
+            ("https://ntvnews.id/nasional/12345678/makan-bergizi-untuk-anak",
+             "Makan Bergizi title"),
+            # Duplicate of canonical → must be deduped.
+            ("https://www.ntvnews.id/nasional/12345678/makan-bergizi-untuk-anak/",
+             "Makan Bergizi title duplicate"),
+            # Off-host → reject.
+            ("https://other.example.com/nasional/12345678/abc/", "other host"),
+            # Wrong id length → reject (not 8 digits).
+            ("https://www.ntvnews.id/nasional/1234567/abc/", "seven digit"),
+            # Non-digit id → reject.
+            ("https://www.ntvnews.id/nasional/abcdefgh/abc/", "non-digit id"),
+            # No slug after id → reject.
+            ("https://www.ntvnews.id/nasional/12345678/", "no slug"),
+            # Nested slug (extra segment) → reject.
+            ("https://www.ntvnews.id/nasional/12345678/foo/bar/", "nested"),
+            # Taxonomy surfaces → reject.
+            ("https://www.ntvnews.id/tag/12345678/foo/", "tag surface"),
+            ("https://www.ntvnews.id/author/12345678/foo/", "author surface"),
+            ("https://www.ntvnews.id/category/nasional/12345678/foo/", "category surface"),
+            # Query string → reject.
+            ("https://www.ntvnews.id/nasional/12345678/foo/?utm=zz", "with query"),
+            # Fragment → reject.
+            ("https://www.ntvnews.id/nasional/12345678/foo/#section", "with fragment"),
+        ])
+        s._current_keyword = self.KEYWORDS
+        links = s.parse_article_links(xml)
+        assert links == [
+            "https://www.ntvnews.id/nasional/12345678/makan-bergizi-untuk-anak",
+        ]
+
+    def test_search_filter_requires_title_match_url_alone_is_not_enough(self):
+        """The URL contains every token but the title contains none → reject.
+        Pin: keyword tokens are checked against ``<news:title>`` only."""
+        s = NTVNewsScraper(keywords=self.KEYWORDS, queue_=asyncio.Queue())
+        xml = self._xml([
+            ("https://www.ntvnews.id/nasional/12345678/makan-bergizi-untuk-anak/",
+             "Unrelated headline about something else entirely"),
+        ])
+        s._current_keyword = self.KEYWORDS
+        assert s.parse_article_links(xml) is None
+
+    def test_search_filter_requires_every_token_partial_title_match_is_rejected(self):
+        """Title contains one of the two tokens but not the other → reject."""
+        s = NTVNewsScraper(keywords=self.KEYWORDS, queue_=asyncio.Queue())
+        xml = self._xml([
+            ("https://www.ntvnews.id/nasional/12345678/cerita-makan/",
+             "Cerita Makan di Pasar Tradisional"),
+        ])
+        s._current_keyword = self.KEYWORDS
+        assert s.parse_article_links(xml) is None
+
+    def test_search_filter_keeps_full_token_match_against_title(self):
+        s = NTVNewsScraper(keywords=self.KEYWORDS, queue_=asyncio.Queue())
+        xml = self._xml([
+            ("https://www.ntvnews.id/nasional/12345678/program-makan-bergizi/",
+             "Program Makan Bergizi Gratis Resmi Diluncurkan"),
+        ])
+        s._current_keyword = self.KEYWORDS
+        links = s.parse_article_links(xml)
+        assert links == [
+            "https://www.ntvnews.id/nasional/12345678/program-makan-bergizi",
+        ]
+
+
+class TestNTVNewsLatestUnfiltered:
+    """NTV latest-mode parser returns every canonical entry from
+    ``/sitemap-news.xml`` without applying the title-only keyword gate.
+    Off-pattern URLs are still rejected and dedupe still applies.
+    """
+
+    BASE = "https://www.ntvnews.id"
+
+    def test_latest_returns_canonical_entries_without_keyword_filter(self):
+        s = NTVNewsScraper(keywords="makan bergizi", queue_=asyncio.Queue())
+        xml = _ntv_news_sitemap_xml([
+            ("https://www.ntvnews.id/nasional/12345678/program-makan-bergizi/",
+             "Makan Bergizi title"),
+            ("https://www.ntvnews.id/internasional/87654321/ekonomi-asia/",
+             "Ekonomi Asia"),
+            ("https://www.ntvnews.id/olahraga/11223344/liga-champions/",
+             "Liga Champions"),
+        ])
+        links = s.parse_latest_article_links(xml)
+        assert links == [
+            "https://www.ntvnews.id/nasional/12345678/program-makan-bergizi",
+            "https://www.ntvnews.id/internasional/87654321/ekonomi-asia",
+            "https://www.ntvnews.id/olahraga/11223344/liga-champions",
+        ]
+
+    def test_latest_dedupes_and_rejects_off_pattern_entries(self):
+        s = NTVNewsScraper(keywords="makan bergizi", queue_=asyncio.Queue())
+        xml = _ntv_news_sitemap_xml([
+            ("https://www.ntvnews.id/nasional/12345678/program-makan-bergizi/",
+             "title A"),
+            ("https://www.ntvnews.id/nasional/12345678/program-makan-bergizi/",
+             "title B duplicate"),
+            ("https://other.example.com/nasional/12345678/abc/", "off host"),
+            ("https://www.ntvnews.id/tag/12345678/foo/", "tag surface"),
+            ("https://www.ntvnews.id/nasional/12345/abc/", "short id"),
+        ])
+        links = s.parse_latest_article_links(xml)
+        assert links == [
+            "https://www.ntvnews.id/nasional/12345678/program-makan-bergizi",
+        ]
+
+    def test_latest_parser_rejects_non_xml(self):
+        s = NTVNewsScraper(keywords="makan bergizi", queue_=asyncio.Queue())
+        cloudflare = (
+            "<!doctype html><html><head><title>Just a moment...</title>"
+            "</head><body>Please enable JavaScript to continue.</body></html>"
+        )
+        assert s.parse_latest_article_links(cloudflare) is None
+
+    def test_latest_parser_rejects_malformed_xml(self):
+        s = NTVNewsScraper(keywords="makan bergizi", queue_=asyncio.Queue())
+        assert s.parse_latest_article_links(
+            "<?xml version='1.0'?><urlset><url><loc>oops</loc></url"
+        ) is None
+
+    @pytest.mark.asyncio
+    async def test_latest_fetches_sitemap_once_for_page_one(self):
+        s = NTVNewsScraper(keywords="makan bergizi", queue_=asyncio.Queue())
+        stub = _attach_fetch(s, {_NTV_SITEMAP_URL: "<xml/>"})
+        await s.build_latest_url(1)
+        assert stub.calls and stub.calls[-1][0] == _NTV_SITEMAP_URL
+        # Page != 1 stops without further fetch.
+        before = len(stub.calls)
+        assert await s.build_latest_url(2) is None
+        assert len(stub.calls) == before
+
+
+class TestNTVNewsArticleExtraction:
+    """NTV article extraction contract:
+    - ``h1.title`` is the title
+    - JSON-LD ``datePublished`` drives publish_date; timezone is stripped
+    - breadcrumb leaf (last non-Home anchor) drives category; JSON-LD may
+      also feed category
+    - ``.article-content`` is the body container
+    - writer preferred over editor from visible role-labelled bylines
+    - missing critical data (title / date / content) drops the article
+    - queue item has exactly the eight standard keys in the documented order
+    """
+
+    BASE = "https://www.ntvnews.id"
+    SOURCE = "ntvnews.id"
+    LINK = f"{BASE}/nasional/12345678/program-makan-bergizi"
+    KEYWORD = "makan bergizi"
+
+    @pytest.mark.asyncio
+    async def test_full_schema_writer_wins_over_editor(self):
+        s = NTVNewsScraper(keywords=self.KEYWORD, queue_=asyncio.Queue())
+        _attach_fetch(s, {self.LINK: _ntv_article_html()})
+        await s.get_article(self.LINK, self.KEYWORD)
+
+        assert s.queue_.qsize() == 1
+        item = await s.queue_.get()
+        assert list(item.keys()) == list(_QUEUE_KEYS)
+        assert item["title"] == "NTV test headline"
+        assert item["author"] == "NTV Writer"  # writer beats editor
+        assert item["category"] == "Nasional"  # breadcrumb leaf (or JSON-LD fallback)
+        assert item["source"] == self.SOURCE
+        assert item["keyword"] == self.KEYWORD
+        assert item["link"] == self.LINK
+        # JSON-LD ``datePublished`` → naive datetime (tz stripped).
+        assert item["publish_date"] == datetime(2026, 7, 12, 10, 0, 0)
+        assert item["publish_date"].tzinfo is None
+        # Real paragraphs preserved.
+        assert "NTV lead paragraph" in item["content"]
+        assert "NTV second paragraph" in item["content"]
+
+    @pytest.mark.asyncio
+    async def test_only_editor_present_falls_back_to_editor(self):
+        """With no writer, the editor supplies the visible byline."""
+        html = _ntv_article_html(writer="", editor="NTV Editor")
+        s = NTVNewsScraper(keywords=self.KEYWORD, queue_=asyncio.Queue())
+        _attach_fetch(s, {self.LINK: html})
+        await s.get_article(self.LINK, self.KEYWORD)
+        item = s.queue_.get_nowait()
+        assert item["author"] == "NTV Editor"
+
+    @pytest.mark.asyncio
+    async def test_breadcrumb_leaf_drives_category(self):
+        """No JSON-LD section → last non-Home breadcrumb anchor."""
+        # Author is stripped from JSON-LD so the writer/editor HTML fallback
+        # path still produces a name (writer preferred).
+        html = _ntv_article_html(
+            section="",
+            breadcrumb_label="Ekonomi",
+        )
+        s = NTVNewsScraper(keywords=self.KEYWORD, queue_=asyncio.Queue())
+        _attach_fetch(s, {self.LINK: html})
+        await s.get_article(self.LINK, self.KEYWORD)
+        item = s.queue_.get_nowait()
+        assert item["category"] == "Ekonomi"
+
+    @pytest.mark.asyncio
+    async def test_content_cleanup_strips_non_article_blocks(self):
+        """Noise blocks (``<script>``, ``<aside class="baca-juga-box">``,
+        ``<aside class="sidebar">``) MUST be stripped from content."""
+        html = _ntv_article_html(
+            extra_blocks=(
+                '<script>alert("ad")</script>'
+                '<aside class="baca-juga-box"><p>baca-juga cross-promo must be stripped.</p></aside>'
+                '<aside class="sidebar"><p>Sidebar promo must be stripped.</p></aside>'
+            ),
+        )
+        s = NTVNewsScraper(keywords=self.KEYWORD, queue_=asyncio.Queue())
+        _attach_fetch(s, {self.LINK: html})
+        await s.get_article(self.LINK, self.KEYWORD)
+        item = s.queue_.get_nowait()
+        assert "NTV lead paragraph" in item["content"]
+        assert "baca-juga" not in item["content"].lower()
+        assert "sidebar promo" not in item["content"].lower()
+        assert "alert(" not in item["content"]
+
+    @pytest.mark.asyncio
+    async def test_missing_title_drops_article(self):
+        html = _ntv_article_html().replace('<h1 class="title">NTV test headline</h1>', "")
+        s = NTVNewsScraper(keywords=self.KEYWORD, queue_=asyncio.Queue())
+        _attach_fetch(s, {self.LINK: html})
+        await s.get_article(self.LINK, self.KEYWORD)
+        assert s.queue_.qsize() == 0
+
+    @pytest.mark.asyncio
+    async def test_missing_publish_date_drops_article(self):
+        """Drop JSON-LD entirely → no publish_date → drop the article."""
+        html = _ntv_article_html()
+        # Remove the JSON-LD script tag entirely.
+        import re as _re
+        html = _re.sub(
+            r'<script type="application/ld\+json">.*?</script>',
+            "",
+            html,
+            count=1,
+            flags=_re.DOTALL,
+        )
+        s = NTVNewsScraper(keywords=self.KEYWORD, queue_=asyncio.Queue())
+        _attach_fetch(s, {self.LINK: html})
+        await s.get_article(self.LINK, self.KEYWORD)
+        assert s.queue_.qsize() == 0
+
+    @pytest.mark.asyncio
+    async def test_missing_content_drops_article(self):
+        html = _ntv_article_html()
+        # Remove the .article-content container.
+        html = html.replace(
+            '<div class="article-content">',
+            '<div class="NOOP">',
+        )
+        s = NTVNewsScraper(keywords=self.KEYWORD, queue_=asyncio.Queue())
+        _attach_fetch(s, {self.LINK: html})
+        await s.get_article(self.LINK, self.KEYWORD)
+        assert s.queue_.qsize() == 0
+
+    @pytest.mark.asyncio
+    async def test_future_start_date_drops_and_flips_continue_scraping(self):
+        s = NTVNewsScraper(
+            keywords=self.KEYWORD,
+            start_date=datetime(2099, 1, 1),
+            queue_=asyncio.Queue(),
+        )
+        _attach_fetch(s, {self.LINK: _ntv_article_html()})
+        await s.get_article(self.LINK, self.KEYWORD)
+        assert s.queue_.qsize() == 0
+        assert s.continue_scraping is False
+
+    @pytest.mark.asyncio
+    async def test_get_article_rejects_non_canonical_link(self):
+        off_pattern = "https://www.ntvnews.id/tag/12345678/abc/"
+        s = NTVNewsScraper(keywords=self.KEYWORD, queue_=asyncio.Queue())
+        stub = _attach_fetch(s, {off_pattern: _ntv_article_html()})
+        await s.get_article(off_pattern, self.KEYWORD)
+        # No fetch, no queue write — guards against article fetches for
+        # taxonomy/non-canonical URLs that the parser already filters.
+        assert stub.calls == []
+        assert s.queue_.qsize() == 0
