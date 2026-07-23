@@ -1,0 +1,1185 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Scrape structured news data from Indonesia's top news websites.">
+      
+      
+      
+        <link rel="canonical" href="https://okkymabruri.github.io/news-watch/use-case-mbg/">
+      
+      
+        <link rel="prev" href="../practical-guide/">
+      
+      
+        <link rel="next" href="../api-reference/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Use Case MBG - news-watch</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#use-case-mbg-collecting-and-analyzing-indonesian-news-on-makan-bergizi-gratis" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="https://okky.dev" title="news-watch" class="md-header__button md-logo" aria-label="news-watch" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            news-watch
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Use Case MBG
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/okkymabruri/news-watch" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    okkymabruri/news-watch
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="https://okky.dev" title="news-watch" class="md-nav__button md-logo" aria-label="news-watch" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    news-watch
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/okkymabruri/news-watch" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    okkymabruri/news-watch
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../practical-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Practical Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use Case MBG
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use Case MBG
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#background-what-is-mbg" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Background: What Is MBG?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#collection-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Collection Command
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#corpus-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Corpus Validation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#aggregate-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Aggregate Analysis
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Aggregate Analysis">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#topic-landscape-and-prevalence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Topic landscape and prevalence
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#document-similarity-network" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Document-similarity network
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sentiment-by-topic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sentiment by topic
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#named-entities-and-sppg-kitchens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Named entities and SPPG kitchens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#person-co-mention-network" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Person co-mention network
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#collection-limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Collection Limitations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-cite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How to Cite
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#background-what-is-mbg" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Background: What Is MBG?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#collection-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Collection Command
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#corpus-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Corpus Validation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#aggregate-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Aggregate Analysis
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Aggregate Analysis">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#topic-landscape-and-prevalence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Topic landscape and prevalence
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#document-similarity-network" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Document-similarity network
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sentiment-by-topic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sentiment by topic
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#named-entities-and-sppg-kitchens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Named entities and SPPG kitchens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#person-co-mention-network" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Person co-mention network
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#collection-limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Collection Limitations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-cite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How to Cite
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="use-case-mbg-collecting-and-analyzing-indonesian-news-on-makan-bergizi-gratis">Use Case MBG: Collecting and Analyzing Indonesian News on Makan Bergizi Gratis<a class="headerlink" href="#use-case-mbg-collecting-and-analyzing-indonesian-news-on-makan-bergizi-gratis" title="Permanent link">&para;</a></h1>
+<p>This guide walks the public workflow — from collection through aggregate
+analysis — for the <em>Makan Bergizi Gratis</em> (MBG) policy research corpus
+covering <strong>2025-01-05 through 2026-07-17</strong>, using the <code>newswatch</code> registry
+as currently configured. It is the companion to <code>practical-guide.md</code> and
+does not duplicate installation, configuration, or troubleshooting content.</p>
+<h2 id="background-what-is-mbg">Background: What Is MBG?<a class="headerlink" href="#background-what-is-mbg" title="Permanent link">&para;</a></h2>
+<p><em>Makan Bergizi Gratis</em> (MBG) is Indonesia's national free nutritious-meals
+program, administered by the Badan Gizi Nasional (BGN). It provides meals
+designed against daily nutritional adequacy standards for school students,
+pregnant women, breastfeeding mothers, and young children, delivered through
+<em>Satuan Pelayanan Pemenuhan Gizi</em> (SPPG), the local service units that
+prepare and distribute meals.</p>
+<p>BGN describes MBG as both a nutrition intervention and a platform for
+nutrition education, and its operating model links SPPG procurement with
+local farmers, fishers, cooperatives, and small businesses. That scale makes
+MBG a useful news research case: reporting spans beneficiary access, kitchen
+expansion, food safety, procurement, public finance, regional
+implementation, oversight, and political accountability.</p>
+<p>The corpus starts on <strong>5 January 2025</strong>, when BGN formally introduced the
+2025 program, and includes implementation from <strong>6 January 2025</strong> onward.
+Official program context and operating details:</p>
+<ul>
+<li><a href="https://www.bgn.go.id/news/artikel/bgn-akan-memulai-program-mbg-secara-bertahap">BGN's program launch statement</a></li>
+<li><a href="https://www.bgn.go.id/faq">BGN's MBG frequently asked questions</a></li>
+<li><a href="https://www.bgn.go.id/news/siaran-pers/bgn-perkuat-pengawasan-sppg-untuk-menjaga-kualitas-penyelenggaraan-program-mbg">BGN's SPPG quality-oversight statement</a></li>
+</ul>
+<h2 id="collection-command">Collection Command<a class="headerlink" href="#collection-command" title="Permanent link">&para;</a></h2>
+<p>Run the stable, search-capable registry subset against the MBG keywords for
+the declared window. During the documented collection, <code>--scrapers all</code>
+resolved every stable entry with <code>supports_search=True</code>, not all 75 sources
+then registered.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>uv<span class="w"> </span>run<span class="w"> </span>newswatch<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span>--method<span class="w"> </span>search<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span>--keywords<span class="w"> </span><span class="s2">&quot;mbg,makan bergizi gratis,program MBG,satuan pelayanan pemenuhan gizi,SPPG,badan gizi nasional&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span>--start_date<span class="w"> </span><span class="s2">&quot;2025-01-05&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span>--daterange<span class="w"> </span><span class="s2">&quot;2025-01-05/2026-07-17&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span>--scrapers<span class="w"> </span>all<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span>--scraper-timeout<span class="w"> </span><span class="m">180</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span>--output_format<span class="w"> </span>jsonl<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span>--output_path<span class="w"> </span>mbg-all.jsonl<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">  </span>--progress
+</code></pre></div>
+<p>What <code>--scrapers all</code> resolves to in this repo:</p>
+<ul>
+<li>75 registry entries total.</li>
+<li>68 stable entries support search and are resolved by <code>--scrapers all</code>.</li>
+</ul>
+<h2 id="corpus-validation">Corpus Validation<a class="headerlink" href="#corpus-validation" title="Permanent link">&para;</a></h2>
+<p>Validate each collection before analysis; retrieval totals are evidence
+about that run, not fixed properties of the news ecosystem.</p>
+<ol>
+<li><strong>Check the schema.</strong> Require <code>title</code>, <code>publish_date</code>, <code>content</code>, <code>link</code>,
+   and <code>source</code> on every record. Reject malformed rows rather than filling
+   missing evidence with inferred values.</li>
+<li><strong>Enforce the study window.</strong> Parse publication timestamps and retain only
+   2025-01-05 00:00:00 through 2026-07-17 23:59:59 (both full calendar days).</li>
+<li><strong>Confirm relevance.</strong> Keep a record only when its title contains
+   a standalone program term — <code>MBG</code>, <code>SPPG</code>, or <code>BGN</code> — or an explicit
+   program phrase: <code>Makan Bergizi Gratis</code>, <code>Program MBG</code>, <code>satuan
+   pelayanan pemenuhan gizi</code>, or <code>Badan Gizi Nasional</code>. Matching is
+   case-insensitive, acronym boundaries reject collisions such as
+   <code>PVMBG</code>, and title anchoring excludes tangential articles that
+   mention an MBG term only in the body.</li>
+<li><strong>Remove duplicates in order.</strong> Deduplicate exact article links first,
+   then lowercase and collapse whitespace in titles before removing repeated
+   titles. Preserve the number removed at each step so the final corpus is
+   auditable.</li>
+<li><strong>Publish aggregates only.</strong> Reconcile retained records by source and
+   calendar month, but keep article text, titles, URLs, and document-level
+   outputs in the private research workspace.</li>
+</ol>
+<p>The <strong>reference run</strong> (collected 2026-07-17) documented in this guide
+yielded 25,288 well-formed records before cleaning, 18,406 after relevance
+filtering, 8,895 after URL deduplication, and <strong>8,862 cleaned documents</strong>
+from <strong>48 contributing sources</strong> across all <strong>19 calendar months</strong> in the
+window. These are one run's retrieval counts, not estimates of article
+production; inspect the actual numbers in each run rather than treating one
+retrieval as a fixed benchmark.</p>
+<h2 id="aggregate-analysis">Aggregate Analysis<a class="headerlink" href="#aggregate-analysis" title="Permanent link">&para;</a></h2>
+<p>All figures below describe the reference run's cleaned corpus. Topic
+annotations are <strong>provisional English summaries</strong> derived from
+auto-generated Indonesian term statistics and a manual review of private
+topic assignments; named entities retain their source-language proper names.
+Treat both as working labels pending further validation before citing them
+as facts.</p>
+<h3 id="topic-landscape-and-prevalence">Topic landscape and prevalence<a class="headerlink" href="#topic-landscape-and-prevalence" title="Permanent link">&para;</a></h3>
+<p>The cleaned corpus resolves to <strong>14 substantive topics plus an outlier
+class</strong>. The substantive topics span SPPG operations, staffing, and
+food-safety oversight, corruption investigations, public demonstrations,
+student food-poisoning incidents, food commodity price shifts,
+electric-motor procurement, viral media and political-figure mentions,
+dairy production and consumption, MBG insurance and fiscal protection,
+flood response and emergency SPPG distribution, TB patient support and
+treatment, global oil prices and budget pressure, suspected fictitious SPPG
+locations, and fisheries, aquaculture, and marine food supply; the
+outlier class captures documents that do not cluster cleanly with any
+dominant theme.</p>
+<p><img alt="UMAP scatter of the cleaned corpus colored by topic" src="../assets/mbg/umap_scatter.png" /></p>
+<p>A two-dimensional UMAP projection of the cleaned documents, colored by
+topic; each point is one document. All 14 substantive topics are labeled
+directly over their cluster regions, and grey points are documents the
+clustering model left unassigned. Separation and overlap are diagnostic
+patterns, not proof that the generated labels are definitive categories.
+The scatter uses a dedicated readability projection (<code>random_state=42</code>,
+<code>n_neighbors=30</code>, <code>min_dist=0.3</code>, <code>metric=cosine</code>), distinct from the
+analysis UMAP inside the BERTopic pipeline that produces the topic
+assignments; only the two-dimensional layout differs, never the assignments.</p>
+<p><img alt="Per-topic document counts ranked largest to smallest" src="../assets/mbg/topic_size_bar.png" /></p>
+<p>Topic-size distribution ordered largest to smallest, including the outlier
+class. The three largest topics account for <strong>4,416 of 8,862 cleaned
+documents (49.8%)</strong>; the remainder spreads across the other 11 substantive
+topics and the outlier class.</p>
+<p><img alt="Monthly volume for the six largest topics with callout annotations" src="../assets/mbg/topic_trendline.png" /></p>
+<p>Per-topic volume over the 19 calendar months for the <strong>six largest
+topics</strong>: T0 SPPG operations, staffing, and food-safety oversight, T1
+corruption investigations, T2 public demonstrations, T3 student
+food-poisoning incidents, T4 food commodity price shifts, and T5
+electric-motor procurement. Each topic uses a distinct colorblind-safe
+color and line style, with the topic label printed directly at the
+right-hand endpoint of every line, so each series stays legible without
+relying on color alone.</p>
+<p>Four callouts report exact monthly counts and mark contemporaneous coverage
+families rather than causal triggers:</p>
+<ul>
+<li><strong>October 2025 — T0, 210 documents:</strong> SPPG operations, staffing, and
+  food-safety oversight coverage.</li>
+<li><strong>February 2026 — T0, 338 documents:</strong> SPPG operations, staffing, and
+  food-safety oversight coverage.</li>
+<li><strong>June 2026 — T0, 719 documents:</strong> SPPG operations, staffing, and
+  food-safety oversight coverage.</li>
+<li><strong>June 2026 — T1, 399 documents:</strong> corruption-investigation coverage peak.</li>
+</ul>
+<p>In <strong>June 2026</strong> the three largest topics combined reach <strong>1,466 documents</strong>
+— about <strong>4.0×</strong> their previous combined monthly peak of <strong>368</strong>.
+Annotations describe news coverage families that align with each spike, not
+claims that those events caused the observed volume; the pattern describes
+this retrieved corpus and should not be extrapolated beyond 2026-07-17.</p>
+<p>Independent public reporting documents the same coverage families without
+quoting private records:</p>
+<ul>
+<li><a href="https://www.antaranews.com/berita/5129056/pemkab-bandung-barat-tetapkan-klb-usai-ratusan-siswa-keracunan-mbg">Bandung Barat mass-poisoning response, ANTARA (September 2025)</a></li>
+<li><a href="https://en.antaranews.com/news/405814/free-meals-nutrition-maintained-despite-dry-food-shift-minister">Ramadan dry-food adaptation statement, ANTARA</a></li>
+<li><a href="https://en.antaranews.com/news/419313/bgn-to-fully-audit-free-meal-kitchens-during-school-holidays">BGN school-holiday audit of MBG kitchens, ANTARA</a></li>
+<li><a href="https://money.kompas.com/read/2025/10/03/100000126/usai-kasus-keracunan-bgn-ngebut-sertifikasi-sppg-agar-pangan-aman-">SPPG safety certification push after poisoning cases, Kompas</a></li>
+</ul>
+<h3 id="document-similarity-network">Document-similarity network<a class="headerlink" href="#document-similarity-network" title="Permanent link">&para;</a></h3>
+<p>The method builds an undirected graph over the cleaned-document embeddings.
+Each node is one document; an edge connects two documents when their cosine
+similarity is at least <strong>0.90</strong> among each document's <strong>k=5</strong> nearest
+neighbors.</p>
+<p>The full graph contains <strong>1,866 active nodes and 1,936 edges</strong> across
+<strong>533 active connected components</strong>, with <strong>6,996 isolates</strong>. The bounded
+figure displays <strong>60 communities within the 13 largest component groups</strong>
+under a <strong>500-node cap</strong>, rendering <strong>500 linked documents</strong>; smaller
+components are shown in grey and carry no group annotations.</p>
+<p><img alt="Document-similarity network, 13 largest component groups" src="../assets/mbg/document_similarity_network.png" /></p>
+<p>The four leading groups shown are:</p>
+<ul>
+<li><strong>G1 — SPPG operations, staffing, and food-safety oversight: 163
+  documents, 100% dominant.</strong></li>
+<li><strong>G2 — corruption investigations: 98 documents, 77.6% dominant.</strong></li>
+<li><strong>G3 — student food-poisoning incidents: 61 documents, 63.9% dominant.</strong></li>
+<li><strong>G4 — corruption investigations (separate component): 56 documents,
+  100% dominant.</strong></li>
+</ul>
+<p>The fitted color areas follow the displayed component extent only — they
+are not confidence regions, ground-truth boundaries, or calibrated
+estimates. "Dominant" is the share of documents inside the displayed
+component carrying the indicated topic label, not a probability that the
+component is exclusively about that topic.</p>
+<p><strong>Interpretation boundary.</strong> Proximity and edges mean embedding similarity
+between retrieved documents — not shared event identity, factual
+equivalence, causation, coordination, or editorial influence. The
+deterministic spring layout (<code>seed=42</code>) makes the figure reproducible, but
+placement is meaningful only insofar as it reveals the connected
+components. Article-level evidence remains private.</p>
+<h3 id="sentiment-by-topic">Sentiment by topic<a class="headerlink" href="#sentiment-by-topic" title="Permanent link">&para;</a></h3>
+<p>News tone varies substantially by topic. Among the larger substantive
+topics, student food-poisoning incidents (T3, <strong>n=518</strong>) show the clearest
+negative pattern: <strong>58.9%</strong> of documents have <code>negative</code> as their
+highest-probability label and the mean probability score is <strong>−0.46</strong>.
+Corruption investigations (T1, <strong>n=696</strong>) are mostly neutral by
+highest-probability label (<strong>55.9%</strong>) but still carry a negative mean score
+(<strong>−0.38</strong>), reflecting very little positive probability. By contrast,
+food commodity price shifts (T4, <strong>n=228</strong>) have a positive mean score of
+<strong>+0.10</strong>.</p>
+<p><img alt="Diverging per-topic sentiment distribution" src="../assets/mbg/topic_sentiment_diverging.png" /></p>
+<p>The figure reports each document's highest-probability label as a share of
+its topic; the centered grey marker indicates neutral classification, and
+the ordering uses the topic mean of <code>P(positive) − P(negative)</code>. The two
+measures can differ: SPPG operations, staffing, and food-safety oversight
+(T0, <strong>n=3,166</strong>) has <strong>892 positive</strong>, <strong>1,411 neutral</strong>, and <strong>863
+negative</strong> highest-probability labels with a mean score of <strong>+0.02</strong>.
+Smaller substantive topics contain at most 92 documents each (T6 viral
+media and political-figure mentions), so their directions are especially
+provisional. The heterogeneous outlier class is retained in aggregate
+reconciliation but omitted from this substantive-topic figure.</p>
+<p>Overall, the cleaned corpus shows <strong>2,206 positive</strong>, <strong>3,536 neutral</strong>,
+and <strong>3,120 negative</strong> highest-probability labels. The figure is the public
+aggregate output; document-level predictions and the underlying review
+tables remain private.</p>
+<p><strong>Interpretation boundary.</strong> The pinned Indonesian RoBERTa classifier was
+trained on IndoNLU SmSA comments and reviews, not MBG news. Its outputs
+describe the language tone of retrieved articles after right truncation at
+512 model tokens — not public opinion, policy effectiveness, factuality, or
+stance — and the probabilities are ordinal comparisons, not calibrated
+population estimates.</p>
+<h3 id="named-entities-and-sppg-kitchens">Named entities and SPPG kitchens<a class="headerlink" href="#named-entities-and-sppg-kitchens" title="Permanent link">&para;</a></h3>
+<p>Provisional entity extraction surfaces the most-mentioned people, event
+locations, and SPPG/Dapur kitchen references in the corpus. The figures
+below are aggregate counts; surface-form resolution is provisional.</p>
+<p><img alt="Top-mentioned multi-token people" src="../assets/mbg/person_top_bar.png" /></p>
+<p>Top-mentioned multi-token people: <strong>50,486 mentions resolved to 5,660
+normalized surfaces</strong>. Ranks describe prominence in this retrieved corpus,
+not policy importance. Audited aliases combine <code>Purbaya</code>, <code>Purba</code>, <code>Yudhi</code>,
+and <code>Yudhi Sadewa</code> with <strong>Purbaya Yudhi Sadewa (1,316 mentions across 320
+documents)</strong>. Ambiguous single-token surfaces such as <code>Yusuf</code> are retained
+in aggregate tables but excluded from this precision-oriented chart rather
+than assigned to one person.</p>
+<p><img alt="Top event locations" src="../assets/mbg/place_top_bar.png" /></p>
+<p>Top event locations: <strong>1,854 mentions resolving to 542 unique places</strong>.
+Counts <strong>exclude publisher datelines and general geographic framing</strong> —
+only locations anchored to a described event (visit, launch, incident,
+audit) are counted — so the chart under-represents places that appear only
+as byline cities or background geography.</p>
+<p><img alt="Top SPPG/Dapur kitchen references" src="../assets/mbg/sppg_top_bar.png" /></p>
+<p>Top SPPG/Dapur (<em>satuan pelayanan pemenuhan gizi</em>) kitchen references:
+<strong>1,411 mentions resolving to 699 unique kitchen surfaces</strong>. Unit numbers
+are preserved where available; strict normalization excludes regional
+collectives and malformed identifiers. These automated identifiers remain
+provisional until reconciled against operational records.</p>
+<h3 id="person-co-mention-network">Person co-mention network<a class="headerlink" href="#person-co-mention-network" title="Permanent link">&para;</a></h3>
+<p>The method builds an undirected graph over the cleaned corpus. Each node is
+one normalized person surface; an edge connects two nodes when both people
+occur in the same document, with repeated mentions of the same normalized
+person deduplicated within a document before document and edge counts are
+incremented.</p>
+<p>These gates produce <strong>30 nodes and 44 edges</strong> across <strong>7 connected
+components</strong> and <strong>8 detected communities</strong>.</p>
+<p><img alt="Person co-mention network, largest component" src="../assets/mbg/person_comention_network.png" /></p>
+<p>The method uses the full corpus and all eligible components; the figure
+displays only the largest connected component (<strong>17 nodes</strong>) for
+readability, with a deterministic spring layout (<code>seed=42</code>). Larger nodes
+represent people mentioned in more documents; wider edges represent higher
+co-document counts. Node colors distinguish only the detected communities
+visible in the displayed component — categorical IDs, not sentiment or
+political-polarity scores.</p>
+<p>By weighted degree, the most connected eligible surfaces are <strong>Sony Sonjaya
+(1,145, 743 documents)</strong>, <strong>Prabowo Subianto (1,086, 3,027 documents)</strong>,
+<strong>Dadan Hindayana (910, 1,183 documents)</strong>, <strong>Nanik Sudaryati Deyang
+(751, 843 documents)</strong>, and <strong>Asep Yusuf Somantri (373, 222 documents)</strong>.
+The strongest single edge is <strong>Dadan Hindayana ↔ Prabowo Subianto</strong> with
+<strong>478 co-mentioned documents</strong> (Jaccard 0.13). Other top edges: Nanik
+Sudaryati Deyang ↔ Prabowo Subianto (398), Dadan Hindayana ↔ Sony Sonjaya
+(219), Prabowo Subianto ↔ Sony Sonjaya (210), and Asep Yusuf Somantri ↔
+Sony Sonjaya (172).
+Names remain provisional NER surfaces: there is no general co-reference
+resolution, and ambiguous identities may still split or merge. Audited
+<code>Purbaya</code>/<code>Yudhi Sadewa</code> fragments are canonicalized to <code>Purbaya Yudhi
+Sadewa</code>; ambiguous bare <code>Yusuf</code> remains unresolved and is excluded by the
+two-token precision gate. No article-level evidence is published.</p>
+<p><strong>Interpretation boundary.</strong> Co-mention indicates only shared coverage
+within the same retrieved document — not a personal relationship,
+influence, endorsement, coordination, political alignment, or causality.</p>
+<h2 id="collection-limitations">Collection Limitations<a class="headerlink" href="#collection-limitations" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Retrieval coverage.</strong> Only registry sources are searched. The stable
+  search-capable subset is 68 of 75 entries (see the resolver breakdown in
+  <a href="#collection-command">Collection Command</a>), and 48 sources contributed
+  documents retained after cleaning.</li>
+<li><strong>Keyword recall.</strong> Retrieval uses six related queries: <code>mbg</code>, <code>makan
+  bergizi gratis</code>, <code>program MBG</code>, <code>satuan pelayanan pemenuhan gizi</code>, <code>SPPG</code>,
+  and <code>badan gizi nasional</code>. Articles that discuss implementation without
+  any of those terms can still be missed.</li>
+<li><strong>Completeness.</strong> A finished corpus is bounded by what each scraper's
+  search endpoint exposes. Some sources cap depth, return only top-N, or
+  paginate inconsistently; re-running with a tighter window or
+  source-by-source will not necessarily close those gaps.</li>
+<li><strong>Copyright.</strong> Each row is a <em>news article record</em>: title, link, publish
+  date, author, and a content excerpt as returned by the source's own
+  feed/page. The corpus supports aggregate analysis, citation (see
+  <a href="#how-to-cite">How to Cite</a>), and downstream modeling within fair-use
+  research bounds; it is not a redistribution of full article text. Honor
+  each publisher's terms.</li>
+</ul>
+<h2 id="how-to-cite">How to Cite<a class="headerlink" href="#how-to-cite" title="Permanent link">&para;</a></h2>
+<p><strong>This guide.</strong> Cite the guide itself as part of the <code>news-watch</code>
+documentation:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nc">@misc</span><span class="p">{</span><span class="nl">mabruri_usecase_mbg_2026</span><span class="p">,</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="na">author</span><span class="w">       </span><span class="p">=</span><span class="w"> </span><span class="s">{Okky Mabruri}</span><span class="p">,</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="na">title</span><span class="w">        </span><span class="p">=</span><span class="w"> </span><span class="s">{Use Case MBG: Collecting and Analyzing Indonesian News</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="s">                  on Makan Bergizi Gratis}</span><span class="p">,</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="na">year</span><span class="w">         </span><span class="p">=</span><span class="w"> </span><span class="s">{2026}</span><span class="p">,</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="na">howpublished</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{news-watch documentation, v1.2.0}</span><span class="p">,</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">  </span><span class="na">doi</span><span class="w">          </span><span class="p">=</span><span class="w"> </span><span class="s">{10.5281/zenodo.14908389}</span><span class="p">,</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="na">url</span><span class="w">          </span><span class="p">=</span><span class="w"> </span><span class="s">{https://github.com/okkymabruri/news-watch/blob/main/docs/use-case-mbg.md}</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="p">}</span>
+</code></pre></div>
+<p><strong>Software.</strong> Cite <code>news-watch</code> using the repository's <code>CITATION.cff</code>
+(v1.2.0, DOI
+<a href="https://doi.org/10.5281/zenodo.14908389">10.5281/zenodo.14908389</a>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nc">@software</span><span class="p">{</span><span class="nl">mabruri_newswatch</span><span class="p">,</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="na">author</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{Okky Mabruri}</span><span class="p">,</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="na">title</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{news-watch}</span><span class="p">,</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="na">year</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{2025}</span><span class="p">,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="na">doi</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{10.5281/zenodo.14908389}</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="p">}</span>
+</code></pre></div>
+<p><strong>Corpus and figures.</strong> Cite aggregate figures as products of this guide's
+reference run, for example:</p>
+<blockquote>
+<p>MBG news corpus (2025-01-05 to 2026-07-17), collected with news-watch
+v1.2.0; aggregate figures only.
+https://github.com/okkymabruri/news-watch</p>
+</blockquote>
+<p>Article-level records are not redistributed, so cite counts and figures,
+not private document tables.</p>
+<p><strong>News articles.</strong> When quoting an individual article (including the linked
+ANTARA and Kompas reports above), cite the publisher, article title,
+publication date, and URL; the corpus record is a pointer, not the source
+of record.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/okkymabruri/news-watch" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.expand", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
