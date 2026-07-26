@@ -181,6 +181,23 @@ async def write_csv(queue, output_label, filename=None, limit=None, limit_reache
 
         tmp_filename.replace(filename)
         print(f"Data written to {filename}")
+    except asyncio.CancelledError:
+        # main() cancels the writer if the post-scraping drain runs long
+        # (main.py's `wait_for(writer_task, ...)`). Rows already flushed to
+        # `tmp_filename` must not be stranded there silently -- promote what
+        # exists and say so loudly, rather than leaving a valid-looking run
+        # with no output file at all.
+        if items_written:
+            tmp_filename.replace(filename)
+            logging.warning(
+                f"Writer cancelled: partial output ({items_written} items) "
+                f"written to {filename}"
+            )
+        else:
+            logging.warning(
+                "Writer cancelled before any items were written; no output file created"
+            )
+        raise
     except Exception as e:
         logging.error(f"Error writing to CSV: {e}")
 
@@ -245,6 +262,24 @@ async def write_json(queue, output_label, filename=None, limit=None, limit_reach
             json.dump(articles, jsonfile, indent=2, ensure_ascii=False)
 
         print(f"Data written to {filename}")
+    except asyncio.CancelledError:
+        # `articles` only exists in memory until the final json.dump above;
+        # unlike CSV/JSONL there is no incremental on-disk copy, so a bare
+        # cancellation here would lose every item collected this run, not
+        # just the pending tail. Write what has accumulated before
+        # re-raising, and say so loudly.
+        if articles:
+            with open(filename, mode="w", encoding="utf-8") as jsonfile:
+                json.dump(articles, jsonfile, indent=2, ensure_ascii=False)
+            logging.warning(
+                f"Writer cancelled: partial output ({len(articles)} items) "
+                f"written to {filename}"
+            )
+        else:
+            logging.warning(
+                "Writer cancelled before any items were written; no output file created"
+            )
+        raise
     except Exception as e:
         logging.error(f"Error writing to JSON: {e}")
 
@@ -277,58 +312,76 @@ async def write_xlsx(queue, output_label, filename=None, limit=None, limit_reach
     if time_range:
         time_start, time_end = time_range
 
-    while True:
-        try:
-            # Add a timeout to avoid hanging indefinitely
-            item = await asyncio.wait_for(queue.get(), timeout=30)
-        except asyncio.TimeoutError:
-            # If no items received for 30 seconds, break the loop
-            logging.warning("No items received for 30 seconds, stopping writer")
-            break
-        except RuntimeError as e:
-            if "Event loop is closed" in str(e):
-                break
-            else:
-                raise
-
-        if item is None:  # Sentinel value to stop
-            break
-
-        # Skip duplicates
-        if dedup_links is not None and item.get("link", "") in dedup_links:
-            continue
-
-        # Apply time range filter
-        if time_start is not None or time_end is not None:
-            pub_date = item.get("publish_date")
-            if pub_date:
-                if isinstance(pub_date, str):
-                    try:
-                        pub_date = datetime.fromisoformat(pub_date)
-                    except ValueError:
-                        continue
-                if not isinstance(pub_date, datetime):
-                    continue
-                if time_start is not None and pub_date < time_start:
-                    continue
-                if time_end is not None and pub_date > time_end:
-                    continue
-
-        # Format datetime objects as strings
-        if isinstance(item.get("publish_date"), datetime):
-            item["publish_date"] = item["publish_date"].strftime("%Y-%m-%d %H:%M:%S")
-        items.append(item)
-        items_written += 1
-
-        if limit is not None and items_written >= limit:
-            if limit_reached_event:
-                limit_reached_event.set()
-            break
-
     try:
+        while True:
+            try:
+                # No idle timeout here: a global scraper cap runs scrapers in
+                # waves (see main()), so gaps between items well past 30s
+                # are expected, not a hang. The writer ends via the sentinel
+                # `None` main() puts on the queue after all scrapers finish
+                # (or the outer batch timeout cancels them).
+                item = await queue.get()
+            except RuntimeError as e:
+                if "Event loop is closed" in str(e):
+                    break
+                else:
+                    raise
+
+            if item is None:  # Sentinel value to stop
+                break
+
+            # Skip duplicates
+            if dedup_links is not None and item.get("link", "") in dedup_links:
+                continue
+
+            # Apply time range filter
+            if time_start is not None or time_end is not None:
+                pub_date = item.get("publish_date")
+                if pub_date:
+                    if isinstance(pub_date, str):
+                        try:
+                            pub_date = datetime.fromisoformat(pub_date)
+                        except ValueError:
+                            continue
+                    if not isinstance(pub_date, datetime):
+                        continue
+                    if time_start is not None and pub_date < time_start:
+                        continue
+                    if time_end is not None and pub_date > time_end:
+                        continue
+
+            # Format datetime objects as strings
+            if isinstance(item.get("publish_date"), datetime):
+                item["publish_date"] = item["publish_date"].strftime("%Y-%m-%d %H:%M:%S")
+            items.append(item)
+            items_written += 1
+
+            if limit is not None and items_written >= limit:
+                if limit_reached_event:
+                    limit_reached_event.set()
+                break
+
         df = pd.DataFrame(items, columns=fieldnames)
         df.to_excel(filename, index=False)
         print(f"Data written to {filename}")
+    except asyncio.CancelledError:
+        # `items` only exists in memory until the final to_excel() above;
+        # unlike CSV/JSONL there is no incremental on-disk copy, so a bare
+        # cancellation here would lose every item collected this run, not
+        # just the pending tail. Write what has accumulated before
+        # re-raising, and say so loudly.
+        if items:
+            df = pd.DataFrame(items, columns=fieldnames)
+            df.to_excel(filename, index=False)
+            logging.warning(
+                f"Writer cancelled: partial output ({len(items)} items) "
+                f"written to {filename}"
+            )
+        else:
+            logging.warning(
+                "Writer cancelled before any items were written; no output file created"
+            )
+        raise
     except Exception as e:
         logging.error(f"Error writing to XLSX: {e}")
 
@@ -392,6 +445,20 @@ async def write_jsonl(queue, output_label, filename=None, limit=None, limit_reac
 
         tmp_filename.replace(filename)
         print(f"Data written to {filename}")
+    except asyncio.CancelledError:
+        # See write_csv's identical handling: rows already flushed to
+        # `tmp_filename` must not be stranded there silently on cancellation.
+        if items_written:
+            tmp_filename.replace(filename)
+            logging.warning(
+                f"Writer cancelled: partial output ({items_written} items) "
+                f"written to {filename}"
+            )
+        else:
+            logging.warning(
+                "Writer cancelled before any items were written; no output file created"
+            )
+        raise
     except Exception as e:
         logging.error(f"Error writing to JSONL: {e}")
 
@@ -674,12 +741,19 @@ async def main(args):
     # After scraping is done, put a sentinel value into the queue to signal the writer to finish
     await queue_.put(None)
 
-    # Wait for the writer to finish with a timeout
+    # Wait for the writer to finish, budget scaled to the remaining backlog.
+    # A flat 30s here cancels the writer mid-drain on a large queue; each
+    # writer's own CancelledError handling salvages what it can, but a
+    # timeout that scales with the actual backlog means that path is rarely
+    # needed in the first place.
+    drain_timeout = max(30, queue_.qsize() * 0.05 + 30)
     try:
-        await asyncio.wait_for(writer_task, timeout=30)
+        await asyncio.wait_for(writer_task, timeout=drain_timeout)
     except asyncio.TimeoutError:
-        logging.warning("Writer task took too long and was stopped")
+        logging.warning(f"Writer task took too long (>{drain_timeout:.0f}s) and was stopped")
         writer_task.cancel()
+        await asyncio.gather(writer_task, return_exceptions=True)
     except Exception as e:
         logging.error(f"Error in writer task: {e}")
         writer_task.cancel()
+        await asyncio.gather(writer_task, return_exceptions=True)

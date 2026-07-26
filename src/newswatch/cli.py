@@ -55,7 +55,9 @@ def cli():
         choices=["csv", "xlsx", "json", "jsonl"],
         default="csv",
         type=str,
-        help="Output file format. Options are csv, xlsx, json, or jsonl. Default is csv.",
+        help="Output file format. Options are csv, xlsx, json, or jsonl. Default is csv. "
+        "csv and jsonl stream to disk incrementally (crash-safer on large runs); "
+        "xlsx and json hold all results in memory and write once at the end.",
     )
     parser.add_argument(
         "--output_path",
