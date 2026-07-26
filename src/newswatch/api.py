@@ -12,6 +12,7 @@ import asyncio
 import json
 import logging
 import os
+import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Union
@@ -358,12 +359,24 @@ async def _async_scrape_to_list(
         )
 
         if not done:
+            pending_count = sum(1 for t in scraper_tasks if not t.done())
             all_scrapers_done.cancel()
             for t in scraper_tasks:
                 if not t.done():
                     t.cancel()
             logging.warning(
                 f"Scraping took too long and was stopped after {timeout} seconds. {total_scrapers} scrapers were running."
+            )
+            # logging is disabled by default (verbose=False), which would
+            # make the line above silent -- warnings.warn is unaffected by
+            # logging.disable, so truncation stays visible either way.
+            warnings.warn(
+                f"newswatch: scraping stopped after the {timeout}s overall "
+                f"budget; results are partial ({pending_count}/{total_scrapers} "
+                f"scrapers still running). With max_concurrent_scrapers="
+                f"{max_concurrent_scrapers}, scrapers run in waves -- raise "
+                f"timeout= for large runs.",
+                stacklevel=2,
             )
         elif limit_hit in done:
             # Limit reached — cancel remaining scraper work
@@ -383,8 +396,17 @@ async def _async_scrape_to_list(
             # Scrapers finished — clean up limit watcher
             limit_hit.cancel()
     except asyncio.TimeoutError:
+        pending_count = sum(1 for t in scraper_tasks if not t.done())
         logging.warning(
             f"Scraping took too long and was stopped after {timeout} seconds. {total_scrapers} scrapers were running."
+        )
+        warnings.warn(
+            f"newswatch: scraping stopped after the {timeout}s overall "
+            f"budget; results are partial ({pending_count}/{total_scrapers} "
+            f"scrapers still running). With max_concurrent_scrapers="
+            f"{max_concurrent_scrapers}, scrapers run in waves -- raise "
+            f"timeout= for large runs.",
+            stacklevel=2,
         )
         for t in scraper_tasks:
             if not t.done():
