@@ -18,6 +18,7 @@ scrape(
     max_pages=None,
     *,
     scraper_timeout=None,
+    max_concurrent_scrapers=6,
     time_range=None,
     dedup_file=None,
     proxy=None,
@@ -33,6 +34,7 @@ scrape(
 - `limit`: maximum collected articles; mainly useful for latest mode.
 - `max_pages`: latest pages per scraper.
 - `scraper_timeout`: timeout for each scraper.
+- `max_concurrent_scrapers`: maximum scrapers running at once (default 6); browser-required sources share a smaller pool capped at 2.
 - `time_range`: inclusive date-only window, `START/END` as `YYYY-MM-DD/YYYY-MM-DD` (start 00:00:00, end 23:59:59.999999). This is the Python keyword only — CLI users pass the same value via the canonical `--daterange` flag. The previously deprecated `--time-range` CLI alias was removed in 1.2.0; the Python `time_range=` keyword remains supported and is distinct from that removed flag.
 - `dedup_file`: prior CSV, JSON, or JSONL output whose links should be skipped.
 - `proxy`: proxy URL used by HTTP and browser request layers.
@@ -75,6 +77,7 @@ scrape_to_file(
     max_pages=None,
     *,
     scraper_timeout=None,
+    max_concurrent_scrapers=6,
     time_range=None,
     dedup_file=None,
     proxy=None,
@@ -100,19 +103,22 @@ nw.scrape_to_file(
 latest(
     scrapers="auto", verbose=False, timeout=300,
     limit=None, max_pages=None, *, scraper_timeout=None,
+    max_concurrent_scrapers=6,
     time_range=None, dedup_file=None, proxy=None,
 ) -> list[dict]
 
 latest_to_dataframe(
     scrapers="auto", verbose=False, timeout=300,
     limit=None, max_pages=None, *, scraper_timeout=None,
+    max_concurrent_scrapers=6,
     time_range=None, dedup_file=None, proxy=None,
 ) -> pandas.DataFrame
 
 latest_to_file(
     output_path, output_format="xlsx", scrapers="auto",
     verbose=False, timeout=300, limit=None, max_pages=None,
-    *, scraper_timeout=None, time_range=None,
+    *, scraper_timeout=None, max_concurrent_scrapers=6,
+    time_range=None,
     dedup_file=None, proxy=None,
 ) -> None
 ```
