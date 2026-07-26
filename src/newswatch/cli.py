@@ -93,6 +93,14 @@ def cli():
         help="Per-scraper timeout in seconds. Scrapers exceeding this are cancelled.",
     )
     parser.add_argument(
+        "--max-concurrent-scrapers",
+        type=int,
+        default=6,
+        help="Max scrapers running at once (default: 6). Browser-required scrapers "
+        "(Playwright) share a smaller pool, capped at 2, since each launches its own "
+        "Chromium process.",
+    )
+    parser.add_argument(
         "--progress",
         action="store_true",
         help="Print per-scraper progress lines (implies some verbosity).",

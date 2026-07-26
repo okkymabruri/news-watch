@@ -7,11 +7,12 @@ import asyncio
 import csv
 import json
 import logging
+import math
 from datetime import datetime
 from pathlib import Path
 
 
-from .registry import get_available_scrapers_from_registry
+from .registry import get_available_scrapers_from_registry, get_scraper_by_slug
 
 logging.basicConfig(
     level=logging.INFO,
@@ -400,31 +401,64 @@ def get_available_scrapers(method="search"):
     return get_available_scrapers_from_registry(method=method)
 
 
+def _compute_outer_timeout(scraper_entries, max_concurrent_scrapers, scraper_timeout):
+    """Derive the outer batch timeout from how many waves the scraper cap forces.
+
+    Browser-required scrapers share a separate, smaller pool (see `main`), so
+    the two pools can need a different number of waves; the outer bound must
+    cover whichever pool takes longer.
+    """
+    browser_cap = min(2, max_concurrent_scrapers)
+    browser_count = sum(
+        1
+        for slug, _ in scraper_entries
+        if getattr(get_scraper_by_slug(slug), "browser_required", False)
+    )
+    general_count = len(scraper_entries) - browser_count
+
+    waves = 1
+    if general_count:
+        waves = max(waves, math.ceil(general_count / max_concurrent_scrapers))
+    if browser_count:
+        waves = max(waves, math.ceil(browser_count / browser_cap))
+
+    return waves * (scraper_timeout or 180) + 60
+
+
 async def _run_scraper_with_timeout(
-    scraper, name, index, total, method, timeout, progress
+    scraper, name, index, total, method, timeout, progress, sem
 ):
-    """Run a single scraper with optional timeout and progress logging."""
-    if progress:
-        print(f"[{index}/{total}] {name}: starting")
-    start_time = asyncio.get_event_loop().time()
-    try:
-        if timeout:
-            await asyncio.wait_for(scraper.scrape(method=method), timeout=timeout)
-        else:
-            await scraper.scrape(method=method)
-        elapsed = asyncio.get_event_loop().time() - start_time
+    """Run a single scraper under a concurrency-limiting semaphore, with
+    optional timeout and progress logging.
+
+    The semaphore is acquired *outside* the timeout window -- otherwise a
+    scraper queued behind the semaphore burns its own timeout budget just
+    waiting for a slot.
+    """
+    if progress and sem.locked():
+        print(f"[{index}/{total}] {name}: queued")
+    async with sem:
         if progress:
-            print(f"[{index}/{total}] {name}: done in {elapsed:.1f}s")
-        return "ok"
-    except asyncio.TimeoutError:
-        if progress:
-            print(f"[{index}/{total}] {name}: timed out after {timeout}s")
-        return "timeout"
-    except Exception as e:
-        elapsed = asyncio.get_event_loop().time() - start_time
-        if progress:
-            print(f"[{index}/{total}] {name}: error in {elapsed:.1f}s - {e}")
-        return "error"
+            print(f"[{index}/{total}] {name}: starting")
+        start_time = asyncio.get_event_loop().time()
+        try:
+            if timeout:
+                await asyncio.wait_for(scraper.scrape(method=method), timeout=timeout)
+            else:
+                await scraper.scrape(method=method)
+            elapsed = asyncio.get_event_loop().time() - start_time
+            if progress:
+                print(f"[{index}/{total}] {name}: done in {elapsed:.1f}s")
+            return "ok"
+        except asyncio.TimeoutError:
+            if progress:
+                print(f"[{index}/{total}] {name}: timed out after {timeout}s")
+            return "timeout"
+        except Exception as e:
+            elapsed = asyncio.get_event_loop().time() - start_time
+            if progress:
+                print(f"[{index}/{total}] {name}: error in {elapsed:.1f}s - {e}")
+            return "error"
 
 
 async def main(args):
@@ -497,7 +531,12 @@ async def main(args):
             name.strip().lower() for name in selected_scrapers.split(",")
         ]
 
-    scrapers = []
+    # (slug, instance) pairs, built together so the slug used for progress
+    # labels and semaphore selection can never desync from the instance list
+    # (the two were previously reconstructed separately and zipped
+    # positionally, which broke silently whenever a requested slug was
+    # unrecognized).
+    scraper_entries = []
     for scraper_name in scrapers_to_run:
         scraper_info = scraper_classes.get(scraper_name)
         if scraper_info:
@@ -512,9 +551,11 @@ async def main(args):
                     scraper_instance.max_pages = max_pages
                 else:
                     scraper_instance.max_latest_pages = max_pages
-            scrapers.append(scraper_instance)
+            scraper_entries.append((scraper_name, scraper_instance))
         else:
             logging.warning(f"scraper '{scraper_name}' is not recognized.")
+
+    scrapers = [instance for _, instance in scraper_entries]
 
     if not scrapers:
         logging.error("no valid scrapers selected. exiting.")
@@ -529,37 +570,59 @@ async def main(args):
     # Extract new CLI parameters
     scraper_timeout = getattr(args, "scraper_timeout", None)
     progress = getattr(args, "progress", False)
+    max_concurrent_scrapers = getattr(args, "max_concurrent_scrapers", None) or 6
 
-    # run all scrapers concurrently with per-scraper timeout and progress logging
-    scraper_names = list(scraper_classes.keys()) if selected_scrapers.lower() in ["all", "auto"] else scrapers_to_run
-    total = len(scrapers)
+    # Global cap on how many scrapers run at once (issue #47): with no cap,
+    # `--scrapers all` fires every registry entry as a concurrent task, and
+    # the browser-required ones each launch their own Chromium process on
+    # top of that. Browser-required scrapers share a separate, smaller pool
+    # since a Chromium launch is far heavier than a plain HTTP request.
+    general_sem = asyncio.Semaphore(max_concurrent_scrapers)
+    browser_sem = asyncio.Semaphore(min(2, max_concurrent_scrapers))
+
+    total = len(scraper_entries)
     progress_tasks = [
         asyncio.create_task(
             _run_scraper_with_timeout(
                 scraper,
-                scraper_names[i] if i < len(scraper_names) else f"scraper_{i}",
+                slug,
                 i + 1,
                 total,
                 method,
                 scraper_timeout,
                 progress,
+                browser_sem
+                if getattr(get_scraper_by_slug(slug), "browser_required", False)
+                else general_sem,
             )
         )
-        for i, scraper in enumerate(scrapers)
+        for i, (slug, scraper) in enumerate(scraper_entries)
     ]
+
+    # The outer wrapper is a backstop for tasks that swallow cancellation --
+    # each task already self-limits via its own per-scraper `wait_for`
+    # (scraper_timeout). It must NOT be a bare literal: with the cap above,
+    # scrapers run in waves rather than all at once, so total wall time is
+    # roughly (waves x scraper_timeout), not scraper_timeout alone. A fixed
+    # 180s here silently overrides --scraper-timeout and mass-cancels every
+    # scraper still waiting on a later wave, indistinguishable in the summary
+    # from ones that hit their own real timeout.
+    outer_timeout = _compute_outer_timeout(
+        scraper_entries, max_concurrent_scrapers, scraper_timeout
+    )
 
     if limit is not None:
         all_done = asyncio.gather(*progress_tasks)
         limit_hit = asyncio.create_task(limit_reached_event.wait())
         done, pending = await asyncio.wait(
-            [all_done, limit_hit], timeout=180, return_when=asyncio.FIRST_COMPLETED,
+            [all_done, limit_hit], timeout=outer_timeout, return_when=asyncio.FIRST_COMPLETED,
         )
         if not done:
             all_done.cancel()
             for t in progress_tasks:
                 if not t.done():
                     t.cancel()
-            logging.warning("Scraping took too long and was stopped after 180 seconds")
+            logging.warning(f"Scraping took too long and was stopped after {outer_timeout} seconds")
         elif limit_hit in done:
             all_done.cancel()
             for t in progress_tasks:
@@ -578,10 +641,10 @@ async def main(args):
     else:
         try:
             results = await asyncio.wait_for(
-                asyncio.gather(*progress_tasks), timeout=180
+                asyncio.gather(*progress_tasks), timeout=outer_timeout
             )
         except asyncio.TimeoutError:
-            logging.warning("Scraping took too long and was stopped after 180 seconds")
+            logging.warning(f"Scraping took too long and was stopped after {outer_timeout} seconds")
             for t in progress_tasks:
                 if not t.done():
                     t.cancel()
