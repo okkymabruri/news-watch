@@ -23,8 +23,8 @@ class BeritaSatuScraper(BaseScraper):
     Latest: homepage for page 1, /page/{N} for later.
     """
 
-    def __init__(self, keywords, concurrency=5, start_date=None, queue_=None):
-        super().__init__(keywords, concurrency, queue_)
+    def __init__(self, keywords, concurrency=5, start_date=None, queue_=None, keyword_concurrency=None):
+        super().__init__(keywords, concurrency, queue_, keyword_concurrency=keyword_concurrency)
         self.base_url = "https://www.beritasatu.com"
         self.start_date = start_date
         self.continue_scraping = True

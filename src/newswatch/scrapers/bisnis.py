@@ -12,8 +12,8 @@ _UNSUPPORTED_SUBDOMAINS = {"epaper", "foto", "video", "infografis"}
 
 
 class BisnisScraper(BaseScraper):
-    def __init__(self, keywords, concurrency=12, start_date=None, queue_=None):
-        super().__init__(keywords, concurrency, queue_)
+    def __init__(self, keywords, concurrency=12, start_date=None, queue_=None, keyword_concurrency=None):
+        super().__init__(keywords, concurrency, queue_, keyword_concurrency=keyword_concurrency)
         self.base_url = "bisnis.com"
         self.start_date = start_date
 
