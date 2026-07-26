@@ -270,7 +270,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added new stable scrapers: `bbc`, `beritajatim`, `pikiranrakyat`, `poskota`, `rmid`, `suaramerdeka`, `jpnn`, `surabayapagi`, `galamedia`
 - Moved scraper loading to the central registry-driven runtime
 - Reworked `jpnn`, `surabayapagi`, and `galamedia` for the current strict-search flow
-- Aligned recovered scrapers with `dev/SCRAPER_TEMPLATE.md` patterns
+- Aligned recovered scrapers with the shared scraper template patterns
 
 ## Quality
 - Recovered `pikiranrakyat` via Playwright CSE after Cloudflare 1015 blocks
