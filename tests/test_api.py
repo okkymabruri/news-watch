@@ -2,12 +2,15 @@
 Tests for the synchronous API module.
 """
 
+import asyncio
 from datetime import datetime, timedelta
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pandas as pd
 import pytest
 
+import newswatch.api as api_module
 from newswatch.api import (
     latest,
     latest_to_dataframe,
@@ -242,6 +245,7 @@ class TestConvenienceFunctions:
             limit=None,
             max_pages=None,
             scraper_timeout=None,
+            max_concurrent_scrapers=6,
             time_range=None,
             dedup_file=None,
             proxy=None,
@@ -266,6 +270,7 @@ class TestConvenienceFunctions:
             limit=None,
             max_pages=None,
             scraper_timeout=None,
+            max_concurrent_scrapers=6,
             time_range=None,
             dedup_file=None,
             proxy=None,
@@ -288,6 +293,7 @@ class TestConvenienceFunctions:
             limit=None,
             max_pages=None,
             scraper_timeout=None,
+            max_concurrent_scrapers=6,
             time_range=None,
             dedup_file=None,
             proxy=None,
@@ -469,6 +475,96 @@ class TestScraperTimeout:
         mock_scrape.return_value = []
         scrape_to_dataframe("test", "2025-01-01", scraper_timeout=20)
         mock_scrape.assert_called_once()
+
+
+def _make_tracking_scraper_class():
+    """A fake scraper class whose scrape() records peak concurrency of
+    instances of THIS class -- mirrors tests/test_main.py's helper of the
+    same name (duplicated on purpose; test modules here are standalone)."""
+
+    class _Tracking:
+        active = 0
+        max_active = 0
+
+        def __init__(self, keywords, start_date=None, queue_=None, **kwargs):
+            self.queue_ = queue_
+
+        async def scrape(self, method="search"):
+            cls = type(self)
+            cls.active += 1
+            cls.max_active = max(cls.max_active, cls.active)
+            await asyncio.sleep(0.05)
+            cls.active -= 1
+
+    return _Tracking
+
+
+class TestMaxConcurrentScrapers:
+    """Issue #47: the Python API path has its own scraper-dispatch loop
+    (main.py's fix does not cover it) and must cap concurrency too."""
+
+    def test_max_concurrent_scrapers_caps_general_pool(self, monkeypatch):
+        General = _make_tracking_scraper_class()
+        scraper_classes = {
+            f"general{i}": {"class": General, "params": {}} for i in range(8)
+        }
+        monkeypatch.setattr(
+            api_module, "get_available_scrapers", lambda method="search": scraper_classes
+        )
+        monkeypatch.setattr(
+            api_module,
+            "get_scraper_by_slug",
+            lambda slug: SimpleNamespace(browser_required=False),
+        )
+
+        # verbose=True: api.py's logging.disable(logging.CRITICAL) on the
+        # default (verbose=False) path is never restored afterward
+        # (pre-existing bug, out of scope here) -- verbose=True keeps this
+        # test from poisoning logging for tests that run later in the same
+        # process.
+        result = scrape(
+            "test", "2025-01-01", scrapers="all", verbose=True,
+            max_concurrent_scrapers=3,
+        )
+
+        assert result == []
+        assert General.max_active <= 3
+
+    def test_browser_required_scrapers_share_smaller_pool(self, monkeypatch):
+        General = _make_tracking_scraper_class()
+        Browser = _make_tracking_scraper_class()
+        scraper_classes = {
+            **{f"general{i}": {"class": General, "params": {}} for i in range(6)},
+            **{f"browser{i}": {"class": Browser, "params": {}} for i in range(6)},
+        }
+        monkeypatch.setattr(
+            api_module, "get_available_scrapers", lambda method="search": scraper_classes
+        )
+        monkeypatch.setattr(
+            api_module,
+            "get_scraper_by_slug",
+            lambda slug: SimpleNamespace(browser_required=slug.startswith("browser")),
+        )
+
+        result = scrape(
+            "test", "2025-01-01", scrapers="all", verbose=True,
+            max_concurrent_scrapers=6,
+        )
+
+        assert result == []
+        # Browser pool is capped at min(2, max_concurrent_scrapers)
+        # regardless of the general pool's larger cap.
+        assert Browser.max_active <= 2
+        assert General.max_active <= 6
+
+    @patch("newswatch.api._async_scrape_to_list", new_callable=AsyncMock)
+    def test_scrape_forwards_max_concurrent_scrapers_as_keyword(self, mock_async):
+        """Locks in keyword-only forwarding: a positional insertion would
+        silently shift the limit/max_pages indices asserted elsewhere
+        (TestMaxPagesPropagation, TestLimitRegression)."""
+        mock_async.return_value = []
+        scrape("test", "2025-01-01", max_concurrent_scrapers=4)
+        assert mock_async.call_args[1]["max_concurrent_scrapers"] == 4
 
 
 class TestAPIIntegration:
