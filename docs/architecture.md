@@ -22,12 +22,12 @@ flowchart TD
 
 | File | Role |
 |---|---|
-| `registry.py` | Single source of truth for status, capabilities, metadata, runtime loading, tests, and generated documentation |
-| `main.py` | Orchestrates scraper selection and execution |
-| `api.py` | Synchronous Python API (`scrape`, `scrape_to_dataframe`, latest and health helpers) |
+| `registry.py` | Single source of truth for status, capabilities, metadata, runtime loading, tests, and generated documentation; declares `browser_required` and `keyword_concurrency` per source |
+| `main.py` | Orchestrates scraper selection, the concurrency cap, and execution |
+| `api.py` | Synchronous Python API (`scrape`, `scrape_to_dataframe`, latest and health helpers) — applies the same concurrency cap as the CLI |
 | `cli.py` | CLI entry point |
 | `scrapers/basescraper.py` | Abstract contract — `build_search_url`, `parse_article_links`, `get_article` |
-| `utils.py` | `AsyncScraper` — concurrency, WAF fallback (aiohttp → rnet → Playwright) |
+| `utils.py` | `AsyncScraper` — request and keyword concurrency, WAF fallback (aiohttp → rnet → Playwright) |
 
 ## Retrieval Methods
 
@@ -56,6 +56,24 @@ A source declares search support only if:
 4. extracted URLs are canonical same-site article pages
 
 Latest support is validated independently; a source can be latest-only.
+
+## Concurrency Model
+
+Two independent limits apply.
+
+**Across scrapers.** The CLI and the Python API each cap how many scraper
+instances run at once (`--max-concurrent-scrapers` / `max_concurrent_scrapers=`,
+default 6). Browser-required sources draw from a separate, smaller pool capped
+at 2, because each Playwright launch costs a Chromium process rather than a
+socket. Selected scrapers therefore run in waves; the CLI's outer batch timeout
+is derived from the wave count rather than a fixed ceiling.
+
+**Within one scraper.** `AsyncScraper` holds two distinct semaphores.
+`semaphore` bounds concurrent HTTP requests inside `fetch()`. `keyword_semaphore`
+bounds concurrent per-keyword tasks in `BaseScraper.scrape()` and is sized from
+the registry's `keyword_concurrency`, which defaults to 1 for browser-required
+sources. Only `fetch()` observes the first, so browser-driven scrapers that
+bypass `fetch()` are bounded by the second.
 
 <!-- BEGIN GENERATED: architecture-state -->
 ## Current State

@@ -34,6 +34,11 @@ newswatch \
   --progress
 ```
 
+Scrapers run in waves once the concurrency cap (`--max-concurrent-scrapers`,
+default 6) is applied, so total wall time scales with the number of waves
+rather than a single flat limit: roughly (scrapers ÷ cap) × `--scraper-timeout`.
+Lowering the cap reduces peak CPU and memory but lengthens the run.
+
 Cloud, CI, and shared IP addresses are blocked more often. Configure one proxy for all HTTP and browser layers:
 
 ```bash

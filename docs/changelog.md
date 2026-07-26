@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `--max-concurrent-scrapers` CLI flag and `max_concurrent_scrapers=` Python keyword (default 6) capping how many scrapers run at once; browser-required sources share a separate pool capped at 2
+- `keyword_concurrency` registry field (default 1 for browser-required sources) bounding concurrent per-keyword tasks within one scraper run
+
+### Changed
+- The CLI's outer batch timeout is derived from the concurrency-wave count instead of a fixed 180 seconds, so `--scraper-timeout` is no longer silently overridden
+- `--output_format` help text now states that csv/jsonl stream incrementally while xlsx/json buffer in memory and write once
+
+### Fixed
+- `--scrapers all` no longer launches every registered scraper simultaneously (#47)
+- Browser-required scrapers now honor a real per-keyword concurrency limit; most previously ignored the configured bound entirely
+- Output writers report partial results explicitly on cancellation instead of discarding collected rows
+- The Python API path applies the same concurrency cap as the CLI and warns when the overall `timeout` truncates a run
+
 ## [1.2.3] - 2026-07-23
 
 ### Added
@@ -256,7 +270,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added new stable scrapers: `bbc`, `beritajatim`, `pikiranrakyat`, `poskota`, `rmid`, `suaramerdeka`, `jpnn`, `surabayapagi`, `galamedia`
 - Moved scraper loading to the central registry-driven runtime
 - Reworked `jpnn`, `surabayapagi`, and `galamedia` for the current strict-search flow
-- Aligned recovered scrapers with `dev/SCRAPER_TEMPLATE.md` patterns
+- Aligned recovered scrapers with the shared scraper template patterns
 
 ## Quality
 - Recovered `pikiranrakyat` via Playwright CSE after Cloudflare 1015 blocks

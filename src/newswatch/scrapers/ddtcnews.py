@@ -31,8 +31,8 @@ def _matches_keyword(keyword, title):
 class DDTCNewsScraper(BaseScraper):
     """Scrape DDTC News search results and article pages."""
 
-    def __init__(self, keywords, concurrency=5, start_date=None, queue_=None):
-        super().__init__(keywords, concurrency, queue_)
+    def __init__(self, keywords, concurrency=5, start_date=None, queue_=None, keyword_concurrency=None):
+        super().__init__(keywords, concurrency, queue_, keyword_concurrency=keyword_concurrency)
         self.base_url = BASE_URL
         self.start_date = start_date
         self.max_pages = 10

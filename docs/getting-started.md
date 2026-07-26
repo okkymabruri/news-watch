@@ -104,6 +104,9 @@ newswatch \
   --progress
 ```
 
+`--max-concurrent-scrapers` bounds how many sources run at once (default 6).
+Lower it on small machines; browser-driven sources are already limited to 2.
+
 Cloud and shared IPs are blocked more often than local connections. See [Troubleshooting](troubleshooting.md) for proxies and source-level diagnosis.
 
 ## Next

@@ -12,6 +12,7 @@ import asyncio
 import json
 import logging
 import os
+import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Union
@@ -21,6 +22,7 @@ import pandas as pd
 from .exceptions import NewsWatchError, ValidationError
 from .main import get_available_scrapers
 from .main import _load_dedup_links, _parse_time_range
+from .registry import get_scraper_by_slug
 
 
 class MockArgs:
@@ -165,6 +167,7 @@ async def _async_scrape_to_list(
     max_pages: int | None = None,
     *,
     scraper_timeout: int | None = None,
+    max_concurrent_scrapers: int = 6,
     time_range: str | None = None,
     dedup_file: str | None = None,
 ) -> List[Dict]:
@@ -239,8 +242,10 @@ async def _async_scrape_to_list(
     else:
         scrapers_to_run = [name.strip().lower() for name in scrapers.split(",")]
 
-    # instantiate scrapers
-    scraper_instances = []
+    # instantiate scrapers, keeping (slug, instance) pairs together so
+    # semaphore selection below never has to guess which slug an instance
+    # came from
+    scraper_entries = []
     for scraper_name in scrapers_to_run:
         scraper_info = scraper_classes.get(scraper_name)
         if scraper_info:
@@ -263,9 +268,11 @@ async def _async_scrape_to_list(
             if parsed_tr is not None:
                 scraper_instance.start_datetime = parsed_tr[0]
                 scraper_instance.end_datetime = parsed_tr[1]
-            scraper_instances.append(scraper_instance)
+            scraper_entries.append((scraper_name, scraper_instance))
         else:
             logging.warning(f"scraper '{scraper_name}' is not recognized.")
+
+    scraper_instances = [instance for _, instance in scraper_entries]
 
     if not scraper_instances:
         logging.error("no valid scrapers selected.")
@@ -294,26 +301,43 @@ async def _async_scrape_to_list(
     # run all scrapers concurrently with per-scraper timeout isolation
     scraper_stats: Dict[str, Dict] = {}
 
-    async def _run_with_timeout(scraper, timeout_val):
+    # Global cap on how many scrapers run at once (issue #47), mirroring
+    # main.py's CLI dispatch: with no cap, scrapers="all" fires every
+    # registry entry as a concurrent task, and the browser-required ones
+    # each launch their own Chromium process on top of that. Browser
+    # scrapers share a separate, smaller pool for the same reason.
+    general_sem = asyncio.Semaphore(max_concurrent_scrapers)
+    browser_sem = asyncio.Semaphore(min(2, max_concurrent_scrapers))
+
+    async def _run_with_timeout(scraper, timeout_val, sem):
         scraper_name = type(scraper).__name__
-        try:
-            if timeout_val:
-                await asyncio.wait_for(scraper.scrape(method=method), timeout=timeout_val)
-            else:
-                await scraper.scrape(method=method)
-            scraper_stats[scraper_name] = {"status": "ok"}
-        except asyncio.TimeoutError:
-            logging.warning(
-                f"Scraper {scraper_name} timed out after {timeout_val}s"
-            )
-            scraper_stats[scraper_name] = {"status": "timeout"}
-        except Exception as e:
-            logging.error(f"Scraper {scraper_name} failed: {e}")
-            scraper_stats[scraper_name] = {"status": "error"}
+        async with sem:
+            try:
+                if timeout_val:
+                    await asyncio.wait_for(scraper.scrape(method=method), timeout=timeout_val)
+                else:
+                    await scraper.scrape(method=method)
+                scraper_stats[scraper_name] = {"status": "ok"}
+            except asyncio.TimeoutError:
+                logging.warning(
+                    f"Scraper {scraper_name} timed out after {timeout_val}s"
+                )
+                scraper_stats[scraper_name] = {"status": "timeout"}
+            except Exception as e:
+                logging.error(f"Scraper {scraper_name} failed: {e}")
+                scraper_stats[scraper_name] = {"status": "error"}
 
     scraper_tasks = [
-        asyncio.create_task(_run_with_timeout(scraper, scraper_timeout))
-        for scraper in scraper_instances
+        asyncio.create_task(
+            _run_with_timeout(
+                scraper,
+                scraper_timeout,
+                browser_sem
+                if getattr(get_scraper_by_slug(slug), "browser_required", False)
+                else general_sem,
+            )
+        )
+        for slug, scraper in scraper_entries
     ]
 
     # start collector task (runs concurrently with scrapers)
@@ -335,12 +359,24 @@ async def _async_scrape_to_list(
         )
 
         if not done:
+            pending_count = sum(1 for t in scraper_tasks if not t.done())
             all_scrapers_done.cancel()
             for t in scraper_tasks:
                 if not t.done():
                     t.cancel()
             logging.warning(
                 f"Scraping took too long and was stopped after {timeout} seconds. {total_scrapers} scrapers were running."
+            )
+            # logging is disabled by default (verbose=False), which would
+            # make the line above silent -- warnings.warn is unaffected by
+            # logging.disable, so truncation stays visible either way.
+            warnings.warn(
+                f"newswatch: scraping stopped after the {timeout}s overall "
+                f"budget; results are partial ({pending_count}/{total_scrapers} "
+                f"scrapers still running). With max_concurrent_scrapers="
+                f"{max_concurrent_scrapers}, scrapers run in waves -- raise "
+                f"timeout= for large runs.",
+                stacklevel=2,
             )
         elif limit_hit in done:
             # Limit reached — cancel remaining scraper work
@@ -360,8 +396,17 @@ async def _async_scrape_to_list(
             # Scrapers finished — clean up limit watcher
             limit_hit.cancel()
     except asyncio.TimeoutError:
+        pending_count = sum(1 for t in scraper_tasks if not t.done())
         logging.warning(
             f"Scraping took too long and was stopped after {timeout} seconds. {total_scrapers} scrapers were running."
+        )
+        warnings.warn(
+            f"newswatch: scraping stopped after the {timeout}s overall "
+            f"budget; results are partial ({pending_count}/{total_scrapers} "
+            f"scrapers still running). With max_concurrent_scrapers="
+            f"{max_concurrent_scrapers}, scrapers run in waves -- raise "
+            f"timeout= for large runs.",
+            stacklevel=2,
         )
         for t in scraper_tasks:
             if not t.done():
@@ -408,6 +453,7 @@ def scrape(
     max_pages: int | None = None,
     *,
     scraper_timeout: int | None = None,
+    max_concurrent_scrapers: int = 6,
     time_range: str | None = None,
     dedup_file: str | None = None,
     proxy: str | None = None,
@@ -425,6 +471,8 @@ def scrape(
         method (str): Retrieval method - "search" or "latest"
         limit (int | None): Maximum number of articles to collect (latest mode)
         max_pages (int | None): Maximum pages to fetch per scraper
+        scraper_timeout (int | None): Per-scraper timeout in seconds
+        max_concurrent_scrapers (int): Maximum scrapers running at once (default 6). Browser-required scrapers share a smaller pool capped at 2.
         time_range (str | None): Filter articles by date window. Format: YYYY-MM-DD/YYYY-MM-DD, inclusive of both full calendar days (start 00:00:00, end 23:59:59.999999).
         dedup_file (str | None): Path to previous output file for deduplication.
         proxy (str | None): Proxy URL for all requests (e.g. 'http://user:pass@proxy.example.com:8080', 'socks5://proxy.example.com:1080'). Sets NEWSWATCH_PROXY.
@@ -454,6 +502,7 @@ def scrape(
             _async_scrape_to_list(
                 keywords, start_date, scrapers, verbose, timeout, method, limit, max_pages,
                 scraper_timeout=scraper_timeout,
+                max_concurrent_scrapers=max_concurrent_scrapers,
                 time_range=time_range, dedup_file=dedup_file,
             )
         )
@@ -486,6 +535,7 @@ def scrape_to_dataframe(
     max_pages: int | None = None,
     *,
     scraper_timeout: int | None = None,
+    max_concurrent_scrapers: int = 6,
     time_range: str | None = None,
     dedup_file: str | None = None,
     proxy: str | None = None,
@@ -504,6 +554,7 @@ def scrape_to_dataframe(
         limit (int | None): Maximum number of articles to collect (latest mode)
         max_pages (int | None): Maximum pages to fetch per scraper
         scraper_timeout (int | None): Per-scraper timeout in seconds
+        max_concurrent_scrapers (int): Maximum scrapers running at once (default 6). Browser-required scrapers share a smaller pool capped at 2.
         time_range (str | None): Filter articles by date window. Format: YYYY-MM-DD/YYYY-MM-DD, inclusive of both full calendar days (start 00:00:00, end 23:59:59.999999).
         dedup_file (str | None): Path to previous output file for deduplication.
         proxy (str | None): Proxy URL for all requests. Sets NEWSWATCH_PROXY.
@@ -519,7 +570,8 @@ def scrape_to_dataframe(
     try:
         results = scrape(
             keywords, start_date, scrapers, verbose, timeout, method, limit, max_pages,
-            scraper_timeout=scraper_timeout, time_range=time_range, dedup_file=dedup_file, proxy=proxy, **kwargs
+            scraper_timeout=scraper_timeout, max_concurrent_scrapers=max_concurrent_scrapers,
+            time_range=time_range, dedup_file=dedup_file, proxy=proxy, **kwargs
         )
 
         # define column order
@@ -565,6 +617,7 @@ def scrape_to_file(
     max_pages: int | None = None,
     *,
     scraper_timeout: int | None = None,
+    max_concurrent_scrapers: int = 6,
     time_range: str | None = None,
     dedup_file: str | None = None,
     proxy: str | None = None,
@@ -585,6 +638,7 @@ def scrape_to_file(
         limit (int | None): Maximum number of articles to collect (latest mode)
         max_pages (int | None): Maximum pages to fetch per scraper
         scraper_timeout (int | None): Per-scraper timeout in seconds
+        max_concurrent_scrapers (int): Maximum scrapers running at once (default 6). Browser-required scrapers share a smaller pool capped at 2.
         time_range (str | None): Filter articles by date window. Format: YYYY-MM-DD/YYYY-MM-DD, inclusive of both full calendar days (start 00:00:00, end 23:59:59.999999).
         dedup_file (str | None): Path to previous output file for deduplication.
         proxy (str | None): Proxy URL for all requests. Sets NEWSWATCH_PROXY.
@@ -613,7 +667,8 @@ def scrape_to_file(
         # get results as dataframe
         df = scrape_to_dataframe(
             keywords, start_date, scrapers, verbose, timeout, method, limit, max_pages,
-            scraper_timeout=scraper_timeout, time_range=time_range, dedup_file=dedup_file, proxy=proxy, **kwargs
+            scraper_timeout=scraper_timeout, max_concurrent_scrapers=max_concurrent_scrapers,
+            time_range=time_range, dedup_file=dedup_file, proxy=proxy, **kwargs
         )
 
         if df.empty:
@@ -685,6 +740,7 @@ def latest(
     scrapers: str = "auto", verbose: bool = False, timeout: int = 300,
     limit: int | None = None, max_pages: int | None = None,
     *, scraper_timeout: int | None = None,
+    max_concurrent_scrapers: int = 6,
     time_range: str | None = None, dedup_file: str | None = None,
     proxy: str | None = None,
 ) -> List[Dict]:
@@ -699,6 +755,7 @@ def latest(
         limit=limit,
         max_pages=max_pages,
         scraper_timeout=scraper_timeout,
+        max_concurrent_scrapers=max_concurrent_scrapers,
         time_range=time_range,
         dedup_file=dedup_file,
         proxy=proxy,
@@ -709,6 +766,7 @@ def latest_to_dataframe(
     scrapers: str = "auto", verbose: bool = False, timeout: int = 300,
     limit: int | None = None, max_pages: int | None = None,
     *, scraper_timeout: int | None = None,
+    max_concurrent_scrapers: int = 6,
     time_range: str | None = None, dedup_file: str | None = None,
     proxy: str | None = None,
 ) -> pd.DataFrame:
@@ -723,6 +781,7 @@ def latest_to_dataframe(
         limit=limit,
         max_pages=max_pages,
         scraper_timeout=scraper_timeout,
+        max_concurrent_scrapers=max_concurrent_scrapers,
         time_range=time_range,
         dedup_file=dedup_file,
         proxy=proxy,
@@ -739,6 +798,7 @@ def latest_to_file(
     max_pages: int | None = None,
     *,
     scraper_timeout: int | None = None,
+    max_concurrent_scrapers: int = 6,
     time_range: str | None = None,
     dedup_file: str | None = None,
     proxy: str | None = None,
@@ -756,6 +816,7 @@ def latest_to_file(
         limit=limit,
         max_pages=max_pages,
         scraper_timeout=scraper_timeout,
+        max_concurrent_scrapers=max_concurrent_scrapers,
         time_range=time_range,
         dedup_file=dedup_file,
         proxy=proxy,

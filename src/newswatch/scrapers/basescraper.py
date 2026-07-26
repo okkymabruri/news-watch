@@ -17,8 +17,9 @@ class BaseScraper(AsyncScraper, ABC):
         start_datetime=None,
         end_datetime=None,
         max_pages=None,
+        keyword_concurrency=None,
     ):
-        super().__init__(concurrency)
+        super().__init__(concurrency, keyword_concurrency=keyword_concurrency)
         self.keywords = (
             [keyword.strip() for keyword in keywords.split(",") if keyword.strip()]
             if keywords
@@ -120,12 +121,17 @@ class BaseScraper(AsyncScraper, ABC):
         if not found_articles:
             logging.info(f"No latest news found on {self.base_url}")
 
+    async def _run_keyword(self, keyword):
+        if self.keyword_semaphore is None:
+            await self.fetch_search_results(keyword)
+        else:
+            async with self.keyword_semaphore:
+                await self.fetch_search_results(keyword)
+
     async def scrape(self, method="search"):
         async with self:
             if method == "latest":
                 await self.fetch_latest_results()
             else:
-                tasks = [
-                    self.fetch_search_results(keyword) for keyword in self.keywords
-                ]
+                tasks = [self._run_keyword(keyword) for keyword in self.keywords]
                 await self.run(tasks)

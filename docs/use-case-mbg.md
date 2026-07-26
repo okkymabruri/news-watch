@@ -45,10 +45,14 @@ uv run newswatch \
   --daterange "2025-01-05/2026-07-17" \
   --scrapers all \
   --scraper-timeout 180 \
+  --max-concurrent-scrapers 6 \
   --output_format jsonl \
   --output_path mbg-all.jsonl \
   --progress
 ```
+
+Sources run in waves under the concurrency cap, so wall-clock time is
+roughly (sources ÷ cap) × `--scraper-timeout`, not a single flat timeout.
 
 What `--scrapers all` resolves to in this repo:
 

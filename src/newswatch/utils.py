@@ -97,8 +97,16 @@ def _looks_blocked(text: str) -> bool:
 
 
 class AsyncScraper:
-    def __init__(self, concurrency=12, max_retries=None):
+    def __init__(self, concurrency=12, max_retries=None, keyword_concurrency=None):
         self.semaphore = asyncio.Semaphore(concurrency)
+        # Separate from `semaphore` on purpose: `semaphore` is acquired again
+        # inside `fetch()`, so reusing it here would self-deadlock any
+        # scraper running at concurrency=1. `keyword_concurrency=None` means
+        # unbounded -- the historical behavior for scrapers that route
+        # through `fetch()` and are already throttled there.
+        self.keyword_semaphore = (
+            asyncio.Semaphore(keyword_concurrency) if keyword_concurrency else None
+        )
         self.session = None
         self.max_retries = max_retries if max_retries is not None else config.get_max_retries()
         self.proxy = config.get_proxy()

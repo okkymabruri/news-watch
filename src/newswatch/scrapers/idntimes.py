@@ -15,8 +15,8 @@ from .basescraper import BaseScraper
 
 
 class IDNTimesScraper(BaseScraper):
-    def __init__(self, keywords, concurrency=5, start_date=None, queue_=None):
-        super().__init__(keywords, concurrency, queue_)
+    def __init__(self, keywords, concurrency=5, start_date=None, queue_=None, keyword_concurrency=None):
+        super().__init__(keywords, concurrency, queue_, keyword_concurrency=keyword_concurrency)
         self.base_url = "https://www.idntimes.com"
         self.start_date = start_date
         self.continue_scraping = True

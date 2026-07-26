@@ -119,11 +119,12 @@ export NEWSWATCH_MAX_RETRIES=3
 newswatch --keywords ihsg --start_date 2025-01-01
 ```
 
-All knobs also work as keyword arguments (`proxy=`, `scraper_timeout=`) or CLI flags.
+All knobs also work as keyword arguments (`proxy=`, `scraper_timeout=`, `max_concurrent_scrapers=`) or CLI flags.
 
 ## Reliability and limits
 
 - **Local runs are most reliable.** Cloud and shared IPs get blocked more often; route through `--proxy` when running on Colab or CI.
+- **Concurrency is capped.** At most 6 scrapers run at once (`--max-concurrent-scrapers` / `max_concurrent_scrapers=`), with browser-driven sources limited to 2. Large `scrapers="all"` runs therefore proceed in waves — raise `timeout=` accordingly or the run returns partial results.
 - **Strict-search policy** — sources with `Yes` in the Search column of [index.md](index.md) have verified keyword workflows; a non-empty result for a nonsense keyword is a bug, not a feature.
 - **AP News** uses topic hub pages with keyword-in-title filtering (no `/search?q=`); **Al Jazeera** is latest-only via RSS.
 - **Output defaults:** CLI writes CSV in the working directory; `scrape_to_file` defaults to XLSX. Honor both, or pass `output_format` explicitly.

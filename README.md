@@ -68,7 +68,7 @@ newswatch --method <search|latest> -k <keywords> -sd <start_date> -s [<scrapers>
 | `-k, --keywords` | Comma-separated keywords to scrape (required for `search`, optional for `latest`) |
 | `-sd, --start_date` | Start date in YYYY-MM-DD format (required for `search`, ignored in `latest`) |
 | `-s, --scrapers` | Scrapers to use: specific names (e.g., `"kompas,viva"`), `"auto"` (default, platform-appropriate), or `"all"` (force all, may fail) |
-| `-of, --output_format` | Output format: `csv`, `xlsx`, `json`, or `jsonl` (default: csv) |
+| `-of, --output_format` | Output format: `csv`, `xlsx`, `json`, or `jsonl` (default: csv). `csv` and `jsonl` stream to disk incrementally; `xlsx` and `json` are held in memory and written once at the end |
 | `-o, --output_path` | Custom output file path (optional) |
 | `-v, --verbose` | Show detailed logging output (default: silent) |
 | `--list_scrapers` | List all supported scrapers and exit |
@@ -76,6 +76,7 @@ newswatch --method <search|latest> -k <keywords> -sd <start_date> -s [<scrapers>
 | `--limit` | Maximum number of articles to collect in latest mode |
 | `--max-pages` | Maximum pages to fetch per scraper in latest mode |
 | `--scraper-timeout` | Per-scraper timeout in seconds |
+| `--max-concurrent-scrapers` | Maximum scrapers running at once (default: 6). Browser-required scrapers share a smaller pool capped at 2 |
 | `--progress` | Print per-scraper progress lines |
 | `--daterange` | Filter articles by an inclusive date window. Format: `YYYY-MM-DD/YYYY-MM-DD` (e.g. `2026-07-13/2026-07-14`); start = 00:00:00, end = 23:59:59.999999 of the same day |
 | `--dedup-file` | Path to a previous output file (JSON/JSONL/CSV); articles with matching links are skipped |

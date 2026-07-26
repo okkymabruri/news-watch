@@ -6,7 +6,13 @@ Each entry declares:
   - name: human-readable display name
   - module: python module name (relative to scrapers/)
   - class_name: scraper class name
-  - concurrency: default worker count
+  - concurrency: default worker count (HTTP fetch concurrency, via self.fetch())
+  - keyword_concurrency: cap on concurrent keyword tasks per scraper run;
+    None means unbounded (default). Distinct axis from `concurrency` --
+    scrapers that call Playwright directly from fetch_search_results()
+    never go through self.fetch(), so `concurrency` doesn't bound them.
+    browser_required sources default to 1 here even when unset (see
+    get_available_scrapers_from_registry).
   - status: "stable" | "quarantined" | "investigating"
   - strict_search: whether true arbitrary-keyword search is validated
   - browser_required: whether Playwright is needed for this source
@@ -36,6 +42,7 @@ class ScraperEntry:
     module: str
     class_name: str
     concurrency: int = 5
+    keyword_concurrency: Optional[int] = None
     status: str = "stable"  # stable | quarantined | investigating
     strict_search: bool = True
     browser_required: bool = False
@@ -971,12 +978,16 @@ def get_available_scrapers_from_registry(method: str = "search"):
                 f".scrapers.{entry.module}", package="newswatch"
             )
             scraper_class = getattr(module, entry.class_name)
-            scraper_classes[slug] = {
-                "class": scraper_class,
-                "params": {"concurrency": entry.concurrency}
-                if entry.concurrency
-                else {},
-            }
+            params = {"concurrency": entry.concurrency} if entry.concurrency else {}
+            keyword_concurrency = entry.keyword_concurrency
+            if keyword_concurrency is None and entry.browser_required:
+                # Each browser-required scraper launches its own Chromium
+                # process per keyword task unless gated; default to serial
+                # keywords for these unless an entry opts into more.
+                keyword_concurrency = 1
+            if keyword_concurrency is not None:
+                params["keyword_concurrency"] = keyword_concurrency
+            scraper_classes[slug] = {"class": scraper_class, "params": params}
         except (ImportError, AttributeError) as e:
             logging.warning(f"Failed to load scraper '{slug}': {e}")
 
