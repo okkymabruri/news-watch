@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.4] - 2026-07-27
+
 ### Added
 - `--max-concurrent-scrapers` CLI flag and `max_concurrent_scrapers=` Python keyword (default 6) capping how many scrapers run at once; browser-required sources share a separate pool capped at 2
 - `keyword_concurrency` registry field (default 1 for browser-required sources) bounding concurrent per-keyword tasks within one scraper run
