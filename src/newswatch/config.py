@@ -1,6 +1,7 @@
 """Runtime config read from env. Single source for proxy/UA/retry overrides."""
 
 import os
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 DEFAULT_USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -8,6 +9,7 @@ DEFAULT_USER_AGENT = (
     "Chrome/126.0.0.0 Safari/537.36"
 )
 DEFAULT_MAX_RETRIES = 3
+DEFAULT_TIMEZONE = "Asia/Jakarta"
 
 
 def get_proxy():
@@ -41,6 +43,23 @@ def get_max_retries():
     if parsed < 0:
         return DEFAULT_MAX_RETRIES
     return parsed
+
+def get_timezone():
+    """IANA zone that naive publish timestamps are expressed in.
+
+    Reads ``NEWSWATCH_TIMEZONE``. Unset, empty, or not a known zone →
+    DEFAULT_TIMEZONE. Every source converts into this zone, so changing it
+    changes what a naive ``publish_date`` and a ``--time_range`` boundary mean.
+    """
+    value = os.environ.get("NEWSWATCH_TIMEZONE")
+    if not value:
+        return DEFAULT_TIMEZONE
+    try:
+        ZoneInfo(value)
+    except (ZoneInfoNotFoundError, ValueError):
+        return DEFAULT_TIMEZONE
+    return value
+
 
 def get_health_history_path() -> str | None:
     """Path for append-only JSONL health history, or None.

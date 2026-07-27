@@ -55,13 +55,14 @@ from __future__ import annotations
 import asyncio
 import json
 import warnings
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import quote
 
 import pytest
 from bs4 import BeautifulSoup
 
+from newswatch.timeutils import to_project_naive
 from newswatch.scrapers.alinea import AlineaScraper
 from newswatch.scrapers.betahita import BetahitaScraper
 from newswatch.scrapers.conversationid import ConversationIDScraper
@@ -2834,7 +2835,11 @@ class TestConversationIDFocus:
 
         item = s.queue_.get_nowait()
         assert item["title"] == "Conversation ID test headline"
-        assert item["publish_date"] == datetime(2026, 7, 12, 10, 0, 0)
+        # Fixture date is UTC; the queue carries it converted to the reference
+        # zone, not truncated to it.
+        assert item["publish_date"] == to_project_naive(
+            datetime(2026, 7, 12, 10, 0, 0, tzinfo=timezone.utc)
+        )
         assert item["publish_date"].tzinfo is None
         # Multiple authors joined with comma, preserving insertion order.
         assert item["author"] == "Author One, Author Two"
@@ -2857,7 +2862,9 @@ class TestConversationIDFocus:
         await s.get_article(link, "indonesia")
 
         item = s.queue_.get_nowait()
-        assert item["publish_date"] == datetime(2026, 7, 12, 12, 0, 0)
+        assert item["publish_date"] == to_project_naive(
+            datetime(2026, 7, 12, 12, 0, 0, tzinfo=timezone.utc)
+        )
         assert item["publish_date"].tzinfo is None
 
 class TestKaltimPostFocus:
@@ -3162,7 +3169,9 @@ class TestIndependenFocus:
         item = s.queue_.get_nowait()
         # og:title suffix "- Independen.id" must be stripped.
         assert item["title"] == "Independen test headline"
-        assert item["publish_date"] == datetime(2026, 7, 12, 3, 0, 0)
+        assert item["publish_date"] == to_project_naive(
+            datetime(2026, 7, 12, 3, 0, 0, tzinfo=timezone.utc)
+        )
         assert item["publish_date"].tzinfo is None
         assert item["author"] == "Independen Reporter"
         assert item["category"] == "Investigasi"

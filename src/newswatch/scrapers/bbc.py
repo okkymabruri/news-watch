@@ -5,6 +5,7 @@ from urllib.parse import urlencode
 
 from bs4 import BeautifulSoup
 
+from ..timeutils import to_project_naive
 from .basescraper import BaseScraper
 
 
@@ -49,7 +50,7 @@ class BBCNewsScraper(BaseScraper):
             if self.start_date:
                 first_updated = meta.get("firstUpdated")
                 if first_updated:
-                    article_date = datetime.fromtimestamp(first_updated / 1000, tz=timezone.utc).replace(tzinfo=None)
+                    article_date = to_project_naive(datetime.fromtimestamp(first_updated / 1000, tz=timezone.utc))
                     if article_date < self.start_date:
                         continue
             href = r.get("href", "")
@@ -140,7 +141,7 @@ class BBCNewsScraper(BaseScraper):
 
         publish_date = None
         if publish_ts:
-            publish_date = datetime.fromtimestamp(publish_ts / 1000, tz=timezone.utc).replace(tzinfo=None)
+            publish_date = to_project_naive(datetime.fromtimestamp(publish_ts / 1000, tz=timezone.utc))
         if not publish_date:
             return
 

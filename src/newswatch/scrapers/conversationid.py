@@ -33,6 +33,7 @@ from urllib.parse import quote, urljoin
 
 from bs4 import BeautifulSoup
 
+from ..timeutils import to_project_naive
 from .basescraper import BaseScraper
 
 
@@ -238,11 +239,8 @@ def _parse_iso(value):
     raw = value.strip()
     if raw.endswith("Z"):
         raw = raw[:-1] + "+00:00"
-    from datetime import datetime, timezone
+    from datetime import datetime
     try:
-        parsed = datetime.fromisoformat(raw)
-        if parsed.tzinfo is not None:
-            parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
-        return parsed
+        return to_project_naive(datetime.fromisoformat(raw))
     except (ValueError, TypeError):
         return None

@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 
 import dateparser
 
+from ..timeutils import to_project_naive
 from ..utils import AsyncScraper
 
 
@@ -37,7 +38,9 @@ class BaseScraper(AsyncScraper, ABC):
     def parse_date(self, date_string, **kwargs):
         parsed_date = dateparser.parse(date_string, **kwargs)
         if parsed_date:
-            return parsed_date.replace(tzinfo=None)
+            # convert the offset, don't discard it: a -04:00 and a +07:00
+            # article are 11 hours apart, not the same instant
+            return to_project_naive(parsed_date)
         return None
 
     @abstractmethod

@@ -26,6 +26,7 @@ from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 
+from ..timeutils import to_project_naive
 from .basescraper import BaseScraper
 
 _SM_NS = "http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -85,15 +86,10 @@ def _matches_all_tokens(haystack, tokens):
 
 
 def _to_naive(value):
-    """Strip tz info for the queue payload; dateparser may return aware datetimes."""
+    """Normalize to the reference zone for the queue payload."""
     if value is None:
         return None
-    if value.tzinfo is not None:
-        try:
-            return value.replace(tzinfo=None)
-        except (AttributeError, ValueError):
-            return value
-    return value
+    return to_project_naive(value)
 
 
 def _is_canonical_article(url):
