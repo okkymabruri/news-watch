@@ -116,6 +116,7 @@ newswatch --keywords ihsg --start_date 2025-01-01 --dedup-file previous-output.c
 export NEWSWATCH_PROXY="socks5://proxy.example.com:1080"
 export NEWSWATCH_USER_AGENT="Mozilla/5.0 ..."
 export NEWSWATCH_MAX_RETRIES=3
+export NEWSWATCH_TIMEZONE="Asia/Jakarta"
 newswatch --keywords ihsg --start_date 2025-01-01
 ```
 

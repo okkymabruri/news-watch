@@ -50,7 +50,7 @@ df = nw.scrape_to_dataframe(
 )
 ```
 
-Other reliability overrides (env vars): `NEWSWATCH_USER_AGENT` (custom User-Agent), `NEWSWATCH_MAX_RETRIES` (retry count, default 3).
+Other reliability overrides (env vars): `NEWSWATCH_USER_AGENT` (custom User-Agent), `NEWSWATCH_MAX_RETRIES` (retry count, default 3), `NEWSWATCH_TIMEZONE` (zone for `publish_date` and date filters, default `Asia/Jakarta`).
 
 ## Usage
 
