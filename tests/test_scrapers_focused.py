@@ -54,6 +54,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import warnings
 from datetime import datetime, timezone
 from typing import Any
@@ -4179,6 +4180,36 @@ class TestNBCNewsFocus:
     def test_months_respect_the_max_months_cap(self):
         s = self._scraper(start_date=datetime(2000, 1, 1))
         assert len(s._months()) == s.MAX_MONTHS
+
+    def test_month_cap_is_announced_not_silent(self, caplog):
+        """A bound that drops requested coverage has to say so."""
+        s = self._scraper(start_date=datetime(2000, 1, 1))
+        with caplog.at_level(logging.WARNING):
+            s._months()
+        assert "at most" in caplog.text
+        assert "not reading anything before" in caplog.text
+
+    def test_month_cap_stays_quiet_when_it_does_not_bind(self, caplog):
+        s = self._scraper(start_date=datetime.now())
+        with caplog.at_level(logging.WARNING):
+            s._months()
+        assert caplog.text == ""
+
+    @pytest.mark.asyncio
+    async def test_article_cap_is_announced_when_it_binds(self, caplog):
+        s = self._scraper(start_date=datetime(2026, 5, 1))
+        s.MAX_ARTICLES_PER_QUERY = 1
+        responses = {
+            s.archive_url(year, month): _nbcnews_archive_html()
+            for year, month in s._months()
+        }
+        _attach_fetch(s, responses)
+        s.get_article = _record_links([])
+
+        with caplog.at_level(logging.WARNING):
+            await s.fetch_search_results("police reform")
+
+        assert "article cap" in caplog.text
 
     def test_search_applies_every_token_keyword_gate(self):
         s = self._scraper()

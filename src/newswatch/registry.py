@@ -839,7 +839,7 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         concurrency=3,
         smoke_keyword="police",
         supports_latest=True,
-        note="new; monthly /archive/articles/{year}/{month} keyword filtering for search (historical reach), /sitemap/nbcnews/sitemap-news for latest; robots disallows /search; English; 2026-07-27",
+        note="new; monthly /archive/articles/{year}/{month} keyword filtering for search (historical reach, at most 12 months and 25 articles per keyword per run, both logged when they bind), /sitemap/nbcnews/sitemap-news for latest; robots disallows /search; English; 2026-07-27",
     ),
 )
 

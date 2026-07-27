@@ -116,7 +116,21 @@ class NBCNewsScraper(BaseScraper):
         """Months to walk, newest first. Without start_date, the current month only."""
         now = datetime.now()
         start = self.start_date or now
-        return _months_descending(start, now)[: self.MAX_MONTHS]
+        planned = _months_descending(start, now)
+        if len(planned) > self.MAX_MONTHS:
+            kept = planned[: self.MAX_MONTHS]
+            oldest_kept = kept[-1]
+            logging.warning(
+                "NBC News: start_date spans %d months but at most %d are fetched per "
+                "run; not reading anything before %04d-%02d. Narrow --start_date or "
+                "run in slices to cover the rest.",
+                len(planned),
+                self.MAX_MONTHS,
+                oldest_kept[0],
+                oldest_kept[1],
+            )
+            return kept
+        return planned
 
     def archive_url(self, year, month):
         return f"{self.BASE_URL}/archive/articles/{year}/{_MONTH_NAMES[month - 1]}"
@@ -207,6 +221,12 @@ class NBCNewsScraper(BaseScraper):
             if not await self.process_page(links, keyword):
                 break
             if collected >= self.MAX_ARTICLES_PER_QUERY:
+                logging.warning(
+                    "NBC News: hit the %d-article cap for keyword '%s'; older "
+                    "matches in the remaining months were not fetched.",
+                    self.MAX_ARTICLES_PER_QUERY,
+                    keyword,
+                )
                 break
 
         if not found_any:
