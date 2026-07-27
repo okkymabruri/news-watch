@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.5] - 2026-07-27
+
 ### Added
 - ABC News and NBC News sources, both English-language. ABC filters the `xmlLatestStories` news sitemap (~13-day window); NBC walks its monthly archive pages, giving keyword search real historical reach
 - `NEWSWATCH_TIMEZONE` environment variable setting the zone that naive `publish_date` values and `--time_range` boundaries are expressed in (default `Asia/Jakarta`)
