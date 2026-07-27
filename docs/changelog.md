@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `NEWSWATCH_TIMEZONE` environment variable setting the zone that naive `publish_date` values and `--time_range` boundaries are expressed in (default `Asia/Jakarta`)
 
 ### Changed
-- Publish timestamps from sources that report a UTC offset are now converted into the reference timezone instead of having the offset discarded, so every source in one output file shares a single clock. Timestamps from BBC, The Conversation Indonesia, Independen and IDN Financials shift accordingly; sources that publish at +07:00 are unaffected
+- Publish timestamps that carry a UTC offset are now converted into the reference timezone instead of having the offset discarded, so every source in one output file shares a single clock. Any source reporting an offset other than `+07:00` shifts by the difference — in practice the global English-language sources (BBC, AP News, Al Jazeera, and the two added here) plus The Conversation Indonesia, Independen and IDN Financials. Sources that publish at `+07:00`, or with no offset at all, are unaffected
 
 ### Fixed
 - `--time_range` no longer discards the entire output file when an article timestamp carries a UTC offset. The comparison raised `TypeError`, which escaped the parse guard: the CLI logged one line and never promoted its temporary file, while the Python API propagated the error
