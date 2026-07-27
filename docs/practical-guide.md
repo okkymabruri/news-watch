@@ -56,10 +56,10 @@ nw.list_scrapers(method="latest") # sources that support latest mode
 For larger sweeps, narrow the date window or `--limit` to bound cost; for noisy periods, narrow `--scrapers` before retrying.
 
 <!-- BEGIN GENERATED: guide-counts -->
-The stable release currently exposes 77 supported scrapers. 1 source under investigation; 1 source quarantined.
+The stable release currently exposes 79 supported scrapers. 1 source under investigation; 1 source quarantined.
 
-72 of 77 stable sources support keyword search; 77 support latest monitoring.
-The full registry contains 79 sources: 74 support keyword search and 79 support latest monitoring.
+74 of 79 stable sources support keyword search; 79 support latest monitoring.
+The full registry contains 81 sources: 76 support keyword search and 81 support latest monitoring.
 <!-- END GENERATED: guide-counts -->
 
 ## Saving results

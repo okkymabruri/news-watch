@@ -1,4 +1,6 @@
 from .antaranews import AntaranewsScraper as AntaranewsScraper
+from .abcnews import ABCNewsScraper as ABCNewsScraper
+from .nbcnews import NBCNewsScraper as NBCNewsScraper
 from .apnews import APNewsScraper as APNewsScraper
 from .aljazeera import AlJazeeraScraper as AlJazeeraScraper
 from .balipost import BaliPostScraper as BaliPostScraper

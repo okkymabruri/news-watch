@@ -80,8 +80,8 @@ bypass `fetch()` are bounded by the second.
 
 | State | Count |
 |---|---|
-| registered | 79 |
-| stable | 77 |
+| registered | 81 |
+| stable | 79 |
 | quarantined | 1 |
 | investigating | 1 |
 <!-- END GENERATED: architecture-state -->

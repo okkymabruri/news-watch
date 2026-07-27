@@ -26,6 +26,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 # this on every run so a stale mapping fails fast instead of silently
 # dropping a source link.
 SOURCE_URLS: Dict[str, str] = {
+    "abcnews": "https://abcnews.com",
     "alinea": "https://www.alinea.id",
     "antaranews": "https://antaranews.com",
     "apnews": "https://apnews.com",
@@ -80,6 +81,7 @@ SOURCE_URLS: Dict[str, str] = {
     "niagaasia": "https://www.niaga.asia",
     "mojok": "https://mojok.co",
     "mongabay": "https://mongabay.co.id",
+    "nbcnews": "https://www.nbcnews.com",
     "nusabali": "https://www.nusabali.com",
     "ntvnews": "https://www.ntvnews.id",
     "okezone": "https://okezone.com",

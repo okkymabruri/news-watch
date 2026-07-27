@@ -819,6 +819,28 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         supports_latest=True,
         note="new; latest-only via RSS /xml/rss/all.xml; JS-rendered search page; English; global coverage; 2026-05-24",
     ),
+    ScraperEntry(
+        "abcnews",
+        "ABC News",
+        "abcnews", "ABCNewsScraper",
+        status="stable",
+        strict_search=False,
+        concurrency=3,
+        smoke_keyword="police",
+        supports_latest=True,
+        note="new; xmlLatestStories news sitemap keyword filtering (~13-day window); robots disallows /search?searchtext=*; abcnews.go.com 301s to abcnews.com; English; 2026-07-27",
+    ),
+    ScraperEntry(
+        "nbcnews",
+        "NBC News",
+        "nbcnews", "NBCNewsScraper",
+        status="stable",
+        strict_search=False,
+        concurrency=3,
+        smoke_keyword="police",
+        supports_latest=True,
+        note="new; monthly /archive/articles/{year}/{month} keyword filtering for search (historical reach), /sitemap/nbcnews/sitemap-news for latest; robots disallows /search; English; 2026-07-27",
+    ),
 )
 
 
