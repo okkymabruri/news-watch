@@ -196,13 +196,13 @@ except NewsWatchError as exc:
 <!-- BEGIN GENERATED: api-notes -->
 ## Stable API Notes
 
-All 79 registered scrapers are exposed via `list_scrapers()` and the public `SCRAPERS` mapping. 74 of them support the `search` method; all 79 support `latest`.
+All 81 registered scrapers are exposed via `list_scrapers()` and the public `SCRAPERS` mapping. 76 of them support the `search` method; all 81 support `latest`.
 
 ## Notes
 
 - Prefer `scrapers="auto"` unless you know which sites you need.
 - Cloud/server environments are more likely to be blocked.
-- Stable support currently covers 77 scrapers (72 search-capable, 77 latest-capable).
+- Stable support currently covers 79 scrapers (74 search-capable, 79 latest-capable).
 - 1 source under investigation; 1 source quarantined.
 
 **Empty results**: Check if your keywords are in Indonesian or try broader terms.

@@ -65,6 +65,7 @@ Optional environment controls:
 
 - `NEWSWATCH_USER_AGENT`: custom user agent
 - `NEWSWATCH_MAX_RETRIES`: request retry limit; default 3
+- `NEWSWATCH_TIMEZONE`: zone that `publish_date` values and `--start_date`/`--time_range` boundaries are expressed in; default `Asia/Jakarta`
 
 ## Browser-backed source fails
 

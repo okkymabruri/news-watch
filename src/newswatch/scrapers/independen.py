@@ -31,11 +31,12 @@ Latest is latest-only — homepage page 1.
 
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import datetime
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
+from ..timeutils import to_project_naive
 from .basescraper import BaseScraper
 
 
@@ -117,9 +118,7 @@ def _parse_iso(value):
         parsed = datetime.fromisoformat(raw)
     except ValueError:
         return None
-    if parsed.tzinfo is not None:
-        parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
-    return parsed
+    return to_project_naive(parsed)
 
 
 class IndependenScraper(BaseScraper):

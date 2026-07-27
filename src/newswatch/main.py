@@ -13,6 +13,7 @@ from pathlib import Path
 
 
 from .registry import get_available_scrapers_from_registry, get_scraper_by_slug
+from .timeutils import to_project_naive
 
 logging.basicConfig(
     level=logging.INFO,
@@ -59,6 +60,29 @@ def _load_dedup_links(file_path: str) -> set:
 
     logger.info(f"Loaded {len(links)} links from dedup file: {file_path}")
     return links
+
+
+def _in_time_range(pub_date, time_start, time_end):
+    """True if ``pub_date`` falls inside the range; False if it can't be compared.
+
+    Range bounds are naive, so an offset-bearing value has to be converted onto
+    the same clock first -- comparing aware against naive raises TypeError,
+    which is not a ValueError and so escapes the caller's parse guard and kills
+    the whole writer.
+    """
+    if isinstance(pub_date, str):
+        try:
+            pub_date = datetime.fromisoformat(pub_date)
+        except ValueError:
+            return False
+    pub_date = to_project_naive(pub_date)
+    if not isinstance(pub_date, datetime):
+        return False
+    if time_start is not None and pub_date < time_start:
+        return False
+    if time_end is not None and pub_date > time_end:
+        return False
+    return True
 
 
 def _parse_time_range(time_range: str):
@@ -152,18 +176,8 @@ async def write_csv(queue, output_label, filename=None, limit=None, limit_reache
                 # Apply time range filter
                 if time_start is not None or time_end is not None:
                     pub_date = item.get("publish_date")
-                    if pub_date:
-                        if isinstance(pub_date, str):
-                            try:
-                                pub_date = datetime.fromisoformat(pub_date)
-                            except ValueError:
-                                continue
-                        if not isinstance(pub_date, datetime):
-                            continue
-                        if time_start is not None and pub_date < time_start:
-                            continue
-                        if time_end is not None and pub_date > time_end:
-                            continue
+                    if pub_date and not _in_time_range(pub_date, time_start, time_end):
+                        continue
 
                 # Format datetime objects as strings
                 if isinstance(item.get("publish_date"), datetime):
@@ -231,18 +245,8 @@ async def write_json(queue, output_label, filename=None, limit=None, limit_reach
             # Apply time range filter
             if time_start is not None or time_end is not None:
                 pub_date = item.get("publish_date")
-                if pub_date:
-                    if isinstance(pub_date, str):
-                        try:
-                            pub_date = datetime.fromisoformat(pub_date)
-                        except ValueError:
-                            continue
-                    if not isinstance(pub_date, datetime):
-                        continue
-                    if time_start is not None and pub_date < time_start:
-                        continue
-                    if time_end is not None and pub_date > time_end:
-                        continue
+                if pub_date and not _in_time_range(pub_date, time_start, time_end):
+                    continue
 
             # Format datetime objects as strings for JSON serialization
             if isinstance(item.get("publish_date"), datetime):
@@ -337,18 +341,8 @@ async def write_xlsx(queue, output_label, filename=None, limit=None, limit_reach
             # Apply time range filter
             if time_start is not None or time_end is not None:
                 pub_date = item.get("publish_date")
-                if pub_date:
-                    if isinstance(pub_date, str):
-                        try:
-                            pub_date = datetime.fromisoformat(pub_date)
-                        except ValueError:
-                            continue
-                    if not isinstance(pub_date, datetime):
-                        continue
-                    if time_start is not None and pub_date < time_start:
-                        continue
-                    if time_end is not None and pub_date > time_end:
-                        continue
+                if pub_date and not _in_time_range(pub_date, time_start, time_end):
+                    continue
 
             # Format datetime objects as strings
             if isinstance(item.get("publish_date"), datetime):
@@ -416,18 +410,8 @@ async def write_jsonl(queue, output_label, filename=None, limit=None, limit_reac
                 # Apply time range filter
                 if time_start is not None or time_end is not None:
                     pub_date = item.get("publish_date")
-                    if pub_date:
-                        if isinstance(pub_date, str):
-                            try:
-                                pub_date = datetime.fromisoformat(pub_date)
-                            except ValueError:
-                                continue
-                        if not isinstance(pub_date, datetime):
-                            continue
-                        if time_start is not None and pub_date < time_start:
-                            continue
-                        if time_end is not None and pub_date > time_end:
-                            continue
+                    if pub_date and not _in_time_range(pub_date, time_start, time_end):
+                        continue
 
                 # Format datetime objects as strings
                 if isinstance(item.get("publish_date"), datetime):

@@ -21,6 +21,7 @@ from urllib.parse import quote, urljoin
 
 from bs4 import BeautifulSoup
 
+from ..timeutils import to_project_naive
 from .basescraper import BaseScraper
 
 # Task-local current keyword: each concurrent `fetch_search_results`
@@ -106,10 +107,9 @@ def _parse_iso_datetime(value):
     try:
         # python's fromisoformat handles "+07:00" offsets in 3.11+
         cleaned = value.replace("Z", "+00:00")
-        dt = datetime.fromisoformat(cleaned)
-        if dt.tzinfo is not None:
-            dt = dt.astimezone(tz=None).replace(tzinfo=None)
-        return dt
+        # not astimezone(tz=None): that resolves to the runner machine's zone,
+        # so the same article yielded a different timestamp per host
+        return to_project_naive(datetime.fromisoformat(cleaned))
     except (TypeError, ValueError):
         return None
 

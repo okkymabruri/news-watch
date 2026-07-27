@@ -54,15 +54,19 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import warnings
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import quote
 
 import pytest
 from bs4 import BeautifulSoup
 
+from newswatch.timeutils import to_project_naive
+from newswatch.scrapers.abcnews import ABCNewsScraper
 from newswatch.scrapers.alinea import AlineaScraper
+from newswatch.scrapers.nbcnews import NBCNewsScraper
 from newswatch.scrapers.betahita import BetahitaScraper
 from newswatch.scrapers.conversationid import ConversationIDScraper
 from newswatch.scrapers.ddtcnews import DDTCNewsScraper
@@ -125,6 +129,15 @@ def _attach_fetch(scraper: Any, responses: dict[str, str]) -> _FetchStub:
     stub = _FetchStub(responses)
     scraper.fetch = stub
     return stub
+
+
+def _record_links(sink: list) -> Any:
+    """Stand-in for get_article that records the links it was handed."""
+
+    async def _get_article(link, keyword):
+        sink.append(link)
+
+    return _get_article
 
 
 # ── 1. Kumparan: latest mode consumes active RSS XML ─────────────────────
@@ -2834,7 +2847,11 @@ class TestConversationIDFocus:
 
         item = s.queue_.get_nowait()
         assert item["title"] == "Conversation ID test headline"
-        assert item["publish_date"] == datetime(2026, 7, 12, 10, 0, 0)
+        # Fixture date is UTC; the queue carries it converted to the reference
+        # zone, not truncated to it.
+        assert item["publish_date"] == to_project_naive(
+            datetime(2026, 7, 12, 10, 0, 0, tzinfo=timezone.utc)
+        )
         assert item["publish_date"].tzinfo is None
         # Multiple authors joined with comma, preserving insertion order.
         assert item["author"] == "Author One, Author Two"
@@ -2857,7 +2874,9 @@ class TestConversationIDFocus:
         await s.get_article(link, "indonesia")
 
         item = s.queue_.get_nowait()
-        assert item["publish_date"] == datetime(2026, 7, 12, 12, 0, 0)
+        assert item["publish_date"] == to_project_naive(
+            datetime(2026, 7, 12, 12, 0, 0, tzinfo=timezone.utc)
+        )
         assert item["publish_date"].tzinfo is None
 
 class TestKaltimPostFocus:
@@ -3162,7 +3181,9 @@ class TestIndependenFocus:
         item = s.queue_.get_nowait()
         # og:title suffix "- Independen.id" must be stripped.
         assert item["title"] == "Independen test headline"
-        assert item["publish_date"] == datetime(2026, 7, 12, 3, 0, 0)
+        assert item["publish_date"] == to_project_naive(
+            datetime(2026, 7, 12, 3, 0, 0, tzinfo=timezone.utc)
+        )
         assert item["publish_date"].tzinfo is None
         assert item["author"] == "Independen Reporter"
         assert item["category"] == "Investigasi"
@@ -3910,3 +3931,360 @@ class TestVOIDiscovery:
         assert await scraper.build_search_url("pasar modal", 2) == _voi_index_html()
         assert stub.calls[0][0] == f"{self.BASE}/en/artikel/cari?q=pasar+modal&page=2"
         assert scraper.parse_article_links("<p>Found 0 articles</p>") is None
+
+
+# ── ABC News: news-sitemap keyword filtering + article extraction ─────────
+
+
+def _abcnews_feed_xml(entries=None):
+    entries = entries or [
+        (
+            "https://abcnews.com/Politics/wireStory/police-reform-bill-advances-135112211",
+            "Police reform bill advances in the Senate",
+            "2026-07-27T12:29:49+00:00",
+        ),
+        (
+            "https://abcnews.com/Sports/story/marathon-record-broken-135000000",
+            "Marathon record broken in Boston",
+            "2026-07-26T10:00:00+00:00",
+        ),
+        (
+            "https://abcnews.com/US/video/storm-footage-134900000",
+            "Storm footage from the coast",
+            "2026-07-25T10:00:00+00:00",
+        ),
+        (
+            "https://othersite.example.com/Politics/story/off-domain-1",
+            "Off domain story",
+            "2026-07-25T10:00:00+00:00",
+        ),
+    ]
+    blocks = "".join(
+        f"<url><loc>{loc}</loc><lastmod>{date}</lastmod>"
+        f"<news:news><news:publication><news:name>ABC News</news:name>"
+        f"<news:language>en</news:language></news:publication>"
+        f"<news:publication_date>{date}</news:publication_date>"
+        f"<news:title><![CDATA[{title}]]></news:title></news:news></url>"
+        for loc, title, date in entries
+    )
+    return (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
+        'xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">'
+        f"{blocks}</urlset>"
+    )
+
+
+def _abcnews_article_html():
+    return """<!doctype html><html><head>
+        <meta property="og:title" content="og fallback title">
+        <script type="application/ld+json">{"@type":"WebSite","name":"ABC"}</script>
+        <script type="application/ld+json">{"@type":"NewsArticle",
+            "headline":"Police reform bill advances in the Senate",
+            "datePublished":"2026-07-27T10:47:18.000Z",
+            "articleSection":"Politics",
+            "author":[{"@type":"Person","name":"JANE DOE Associated Press"}]}</script>
+        </head><body>
+        <div data-testid="prism-article-body">
+            <p>Short.</p>
+            <p>The bill cleared its final procedural hurdle on Monday evening after a
+               lengthy floor debate that stretched past midnight.</p>
+            <script>tracking()</script>
+            <p>Supporters said the measure would standardize reporting requirements
+               across several hundred local departments nationwide.</p>
+        </div></body></html>"""
+
+
+class TestABCNewsFocus:
+    BASE = "https://abcnews.com"
+
+    def _scraper(self, **kwargs):
+        return ABCNewsScraper(keywords="police", queue_=asyncio.Queue(), **kwargs)
+
+    def test_feed_parser_keeps_articles_and_drops_video_and_off_domain(self):
+        s = self._scraper()
+        entries = s._parse_feed(_abcnews_feed_xml())
+        locs = [loc for loc, _t, _d in entries]
+        assert locs == [
+            f"{self.BASE}/Politics/wireStory/police-reform-bill-advances-135112211",
+            f"{self.BASE}/Sports/story/marathon-record-broken-135000000",
+        ]
+        # news:publication_date is parsed, so the date cutoff needs no article fetch.
+        assert entries[0][2] == to_project_naive(
+            datetime(2026, 7, 27, 12, 29, 49, tzinfo=timezone.utc)
+        )
+
+    def test_feed_parser_rejects_non_xml_and_empty(self):
+        s = self._scraper()
+        assert s._parse_feed("") == []
+        assert s._parse_feed("<html><body>not a sitemap</body></html>") == []
+
+    def test_search_applies_every_token_keyword_gate(self):
+        s = self._scraper()
+        s._current_keyword = "police reform"
+        assert s.parse_article_links(_abcnews_feed_xml()) == [
+            f"{self.BASE}/Politics/wireStory/police-reform-bill-advances-135112211"
+        ]
+        s._current_keyword = "marathon nonexistent"
+        assert s.parse_article_links(_abcnews_feed_xml()) is None
+
+    def test_latest_skips_the_keyword_gate(self):
+        s = self._scraper()
+        s._current_keyword = "police"
+        assert len(s.parse_latest_article_links(_abcnews_feed_xml())) == 2
+
+    def test_start_date_cutoff_applies_before_any_article_fetch(self):
+        s = self._scraper(start_date=datetime(2026, 7, 27))
+        s._current_keyword = ""
+        links = s.parse_latest_article_links(_abcnews_feed_xml())
+        assert links == [
+            f"{self.BASE}/Politics/wireStory/police-reform-bill-advances-135112211"
+        ]
+
+    @pytest.mark.asyncio
+    async def test_search_url_returns_feed_on_page_one_only(self):
+        s = self._scraper()
+        stub = _attach_fetch(s, {f"{self.BASE}/xmlLatestStories": _abcnews_feed_xml()})
+        assert await s.build_search_url("police", 1)
+        assert stub.calls[0][0] == f"{self.BASE}/xmlLatestStories"
+        assert await s.build_search_url("police", 2) is None
+
+    @pytest.mark.asyncio
+    async def test_extracts_full_queue_item_from_json_ld(self):
+        link = f"{self.BASE}/Politics/wireStory/police-reform-bill-advances-135112211"
+        s = self._scraper()
+        _attach_fetch(s, {link: _abcnews_article_html()})
+        await s.get_article(link, "police")
+
+        item = s.queue_.get_nowait()
+        # JSON-LD headline wins over og:title, and the WebSite node is skipped.
+        assert item["title"] == "Police reform bill advances in the Senate"
+        assert item["publish_date"] == to_project_naive(
+            datetime(2026, 7, 27, 10, 47, 18, tzinfo=timezone.utc)
+        )
+        assert item["publish_date"].tzinfo is None
+        assert item["author"] == "JANE DOE Associated Press"
+        assert item["category"] == "Politics"
+        assert item["source"] == "abcnews.com"
+        assert item["link"] == link
+        # Sub-30-character paragraphs and scripts are dropped from the body.
+        assert "Short." not in item["content"]
+        assert "tracking()" not in item["content"]
+        assert "final procedural hurdle" in item["content"]
+
+    @pytest.mark.asyncio
+    async def test_article_older_than_start_date_is_not_queued(self):
+        link = f"{self.BASE}/Politics/wireStory/police-reform-bill-advances-135112211"
+        s = self._scraper(start_date=datetime(2026, 8, 1))
+        _attach_fetch(s, {link: _abcnews_article_html()})
+        await s.get_article(link, "police")
+        assert s.queue_.empty()
+
+    @pytest.mark.asyncio
+    async def test_non_article_url_is_never_fetched(self):
+        s = self._scraper()
+        stub = _attach_fetch(s, {})
+        await s.get_article(f"{self.BASE}/US/video/storm-footage-134900000", "police")
+        await s.get_article("https://othersite.example.com/a/b", "police")
+        assert stub.calls == []
+        assert s.queue_.empty()
+
+
+# ── NBC News: monthly archive walk + news sitemap latest ──────────────────
+
+
+def _nbcnews_archive_html(items=None):
+    items = items or [
+        (
+            "https://www.nbcnews.com/news/us-news/police-reform-vote-rcna589267",
+            "Police reform vote clears committee",
+        ),
+        (
+            "https://www.nbcnews.com/world/europe/wildfire-evacuations-rcna589111",
+            "Wildfire evacuations widen in southern Europe",
+        ),
+        (
+            "https://www.nbcnews.com/politics/live-blog/live-updates-rcna500000",
+            "Live updates on the hearing",
+        ),
+        (
+            "https://www.nbcnews.com/news/us-news/no-id-suffix-here",
+            "Story without an rcna id",
+        ),
+    ]
+    links = "".join(f'<a href="{url}">{text}</a>' for url, text in items)
+    return f'<!doctype html><html><body><div class="MonthPage">{links}</div></body></html>'
+
+
+def _nbcnews_sitemap_xml():
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
+        'xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">'
+        "<url><loc>https://www.nbcnews.com/news/us-news/police-reform-vote-rcna589267</loc>"
+        "<news:news><news:publication_date>2026-07-27T12:43:21.335Z</news:publication_date>"
+        "<news:title>Police reform vote clears committee</news:title></news:news></url>"
+        "<url><loc>https://www.nbcnews.com/politics/live-blog/live-updates-rcna500000</loc>"
+        "<news:news><news:title>Live updates</news:title></news:news></url>"
+        "</urlset>"
+    )
+
+
+def _nbcnews_article_html():
+    return """<!doctype html><html><head>
+        <script type="application/ld+json">[{"@type":"NewsArticle",
+            "headline":"Police reform vote clears committee",
+            "datePublished":"2026-07-27T11:12:02.787Z",
+            "articleSection":"news",
+            "author":[{"@type":"Person","name":"Kayla Hayempour"},
+                      {"@type":"Person","name":"Mark Ho"}]}]</script>
+        </head><body>
+        <div class="article-body__content">
+            <p>Tiny.</p>
+            <p>The committee advanced the measure on a narrow vote after two hours of
+               debate over the reporting requirements it would impose.</p>
+            <aside><p>Sign up for our newsletter to get the morning rundown daily.</p></aside>
+        </div></body></html>"""
+
+
+class TestNBCNewsFocus:
+    BASE = "https://www.nbcnews.com"
+
+    def _scraper(self, **kwargs):
+        return NBCNewsScraper(keywords="police", queue_=asyncio.Queue(), **kwargs)
+
+    def test_archive_parser_requires_rcna_id_and_drops_live_blogs(self):
+        s = self._scraper()
+        entries = s.parse_archive_entries(_nbcnews_archive_html())
+        assert [url for url, _t in entries] == [
+            f"{self.BASE}/news/us-news/police-reform-vote-rcna589267",
+            f"{self.BASE}/world/europe/wildfire-evacuations-rcna589111",
+        ]
+
+    def test_archive_parser_rejects_empty(self):
+        assert self._scraper().parse_archive_entries("") == []
+
+    def test_archive_url_uses_lowercase_month_names(self):
+        s = self._scraper()
+        assert s.archive_url(2026, 7) == f"{self.BASE}/archive/articles/2026/july"
+        assert s.archive_url(2024, 3) == f"{self.BASE}/archive/articles/2024/march"
+
+    def test_months_walk_backwards_from_now_and_are_capped(self):
+        s = self._scraper(start_date=datetime(2026, 4, 1))
+        months = s._months()
+        assert months[0] > months[-1]
+        assert len(months) <= s.MAX_MONTHS
+        # Without start_date only the current month is planned.
+        assert len(self._scraper()._months()) == 1
+
+    def test_months_respect_the_max_months_cap(self):
+        s = self._scraper(start_date=datetime(2000, 1, 1))
+        assert len(s._months()) == s.MAX_MONTHS
+
+    def test_month_cap_is_announced_not_silent(self, caplog):
+        """A bound that drops requested coverage has to say so."""
+        s = self._scraper(start_date=datetime(2000, 1, 1))
+        with caplog.at_level(logging.WARNING):
+            s._months()
+        assert "at most" in caplog.text
+        assert "not reading anything before" in caplog.text
+
+    def test_month_cap_stays_quiet_when_it_does_not_bind(self, caplog):
+        s = self._scraper(start_date=datetime.now())
+        with caplog.at_level(logging.WARNING):
+            s._months()
+        assert caplog.text == ""
+
+    @pytest.mark.asyncio
+    async def test_article_cap_is_announced_when_it_binds(self, caplog):
+        s = self._scraper(start_date=datetime(2026, 5, 1))
+        s.MAX_ARTICLES_PER_QUERY = 1
+        responses = {
+            s.archive_url(year, month): _nbcnews_archive_html()
+            for year, month in s._months()
+        }
+        _attach_fetch(s, responses)
+        s.get_article = _record_links([])
+
+        with caplog.at_level(logging.WARNING):
+            await s.fetch_search_results("police reform")
+
+        assert "article cap" in caplog.text
+
+    def test_search_applies_every_token_keyword_gate(self):
+        s = self._scraper()
+        s._current_keyword = "police reform"
+        assert s.parse_article_links(_nbcnews_archive_html()) == [
+            f"{self.BASE}/news/us-news/police-reform-vote-rcna589267"
+        ]
+        s._current_keyword = "police wildfire"
+        assert s.parse_article_links(_nbcnews_archive_html()) is None
+
+    def test_latest_sitemap_parser_filters_to_articles(self):
+        s = self._scraper()
+        assert s.parse_latest_article_links(_nbcnews_sitemap_xml()) == [
+            f"{self.BASE}/news/us-news/police-reform-vote-rcna589267"
+        ]
+        assert s.parse_latest_article_links("") is None
+        assert s.parse_latest_article_links("<html>not xml</html>") is None
+
+    @pytest.mark.asyncio
+    async def test_latest_url_is_the_news_sitemap_on_page_one_only(self):
+        s = self._scraper()
+        stub = _attach_fetch(s, {f"{self.BASE}/sitemap/nbcnews/sitemap-news": "<urlset/>"})
+        await s.build_latest_url(1)
+        assert stub.calls[0][0] == f"{self.BASE}/sitemap/nbcnews/sitemap-news"
+        assert await s.build_latest_url(2) is None
+
+    @pytest.mark.asyncio
+    async def test_search_keeps_walking_past_a_month_with_no_matches(self):
+        """A keyword-less month must not hide every older month behind it."""
+        s = self._scraper(start_date=datetime(2026, 5, 1))
+        empty_month = _nbcnews_archive_html(
+            [("https://www.nbcnews.com/news/other/unrelated-rcna1", "Unrelated story")]
+        )
+        responses = {
+            s.archive_url(year, month): (
+                _nbcnews_archive_html() if (year, month) == (2026, 5) else empty_month
+            )
+            for year, month in s._months()
+        }
+        _attach_fetch(s, responses)
+        collected: list = []
+        s.get_article = _record_links(collected)
+
+        await s.fetch_search_results("police reform")
+
+        # Every planned month was requested, and the match in the oldest one
+        # still came through.
+        assert f"{self.BASE}/news/us-news/police-reform-vote-rcna589267" in collected
+
+    @pytest.mark.asyncio
+    async def test_extracts_full_queue_item_from_json_ld(self):
+        link = f"{self.BASE}/news/us-news/police-reform-vote-rcna589267"
+        s = self._scraper()
+        _attach_fetch(s, {link: _nbcnews_article_html()})
+        await s.get_article(link, "police")
+
+        item = s.queue_.get_nowait()
+        assert item["title"] == "Police reform vote clears committee"
+        assert item["publish_date"] == to_project_naive(
+            datetime(2026, 7, 27, 11, 12, 2, 787000, tzinfo=timezone.utc)
+        )
+        assert item["publish_date"].tzinfo is None
+        assert item["author"] == "Kayla Hayempour, Mark Ho"
+        assert item["category"] == "news"
+        assert item["source"] == "nbcnews.com"
+        # aside/newsletter chrome and sub-30-char paragraphs are stripped.
+        assert "Tiny." not in item["content"]
+        assert "newsletter" not in item["content"]
+        assert "narrow vote" in item["content"]
+
+    @pytest.mark.asyncio
+    async def test_non_article_url_is_never_fetched(self):
+        s = self._scraper()
+        stub = _attach_fetch(s, {})
+        await s.get_article(f"{self.BASE}/politics/live-blog/live-updates-rcna1", "police")
+        await s.get_article(f"{self.BASE}/news/us-news/no-id-suffix", "police")
+        assert stub.calls == []
+        assert s.queue_.empty()

@@ -21,7 +21,7 @@ import pandas as pd
 
 from .exceptions import NewsWatchError, ValidationError
 from .main import get_available_scrapers
-from .main import _load_dedup_links, _parse_time_range
+from .main import _in_time_range, _load_dedup_links, _parse_time_range
 from .registry import get_scraper_by_slug
 
 
@@ -132,18 +132,8 @@ async def _collect_queue_results(
         # Apply time range filter
         if time_start is not None or time_end is not None:
             pub_date = item.get("publish_date")
-            if pub_date:
-                if isinstance(pub_date, str):
-                    try:
-                        pub_date = datetime.fromisoformat(pub_date)
-                    except ValueError:
-                        continue
-                if not isinstance(pub_date, datetime):
-                    continue
-                if time_start is not None and pub_date < time_start:
-                    continue
-                if time_end is not None and pub_date > time_end:
-                    continue
+            if pub_date and not _in_time_range(pub_date, time_start, time_end):
+                continue
 
         # format datetime objects as strings for json serialization
         if isinstance(item.get("publish_date"), datetime):

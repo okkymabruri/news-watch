@@ -28,6 +28,7 @@ flowchart TD
 | `cli.py` | CLI entry point |
 | `scrapers/basescraper.py` | Abstract contract — `build_search_url`, `parse_article_links`, `get_article` |
 | `utils.py` | `AsyncScraper` — request and keyword concurrency, WAF fallback (aiohttp → rnet → Playwright) |
+| `timeutils.py` | `to_project_naive` — single conversion point putting every source's `publish_date` on one clock |
 
 ## Retrieval Methods
 
@@ -75,13 +76,30 @@ the registry's `keyword_concurrency`, which defaults to 1 for browser-required
 sources. Only `fetch()` observes the first, so browser-driven scrapers that
 bypass `fetch()` are bounded by the second.
 
+## Timezone Convention
+
+`publish_date` is a naive datetime, and every source must agree on what naive
+means — otherwise one output file carries two clocks and the date filters
+compare across them. That reference zone is `Asia/Jakarta`, overridable with
+`NEWSWATCH_TIMEZONE`.
+
+`timeutils.to_project_naive` is the single conversion point. Offsets are
+converted into the reference zone, never discarded: an article published at
+`08:00-04:00` and one published at `08:00+07:00` are eleven hours apart and must
+not collapse onto the same timestamp. Values that arrive without an offset are
+taken to already be in the reference zone and pass through unchanged, which is
+why sources publishing at +07:00 are unaffected.
+
+`--start_date` and `--time_range` bounds are interpreted in the same zone, so a
+date-only range means local calendar days.
+
 <!-- BEGIN GENERATED: architecture-state -->
 ## Current State
 
 | State | Count |
 |---|---|
-| registered | 79 |
-| stable | 77 |
+| registered | 81 |
+| stable | 79 |
 | quarantined | 1 |
 | investigating | 1 |
 <!-- END GENERATED: architecture-state -->

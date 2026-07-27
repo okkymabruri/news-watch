@@ -50,7 +50,7 @@ df = nw.scrape_to_dataframe(
 )
 ```
 
-Other reliability overrides (env vars): `NEWSWATCH_USER_AGENT` (custom User-Agent), `NEWSWATCH_MAX_RETRIES` (retry count, default 3).
+Other reliability overrides (env vars): `NEWSWATCH_USER_AGENT` (custom User-Agent), `NEWSWATCH_MAX_RETRIES` (retry count, default 3), `NEWSWATCH_TIMEZONE` (zone for `publish_date` and date filters, default `Asia/Jakarta`).
 
 ## Usage
 
@@ -161,9 +161,10 @@ The output file contains the following columns:
 - `latest` is intended for latest-news monitoring and does not require keywords.
 
 <!-- BEGIN GENERATED: readme-heading -->
-## Supported Websites (79)
+## Supported Websites (81)
 <!-- END GENERATED: readme-heading -->
 <!-- BEGIN GENERATED: readme-sources -->
+[ABC News](https://abcnews.com),
 [Alinea.id](https://www.alinea.id),
 [Al Jazeera](https://www.aljazeera.com),
 [Antara News](https://antaranews.com),
@@ -217,6 +218,7 @@ The output file contains the following columns:
 [MetroTV News](https://metrotvnews.com),
 [Mojok](https://mojok.co),
 [Mongabay Indonesia](https://mongabay.co.id),
+[NBC News](https://www.nbcnews.com),
 [Niaga.Asia](https://www.niaga.asia),
 [NTVNews.id](https://www.ntvnews.id),
 [NusaBali](https://www.nusabali.com),
@@ -247,8 +249,8 @@ The output file contains the following columns:
 
 <!-- BEGIN GENERATED: readme-counts -->
 > **Notes:**
-> - 79 registered sources: 74 with keyword search, 79 with latest mode.
-> - 77 stable scrapers in the current release: 72 with keyword search, 77 with latest mode.
+> - 81 registered sources: 76 with keyword search, 81 with latest mode.
+> - 79 stable scrapers in the current release: 74 with keyword search, 79 with latest mode.
 > - 1 source under investigation; 1 source quarantined.
 > - AP News uses topic hub pages with keyword-in-title filtering (robots disallows /search?q=*).
 > - Al Jazeera is latest-only via RSS feed (search page is JS-rendered).
