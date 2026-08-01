@@ -1,3 +1,13 @@
+# The GitHub Pages mirror of these docs is RETIRED as of 2026-08-01.
+# The Deploy Docs workflow is disabled and the gh-pages branch is deleted.
+#
+# Do NOT run `mkdocs gh-deploy`. It pushes gh-pages directly, bypassing the
+# disabled workflow, and Pages would resume serving a second, stale copy at
+# okkymabruri.github.io. Use `mkdocs build` for local preview.
+#
+# These docs ship from okky.dev, which pulls docs/ from this repo at each
+# release. Publish a release and the site picks it up; nothing here deploys.
+
 site_name: news-watch
 site_description: Scrape structured news data from Indonesia's top news websites.
 site_url: https://okkymabruri.github.io/news-watch
