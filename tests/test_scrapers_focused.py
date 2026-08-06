@@ -90,6 +90,7 @@ from newswatch.scrapers.voi import VOIScraper
 from newswatch.scrapers.detik import DetikScraper
 from newswatch.scrapers.inews import INewsScraper
 from newswatch.scrapers.okezone import OkezoneScraper
+from newswatch.scrapers.pantau import PantauScraper
 from newswatch.scrapers.tvrinews import TVRINewsScraper
 
 
@@ -4455,3 +4456,56 @@ class TestDetikIndexPage:
             assert self._scraper().index_newest_day is None
         assert any("not YYYY-MM-DD" in r.getMessage() for r in caplog.records)
 
+
+class TestPantauSearchPayload:
+    """The search page ships its results in ``__NEXT_DATA__``.
+
+    Both halves failed silently before: the key moved, and rebuilding a link
+    from category + slug drops the numeric id and lands on a 404.
+    """
+
+    PAYLOAD = {
+        "props": {
+            "pageProps": {
+                "articles": [
+                    {
+                        "id": 358244,
+                        "title": "Menkes Ungkap Temuan Bakteri E. coli pada Keracunan MBG",
+                        "slug": "menkes-ungkap-temuan-bakteri",
+                        "categoryName": "Ekonomi",
+                        "urlDetail": "/ekonomi/358244/menkes-ungkap-temuan-bakteri",
+                    },
+                    {"id": 1, "title": "no url", "slug": "no-url", "categoryName": "Nasional"},
+                ],
+                "initialNewsFeed": [{"slug": "stale-key", "categoryName": "Nasional"}],
+            }
+        }
+    }
+
+    def _html(self, payload):
+        return (
+            '<html><body><script id="__NEXT_DATA__" type="application/json">'
+            + json.dumps(payload)
+            + "</script></body></html>"
+        )
+
+    def _scraper(self):
+        return PantauScraper(keywords="mbg", queue_=asyncio.Queue())
+
+    def test_builds_links_from_url_detail(self):
+        links = self._scraper().parse_article_links(self._html(self.PAYLOAD))
+
+        assert links == {"https://www.pantau.com/ekonomi/358244/menkes-ungkap-temuan-bakteri"}
+
+    def test_ignores_the_retired_feed_key(self):
+        payload = {"props": {"pageProps": {"initialNewsFeed": [{"slug": "x", "categoryName": "Nasional"}]}}}
+
+        assert self._scraper().parse_article_links(self._html(payload)) is None
+
+    @pytest.mark.asyncio
+    async def test_second_page_is_never_requested(self):
+        scraper = self._scraper()
+        stub = _attach_fetch(scraper, {})
+
+        assert await scraper.build_search_url("mbg", 2) is None
+        assert stub.calls == []
