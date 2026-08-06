@@ -1,8 +1,9 @@
 """
 IDN Times scraper — uses Playwright to render /tag/{keyword} pages.
 
-The tag page returns query-specific articles. Results are filtered by
-keyword presence in the URL to eliminate fallback/leakage articles.
+The tag page returns query-specific articles. The tag endpoint is the
+keyword filter; extraction is scoped to the sections the page names after
+the tag, excluding the unrelated recommendation rail below them.
 """
 
 import logging
@@ -12,6 +13,7 @@ import aiohttp
 from playwright.async_api import async_playwright
 
 from .basescraper import BaseScraper
+from ..utils import keyword_url_slug
 
 
 class IDNTimesScraper(BaseScraper):
@@ -23,7 +25,7 @@ class IDNTimesScraper(BaseScraper):
         self._article_href = re.compile(r"^https?://www\.idntimes\.com/.+/.+/.+")
 
     async def fetch_search_results(self, keyword):
-        """Use Playwright to render tag page, filter by keyword in URL."""
+        """Render the tag page and read its tag-named sections."""
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             try:
@@ -32,28 +34,41 @@ class IDNTimesScraper(BaseScraper):
                 )
                 page = await context.new_page()
 
-                tag_url = f"{self.base_url}/tag/{keyword.lower()}"
+                tag_url = f"{self.base_url}/tag/{keyword_url_slug(keyword)}"
 
                 await page.goto(tag_url, wait_until="domcontentloaded", timeout=20000)
                 await page.wait_for_timeout(5000)
 
+                # the tag endpoint is the keyword filter -- article slugs carry
+                # the headline, never the tag, so matching the keyword against
+                # the url discards every result. Instead keep only the sections
+                # the page itself names after the tag ("Latest in X",
+                # "Trending in X"); the recommendation rail below them is
+                # unrelated and would otherwise be scraped as a hit.
                 raw_links = await page.evaluate(r"""() => {
-                    return [...new Set(
-                        [...document.querySelectorAll('a[href]')]
-                            .filter(a => {
-                                const h = a.href || ''
-                                return h.includes('.com/') && h.match(/[a-z-]+\/[a-z-]+\/[a-z-]/)
-                            })
-                            .map(a => a.href)
-                    )]
+                    const tag = (document.querySelector('main h1')?.innerText || '')
+                        .trim().toLowerCase()
+                    if (!tag) return []
+                    const out = new Set()
+                    let inSection = false
+                    const walk = document.createTreeWalker(
+                        document.querySelector('main'), NodeFilter.SHOW_ELEMENT
+                    )
+                    for (let n = walk.currentNode; n; n = walk.nextNode()) {
+                        if (/^H[23]$/.test(n.tagName) && n.tagName === 'H2') {
+                            inSection = n.innerText.trim().toLowerCase().endsWith(tag)
+                        } else if (inSection && n.tagName === 'A' && n.href) {
+                            if (n.href.includes('.com/') &&
+                                n.href.match(/[a-z-]+\/[a-z-]+\/[a-z-]/)) {
+                                out.add(n.href)
+                            }
+                        }
+                    }
+                    return [...out]
                 }""")
 
-                # Filter: only keep links where keyword appears in URL
-                kw_lower = keyword.lower()
                 article_links = [
-                    link
-                    for link in raw_links
-                    if kw_lower in link.lower() and self._article_href.match(link)
+                    link for link in raw_links if self._article_href.match(link)
                 ]
 
                 if article_links:

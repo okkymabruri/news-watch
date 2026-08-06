@@ -87,6 +87,10 @@ from newswatch.scrapers.infobanknews import InfobanknewsScraper
 from newswatch.scrapers.indopolitika import IndopolitikaScraper
 from newswatch.scrapers.ntvnews import NTVNewsScraper
 from newswatch.scrapers.voi import VOIScraper
+from newswatch.scrapers.detik import DetikScraper
+from newswatch.scrapers.inews import INewsScraper
+from newswatch.scrapers.okezone import OkezoneScraper
+from newswatch.scrapers.tvrinews import TVRINewsScraper
 
 
 # ── Shared offline test scaffolding ────────────────────────────────────────
@@ -4288,3 +4292,70 @@ class TestNBCNewsFocus:
         await s.get_article(f"{self.BASE}/news/us-news/no-id-suffix", "police")
         assert stub.calls == []
         assert s.queue_.empty()
+
+
+# ── Multi-word keywords must reach publishers as hyphenated slugs ─────────
+
+
+class TestMultiWordKeywordSlugging:
+    """A keyword with spaces is unusable verbatim in a URL.
+
+    Tag endpoints 404 on a space, and sitemap ``<loc>`` values are hyphenated,
+    so a raw substring match never fires. Both shapes are pinned here because
+    each silently returns zero articles rather than erroring.
+    """
+
+    KEYWORD = "makan bergizi gratis"
+    SLUG = "makan-bergizi-gratis"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "factory",
+        [
+            lambda: OkezoneScraper(keywords="x", queue_=asyncio.Queue()),
+            lambda: INewsScraper(keywords="x", queue_=asyncio.Queue()),
+        ],
+        ids=["okezone", "inews"],
+    )
+    async def test_tag_endpoint_requests_hyphenated_path(self, factory):
+        scraper = factory()
+        stub = _attach_fetch(scraper, {})
+        await scraper.build_search_url(self.KEYWORD, 1)
+
+        requested = stub.calls[0][0]
+        assert f"/tag/{self.SLUG}" in requested
+        assert " " not in requested
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "factory,sitemap",
+        [
+            (
+                lambda: DetikScraper(keywords="x", queue_=asyncio.Queue()),
+                "https://news.detik.com/berita/sitemap_news.xml",
+            ),
+            (
+                lambda: TVRINewsScraper(keywords="x", queue_=asyncio.Queue()),
+                None,
+            ),
+        ],
+        ids=["detik", "tvrinews"],
+    )
+    async def test_sitemap_filter_matches_hyphenated_loc(self, factory, sitemap):
+        scraper = factory()
+        hit = f"https://example.test/berita/d-1/anggaran-{self.SLUG}-naik"
+        miss = "https://example.test/berita/d-2/harga-pangan-turun"
+        body = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            f"<urlset><url><loc>{hit}</loc></url>"
+            f"<url><loc>{miss}</loc></url></urlset>"
+        )
+        _attach_fetch(scraper, {"sitemap": body})
+        seen: list[str] = []
+        scraper.get_article = _record_links(seen)
+        scraper._process_article = _record_links(seen)
+
+        await scraper.fetch_search_results(self.KEYWORD)
+
+        assert seen == [hit]
+

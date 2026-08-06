@@ -11,6 +11,7 @@ import re
 from bs4 import BeautifulSoup
 
 from .basescraper import BaseScraper
+from ..utils import keyword_url_slug
 
 
 class OkezoneScraper(BaseScraper):
@@ -25,7 +26,7 @@ class OkezoneScraper(BaseScraper):
         }
 
     async def build_search_url(self, keyword, page):
-        url = f"{self.base_url}/tag/{keyword.lower()}"
+        url = f"{self.base_url}/tag/{keyword_url_slug(keyword)}"
         if page > 1:
             url += f"/{page}"
         return await self.fetch(url, headers=self.headers, timeout=30)

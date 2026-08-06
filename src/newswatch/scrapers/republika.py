@@ -12,6 +12,7 @@ import aiohttp
 from playwright.async_api import async_playwright
 
 from .basescraper import BaseScraper
+from ..utils import keyword_url_slug
 
 
 class RepublikaScraper(BaseScraper):
@@ -32,7 +33,7 @@ class RepublikaScraper(BaseScraper):
                 )
                 page = await context.new_page()
 
-                tag_url = f"{self.base_url}/tag/{keyword.lower()}"
+                tag_url = f"{self.base_url}/tag/{keyword_url_slug(keyword)}"
 
                 await page.goto(tag_url, wait_until="domcontentloaded", timeout=20000)
                 await page.wait_for_timeout(5000)

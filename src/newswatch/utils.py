@@ -5,6 +5,21 @@ import aiohttp
 from . import config
 
 
+def keyword_url_slug(keyword: str) -> str:
+    """URL-path form of a keyword: lowercase, whitespace collapsed to hyphens."""
+    return "-".join(keyword.lower().split())
+
+
+def keyword_matches_url(keyword: str, url: str) -> bool:
+    """True if the raw or slugified keyword appears in the url.
+
+    A multi-word keyword never appears verbatim in a url -- publishers
+    slugify it. Matching both forms keeps single-word keywords working.
+    """
+    lowered = url.lower()
+    return keyword.lower() in lowered or keyword_url_slug(keyword) in lowered
+
+
 async def _rnet_get(url: str, headers: dict | None, timeout: int, proxy: str | None = None) -> str | None:
     try:
         from rnet import Client, Proxy
