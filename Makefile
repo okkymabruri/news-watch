@@ -1,7 +1,10 @@
-.PHONY: test lint format release-notes release-notes-file release-notes-publish release release-prepare release-publish release-patch release-minor release-major release-validate sources sources-check
+.PHONY: test test-network lint format release-notes release-notes-file release-notes-publish release release-prepare release-publish release-patch release-minor release-major release-validate sources sources-check
 
 test:
-	@uv run --extra dev pytest
+	@uv run --extra dev pytest tests/ -m "not network" --timeout=30
+
+test-network:
+	@uv run --extra dev pytest tests/ -m network --timeout=180
 
 lint:
 	@uv run --extra dev ruff check
