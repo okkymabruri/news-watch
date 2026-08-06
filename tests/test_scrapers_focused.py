@@ -4359,3 +4359,99 @@ class TestMultiWordKeywordSlugging:
 
         assert seen == [hit]
 
+
+class TestDetikIndexPage:
+    """The dated index is the only route to detik history.
+
+    Its news sitemaps span roughly a day, so anything older is reachable
+    only through ``/indeks?date=``. Pagination and headline extraction are
+    pinned here because both fail by returning less, never by raising.
+    """
+
+    @staticmethod
+    def _page(cards: list[str]) -> str:
+        return "<html><body>" + "".join(cards) + "</body></html>"
+
+    @staticmethod
+    def _card(href: str, title: str) -> str:
+        return f'<article><a href="{href}"><h3>{title}</h3></a></article>'
+
+    def _scraper(self):
+        return DetikScraper(keywords="mbg", queue_=asyncio.Queue())
+
+    def test_reports_raw_card_count_not_filtered_count(self):
+        """Pagination keys on cards; filtered entries would end a day early."""
+        html = self._page(
+            [
+                self._card("https://news.detik.com/berita/d-1/kasus-mbg-naik", "Kasus MBG Naik"),
+                self._card("https://news.detik.com/berita/d-2/foto-galeri/", "Galeri"),
+                self._card("https://20.detik.com/detikflash/d-3/klip/", "Klip"),
+            ]
+        )
+        cards, entries = self._scraper()._parse_indeks(html)
+
+        assert cards == 3
+        assert [link for link, _ in entries] == ["https://news.detik.com/berita/d-1/kasus-mbg-naik"]
+
+    def test_accepts_finance_and_health_channels(self):
+        html = self._page(
+            [
+                self._card("https://finance.detik.com/berita-ekonomi-bisnis/d-4/anggaran-mbg/", "Anggaran MBG"),
+                self._card("https://health.detik.com/berita-detikhealth/d-5/gizi-mbg/", "Gizi MBG"),
+                self._card("https://hot.detik.com/celeb/d-6/gosip/", "Gosip"),
+            ]
+        )
+        cards, entries = self._scraper()._parse_indeks(html)
+
+        assert cards == 3
+        assert len(entries) == 2
+
+    def test_empty_response_is_not_an_error(self):
+        assert self._scraper()._parse_indeks(None) == (0, [])
+        assert self._scraper()._parse_indeks("") == (0, [])
+
+    @pytest.mark.asyncio
+    async def test_only_headline_matches_are_fetched(self, caplog):
+        scraper = DetikScraper(
+            keywords="mbg",
+            start_date=datetime(2026, 8, 5),
+            queue_=asyncio.Queue(),
+        )
+        hit = "https://news.detik.com/berita/d-1/dapur-mbg-diperluas/"
+        html = self._page(
+            [
+                self._card(hit, "Dapur MBG Diperluas ke Papua"),
+                self._card("https://news.detik.com/berita/d-2/harga-pangan-turun/", "Harga Pangan Turun"),
+            ]
+        )
+        _attach_fetch(scraper, {"indeks": html})
+        seen: list[str] = []
+        scraper.get_article = _record_links(seen)
+
+        await scraper._walk_indeks("mbg")
+
+        assert seen == [hit]
+
+    @pytest.mark.asyncio
+    async def test_day_cap_announces_itself(self, caplog):
+        scraper = DetikScraper(
+            keywords="mbg",
+            start_date=datetime(2020, 1, 1),
+            queue_=asyncio.Queue(),
+        )
+        _attach_fetch(scraper, {})
+        with caplog.at_level(logging.WARNING):
+            await scraper._walk_indeks("mbg")
+
+        assert any("capped at" in r.getMessage() for r in caplog.records)
+
+    def test_resume_knob_moves_the_starting_day(self, monkeypatch):
+        monkeypatch.setenv("NEWSWATCH_DETIK_INDEX_NEWEST", "2025-08-11")
+        assert self._scraper().index_newest_day == datetime(2025, 8, 11).date()
+
+    def test_unparseable_resume_knob_falls_back_to_today(self, monkeypatch, caplog):
+        monkeypatch.setenv("NEWSWATCH_DETIK_INDEX_NEWEST", "11/08/2025")
+        with caplog.at_level(logging.WARNING):
+            assert self._scraper().index_newest_day is None
+        assert any("not YYYY-MM-DD" in r.getMessage() for r in caplog.records)
+
