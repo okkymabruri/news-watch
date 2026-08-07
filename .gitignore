@@ -213,3 +213,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# session scratch: references local-only paths, keep out of the repo
+PROGRESS.md
