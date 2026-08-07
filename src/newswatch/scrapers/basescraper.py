@@ -8,6 +8,11 @@ from ..utils import AsyncScraper
 
 
 class BaseScraper(AsyncScraper, ABC):
+    # Search results are not always strictly reverse-chronological. Stopping at
+    # the first page containing an out-of-window article ends pagination on one
+    # stray result, which over a long window silently truncates a source.
+    STALE_PAGE_TOLERANCE = 3
+
     def __init__(
         self,
         keywords,
@@ -28,6 +33,7 @@ class BaseScraper(AsyncScraper, ABC):
         )
         self.queue_ = queue_
         self.continue_scraping = True
+        self._stale_pages = 0
         self.max_latest_pages = max_latest_pages if max_latest_pages is not None else 1
         self.max_pages = max_pages
         self.dedup_links = dedup_links or set()
@@ -61,14 +67,27 @@ class BaseScraper(AsyncScraper, ABC):
     def parse_latest_article_links(self, response_text):
         return None
 
+    def _reset_pagination(self):
+        """Clear pagination state at the start of a keyword or latest run."""
+        self.continue_scraping = True
+        self._stale_pages = 0
+
+    def _keep_paginating(self, page_in_window):
+        """Record one page's outcome; True to request the next page.
+
+        ``continue_scraping`` is re-armed so the flag reports on the page just
+        fetched rather than latching for the rest of the run.
+        """
+        self._stale_pages = 0 if page_in_window else self._stale_pages + 1
+        self.continue_scraping = True
+        return self._stale_pages < self.STALE_PAGE_TOLERANCE
+
     async def fetch_search_results(self, keyword):
         page = 1
         found_articles = False
+        self._reset_pagination()
 
-        while (
-            self.continue_scraping
-            and (self.max_pages is None or page <= self.max_pages)
-        ):
+        while self.max_pages is None or page <= self.max_pages:
             response_text = await self.build_search_url(keyword, page)
             if not response_text:
                 break
@@ -78,8 +97,8 @@ class BaseScraper(AsyncScraper, ABC):
                 break
 
             found_articles = True
-            continue_scraping = await self.process_page(filtered_hrefs, keyword)
-            if not continue_scraping:
+            in_window = await self.process_page(filtered_hrefs, keyword)
+            if not self._keep_paginating(in_window):
                 break
 
             page += 1
@@ -104,8 +123,9 @@ class BaseScraper(AsyncScraper, ABC):
     async def fetch_latest_results(self):
         page = 1
         found_articles = False
+        self._reset_pagination()
 
-        while self.continue_scraping and page <= self.max_latest_pages:
+        while page <= self.max_latest_pages:
             response_text = await self.build_latest_url(page)
             if not response_text:
                 break
@@ -115,8 +135,8 @@ class BaseScraper(AsyncScraper, ABC):
                 break
 
             found_articles = True
-            continue_scraping = await self.process_page(filtered_hrefs, "latest")
-            if not continue_scraping:
+            in_window = await self.process_page(filtered_hrefs, "latest")
+            if not self._keep_paginating(in_window):
                 break
 
             page += 1

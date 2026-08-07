@@ -60,7 +60,8 @@ class TempoScraper(BaseScraper):
     async def fetch_search_results(self, keyword):
         page = 1
         found_articles = False
-        while self.continue_scraping and page <= self.max_pages:
+        self._reset_pagination()
+        while page <= self.max_pages:
             response_text = await self.build_search_url(keyword, page)
             if not response_text:
                 break
@@ -70,8 +71,8 @@ class TempoScraper(BaseScraper):
                 break
 
             found_articles = True
-            continue_scraping = await self.process_page(filtered_hrefs, keyword)
-            if not continue_scraping:
+            in_window = await self.process_page(filtered_hrefs, keyword)
+            if not self._keep_paginating(in_window):
                 break
 
             page += 1

@@ -125,3 +125,62 @@ async def test_keyword_semaphore_distinct_from_fetch_semaphore_no_deadlock():
     with aioresponses() as mocked:
         mocked.get("https://example.com", status=200, body="ok", repeat=True)
         await asyncio.wait_for(scraper.scrape(method="search"), timeout=2)
+
+
+class _OutOfOrderScraper(BaseScraper):
+    """A source whose results are not strictly reverse-chronological.
+
+    ``stale_pages`` names the pages that contain only articles older than the
+    start date. Real search endpoints do this — a pinned or mis-sorted result
+    lands mid-run — and the pages after it are still in window.
+    """
+
+    def __init__(self, *args, stale_pages=(), total_pages=6, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.stale_pages = set(stale_pages)
+        self.total_pages = total_pages
+        self.visited_pages: list[int] = []
+        self._page = 0
+
+    async def build_search_url(self, keyword, page):
+        if page > self.total_pages:
+            return None
+        self._page = page
+        self.visited_pages.append(page)
+        return f"page-{page}"
+
+    def parse_article_links(self, response_text):
+        return [f"https://example.com/{response_text}"]
+
+    async def get_article(self, link, keyword):
+        if self._page in self.stale_pages:
+            self.continue_scraping = False
+
+
+async def test_one_out_of_order_page_does_not_end_pagination():
+    scraper = _OutOfOrderScraper(
+        "ihsg", queue_=asyncio.Queue(), max_pages=6, stale_pages={2}
+    )
+    await scraper.fetch_search_results("ihsg")
+    assert scraper.visited_pages == [1, 2, 3, 4, 5, 6]
+
+
+async def test_pagination_stops_once_the_archive_is_genuinely_exhausted():
+    scraper = _OutOfOrderScraper(
+        "ihsg", queue_=asyncio.Queue(), max_pages=10, stale_pages={3, 4, 5, 6, 7}
+    )
+    await scraper.fetch_search_results("ihsg")
+    # three consecutive out-of-window pages is the stop condition
+    assert scraper.visited_pages == [1, 2, 3, 4, 5]
+
+
+async def test_pagination_state_resets_between_keywords():
+    scraper = _OutOfOrderScraper(
+        "a,b", queue_=asyncio.Queue(), max_pages=4, stale_pages={1, 2, 3}
+    )
+    await scraper.fetch_search_results("a")
+    first = list(scraper.visited_pages)
+    scraper.visited_pages.clear()
+    await scraper.fetch_search_results("b")
+    assert first == [1, 2, 3]
+    assert scraper.visited_pages == [1, 2, 3]
