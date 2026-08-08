@@ -126,10 +126,10 @@ cleanly with any dominant theme.
 
 **The outlier class is large and is disclosed rather than hidden: 4,031
 documents (36.9%) carry no topic**, so any topic-level statement below
-describes the remaining 63%. This share is one of the stable properties of
-the corpus: refitting under five different projection seeds moves it only
-between 34.6% and 37.8%, and the substantive topic count stays at 14 every
-time. Several other topic-level numbers below are far less stable, and each
+describes the remaining 63%. That 36.9% outlier share is one of the stable
+properties of the corpus: refitting under five different projection seeds
+moves it only between 34.6% and 37.8%, and the substantive topic count stays
+at 14 every time. Several other topic-level numbers below are far less stable, and each
 is qualified where it appears.
 
 ![UMAP scatter of the cleaned corpus colored by topic](assets/mbg/umap_scatter.png)
@@ -296,7 +296,8 @@ the topic list. **Street mobilisation is one.** Four of T0's clusters carry it,
 
 Titles were matched on `demonstrasi`, `unjuk rasa`, `aksi massa`, `turun ke
 jalan`, `long march`, `massa aksi`, `berunjuk`, and `demo`, giving 162 distinct
-titles. All 138 that matched only on the ambiguous token `demo` were read
+titles across the whole corpus, of which 135 fall inside T0 and 128 inside the
+four clusters above. All 138 that matched only on the ambiguous token `demo` were read
 individually, since the word also denotes a product or cooking demonstration in
 Indonesian: 138 of 138 are genuine street mobilisation.
 
@@ -305,9 +306,9 @@ both. **Roughly half is mobilisation in support of the programme**, by SPPG
 staff, kitchen volunteers, and organised supporter groups demanding it continue,
 alongside student protests demanding it stop and a sub-thread disputing whether
 the supporter rallies were paid or state-directed. And the coverage is not
-confined to one month: 137 titles fall in 2026-06 and 13 in 2026-07, but an
-earlier and separate cluster of 11 sits in 2025-02, covering student refusals of
-the programme in Nabire and Jayapura, Papua.
+confined to one month: of the 162 titles, 137 fall in 2026-06, 13 in 2026-07 and
+one in 2026-02, but an earlier and separate cluster of 11 sits in 2025-02,
+covering student refusals of the programme in Nabire and Jayapura, Papua.
 
 ### Document-similarity network
 
