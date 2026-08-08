@@ -37,8 +37,9 @@ class GridScraper(BaseScraper):
             return None
         soup = BeautifulSoup(response_text, "html.parser")
 
+        # scope to the results list; a no-hit search still renders the sidebar
         links = set()
-        for a in soup.select("a[href]"):
+        for a in soup.select(".news-list__list a[href]"):
             href = a["href"]
             full_url = urljoin(self.base_url, href) if not href.startswith("http") else href
             if self._article_re.match(full_url):

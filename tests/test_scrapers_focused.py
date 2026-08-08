@@ -71,6 +71,8 @@ from newswatch.scrapers.betahita import BetahitaScraper
 from newswatch.scrapers.conversationid import ConversationIDScraper
 from newswatch.scrapers.ddtcnews import DDTCNewsScraper
 from newswatch.scrapers.gnfi import GNFIScraper
+from newswatch.scrapers.grid import GridScraper
+from newswatch.scrapers.niagaasia import NiagaAsiaScraper
 from newswatch.scrapers.dailysocial import DailySocialScraper
 from newswatch.scrapers.katadata import KatadataScraper
 from newswatch.scrapers.hukumonline import HukumonlineScraper
@@ -2601,12 +2603,17 @@ class TestBetahitaFocus:
 
 def _nusabali_search_html() -> str:
     return """<!doctype html><html><body>
-        <a href="/berita/225365/pria-mabuk-diamankan-polisi">article</a>
-        <a href="/berita/7/leading-zero">short id</a>
-        <a href="/opini/123/foo">opini</a>
-        <a href="/tag/bali">tag</a>
-        <a href="/about">about</a>
-        <a href="/berita/not-a-number/slug">non-numeric</a>
+        <div id="article-list">
+            <a href="/berita/225365/pria-mabuk-diamankan-polisi">article</a>
+            <a href="/berita/7/leading-zero">short id</a>
+            <a href="/opini/123/foo">opini</a>
+            <a href="/tag/bali">tag</a>
+            <a href="/about">about</a>
+            <a href="/berita/not-a-number/slug">non-numeric</a>
+        </div>
+        <div class="widget punica-watching-list-widget">
+            <a href="/berita/999999/sidebar-most-read">sidebar</a>
+        </div>
     </body></html>"""
 
 
@@ -4509,3 +4516,55 @@ class TestPantauSearchPayload:
 
         assert await scraper.build_search_url("mbg", 2) is None
         assert stub.calls == []
+
+
+class TestSearchResultScoping:
+    """A no-hit search page still renders nav, sidebar, and carousel article links.
+
+    Each of these three sources returns the same 200 page shell whether or not the
+    query matched, so page-wide link harvesting yields the site's latest headlines
+    for any keyword. The parsers must read only the results container.
+    """
+
+    CASES = [
+        pytest.param(
+            GridScraper,
+            '<div class="news-list__list">{inside}</div><div class="popular">{outside}</div>',
+            '<a href="https://www.grid.id/read/154321/kronologi-nanik-mundur">hit</a>',
+            '<a href="https://www.grid.id/read/999999/populer-pekan-ini">popular</a>',
+            {"https://www.grid.id/read/154321/kronologi-nanik-mundur"},
+            id="grid",
+        ),
+        pytest.param(
+            NiagaAsiaScraper,
+            '<div class="archive-list-wrap">{inside}</div><ul id="top-menu">{outside}</ul>',
+            '<a href="https://www.niaga.asia/sindikat-penipuan-daring">hit</a>',
+            '<a href="https://www.niaga.asia/kaltara">menu</a>',
+            {"https://www.niaga.asia/sindikat-penipuan-daring"},
+            id="niagaasia",
+        ),
+        pytest.param(
+            NusaBaliScraper,
+            '<div id="article-list">{inside}</div><div class="widget">{outside}</div>',
+            '<a href="/berita/225365/pria-mabuk-diamankan-polisi">hit</a>',
+            '<a href="/berita/999999/sidebar-most-read">sidebar</a>',
+            {"https://www.nusabali.com/berita/225365/pria-mabuk-diamankan-polisi"},
+            id="nusabali",
+        ),
+    ]
+
+    @pytest.mark.parametrize("cls,shell,inside,outside,expected", CASES)
+    def test_search_parser_reads_only_the_results_container(
+        self, cls, shell, inside, outside, expected
+    ):
+        scraper = cls(keywords="mbg", queue_=asyncio.Queue())
+
+        assert scraper.parse_article_links(shell.format(inside=inside, outside=outside)) == expected
+
+    @pytest.mark.parametrize("cls,shell,inside,outside,expected", CASES)
+    def test_empty_results_container_returns_none(
+        self, cls, shell, inside, outside, expected
+    ):
+        scraper = cls(keywords="mbg", queue_=asyncio.Queue())
+
+        assert scraper.parse_article_links(shell.format(inside="", outside=outside)) is None
