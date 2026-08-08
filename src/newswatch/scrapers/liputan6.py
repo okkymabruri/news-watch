@@ -1,8 +1,8 @@
 """
 Liputan6 scraper — uses Playwright to render /tag/{keyword} pages.
 
-The tag page requires JS rendering. Results are filtered by keyword
-presence in the URL to eliminate fallback/leakage articles.
+The tag page requires JS rendering. The tag endpoint is the keyword
+filter; link extraction is scoped to the listing container.
 """
 
 import logging
@@ -12,6 +12,7 @@ import aiohttp
 from playwright.async_api import async_playwright
 
 from .basescraper import BaseScraper
+from ..utils import keyword_url_slug
 
 
 class Liputan6Scraper(BaseScraper):
@@ -21,10 +22,11 @@ class Liputan6Scraper(BaseScraper):
         self.start_date = start_date
         self.continue_scraping = True
         self.max_pages = 5
-        self._article_href = re.compile(r"^https?://www\.liputan6\.com/.+/read/\d+/?.*")
+        # section subdomains (kesehatan., bola., ...) carry tag-listed articles too
+        self._article_href = re.compile(r"^https?://(?:[a-z0-9-]+\.)?liputan6\.com/.+/read/\d+/?.*")
 
     async def fetch_search_results(self, keyword):
-        """Use Playwright to render tag page, filter by keyword in URL."""
+        """Render the tag page and read its listing container."""
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             try:
@@ -33,27 +35,30 @@ class Liputan6Scraper(BaseScraper):
                 )
                 page = await context.new_page()
 
-                tag_url = f"{self.base_url}/tag/{keyword.lower()}"
+                tag_url = f"{self.base_url}/tag/{keyword_url_slug(keyword)}"
 
                 await page.goto(tag_url, wait_until="domcontentloaded", timeout=20000)
                 await page.wait_for_timeout(5000)
 
+                # scope to the tag listing; a page-wide sweep pulls in nav and
+                # sidebar links that were never tagged with this keyword
                 raw_links = await page.evaluate("""() => {
                     return [...new Set(
-                        [...document.querySelectorAll('a[href]')]
+                        [...document.querySelectorAll(
+                            'article.articles--iridescent-list--item a[href]'
+                        )]
                             .filter(a => a.href.includes('/read/'))
                             .map(a => a.href)
                     )]
                 }""")
 
-                # Filter: only keep links where keyword appears in URL
-                kw_lower = keyword.lower()
+                # the tag endpoint is already the keyword filter -- article
+                # slugs carry the headline, never the tag, so matching the
+                # keyword against the url here discards every result
                 article_links = [
                     link
                     for link in raw_links
-                    if self._article_href.match(link)
-                    and kw_lower in link.lower()
-                    and "/photo/" not in link
+                    if self._article_href.match(link) and "/photo/" not in link
                 ]
 
                 if article_links:

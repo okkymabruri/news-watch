@@ -11,6 +11,7 @@ import re
 from bs4 import BeautifulSoup
 
 from .basescraper import BaseScraper
+from ..utils import keyword_matches_url
 
 
 class TribunnewsScraper(BaseScraper):
@@ -32,7 +33,6 @@ class TribunnewsScraper(BaseScraper):
 
     async def fetch_search_results(self, keyword):
         """Scan sitemaps and filter by keyword in URL."""
-        kw_lower = keyword.lower()
         all_links = set()
 
         for sm_url in self.sitemap_urls:
@@ -45,7 +45,7 @@ class TribunnewsScraper(BaseScraper):
                 soup = BeautifulSoup(child_text, "xml")
                 for loc in soup.find_all("loc"):
                     url = loc.text.strip()
-                    if url and kw_lower in url.lower():
+                    if url and keyword_matches_url(keyword, url):
                         all_links.add(url)
             except Exception:
                 pass

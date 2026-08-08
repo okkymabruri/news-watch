@@ -12,6 +12,7 @@ import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 
 from .basescraper import BaseScraper
+from ..utils import keyword_matches_url
 
 
 class KumparanScraper(BaseScraper):
@@ -28,7 +29,6 @@ class KumparanScraper(BaseScraper):
 
     async def fetch_search_results(self, keyword):
         """Scan all child sitemaps and filter by keyword in URL."""
-        kw_lower = keyword.lower()
         all_links = set()
 
         # Get sitemap index
@@ -47,7 +47,7 @@ class KumparanScraper(BaseScraper):
                 soup = BeautifulSoup(child_text, "xml")
                 for loc in soup.find_all("loc"):
                     url = loc.text.strip()
-                    if url and kw_lower in url.lower():
+                    if url and keyword_matches_url(keyword, url):
                         all_links.add(url)
             except Exception as e:
                 logging.debug(f"Kumparan sitemap fetch failed for {sm_url}: {e}")

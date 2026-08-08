@@ -99,6 +99,7 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         "cnbcindonesia", "CNBCScraper",
         smoke_keyword="ekonomi",
         supports_latest=True,
+        note="/search?query= renders results client-side; the server HTML is a shell (same body length for every query), so search yields nothing; latest works; 2026-08-06",
     ),
     ScraperEntry(
         "cnnindonesia",
@@ -117,7 +118,7 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         status="stable",
         strict_search=True,
         smoke_keyword="ekonomi",
-        note="promoted to stable; rebuilt with sitemap keyword filtering; 2026-04-18",
+        note="dated /indeks?date= walk across news/finance/health for search (reaches arbitrary history); news sitemaps span ~1 day and are the no-start-date fallback; 2026-08-06",
         supports_latest=True,
     ),
     ScraperEntry(
@@ -172,7 +173,7 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         concurrency=5,
         smoke_keyword="ihsg",
         supports_latest=True,
-        note="news sitemap discovery with strict title/URL keyword filtering; 2026-07-18",
+        note="news sitemap discovery with strict title/URL keyword filtering; sitemap spans ~48h so search cannot reach older dates; 2026-08-06",
     ),
     ScraperEntry(
         "infobanknews",
@@ -205,7 +206,7 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         strict_search=True,
         browser_required=True,
         smoke_keyword="ihsg",
-        note="promoted to stable; rebuilt with Playwright tag page + keyword URL filter; 2026-04-18",
+        note="Playwright tag page; extraction scoped to the sections the page names after the tag, excluding the recommendation rail below them; 2026-08-06",
         supports_latest=True,
     ),
     ScraperEntry("inews", "iNews", "inews", "INewsScraper", smoke_keyword="ihsg", supports_latest=True),
@@ -380,7 +381,7 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         status="stable",
         strict_search=True,
         smoke_keyword="nasional",
-        note="promoted to stable; /search?q= endpoint + Next.js __NEXT_DATA__ parsing; 2026-05-13",
+        note="/search?q= endpoint + Next.js __NEXT_DATA__ (props.pageProps.articles, urlDetail); single page, ?page=N repeats page 1; 2026-08-06",
         supports_latest=True,
     ),
     ScraperEntry(
@@ -425,7 +426,7 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         strict_search=True,
         browser_required=True,
         smoke_keyword="ekonomi",
-        note="promoted to stable; rebuilt with Playwright tag page + keyword URL filter; 2026-04-18",
+        note="Playwright tag page; the tag endpoint does not actually filter (/tag/ekonomi and /tag/makan-bergizi-gratis return same-length pages), so search leaks unrelated articles: 15 of 22 on-topic measured 2026-08-06",
         supports_latest=True,
     ),
     ScraperEntry(
@@ -469,7 +470,7 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         smoke_keyword="indonesia",
         supports_search=True,
         supports_latest=True,
-        note="single Google News sitemap search (title-only); latest unfiltered; Dewan Pers verified 2024-11-25",
+        note="single Google News sitemap search (title-only); sitemap spans ~48h so search cannot reach older dates; latest unfiltered; 2026-08-06",
     ),
     ScraperEntry(
         "sindonews",
@@ -611,7 +612,7 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         status="stable",
         strict_search=True,
         smoke_keyword="nasional",
-        note="new; WordPress /?s= search + title keyword filtering (search returns all); 2026-05-15",
+        note="WordPress /?s= ignores the query -- 471KB response contained zero occurrences of the search term; search yields nothing, latest works; 2026-08-06",
         supports_latest=True,
     ),
     ScraperEntry(
@@ -621,7 +622,7 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         status="stable",
         strict_search=True,
         smoke_keyword="nasional",
-        note="new; WordPress /?s= search + path-based article filtering; 2026-05-15",
+        note="search returns no server-rendered results (borneo24 /search?q= body is a shell; .post-item h3.title matches 0); latest works; 2026-08-06",
         supports_latest=True,
     ),
     ScraperEntry(

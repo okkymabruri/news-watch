@@ -49,7 +49,8 @@ class MetrotvnewsScraper(BaseScraper):
         page = 1
         seen_links: set[str] = set()
 
-        while self.continue_scraping and page <= self.max_pages:
+        self._reset_pagination()
+        while page <= self.max_pages:
             response_text = await self.build_search_url(keyword, page)
             if not response_text:
                 break
@@ -63,9 +64,9 @@ class MetrotvnewsScraper(BaseScraper):
                 break
             seen_links.update(new_links)
 
-            continue_scraping = await self.process_page(new_links, keyword)
-            if not continue_scraping:
-                return
+            in_window = await self.process_page(new_links, keyword)
+            if not self._keep_paginating(in_window):
+                break
 
             page += 1
 

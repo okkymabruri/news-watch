@@ -6,8 +6,7 @@ https://www.pantau.com/search?q={keyword}
 
 import json
 import logging
-import re
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urljoin
 
 from bs4 import BeautifulSoup
 
@@ -23,10 +22,11 @@ class PantauScraper(BaseScraper):
         self.max_pages = 10
 
     async def build_search_url(self, keyword, page):
-        params = {"q": keyword}
+        # ?page=N returns the same 20 rows as page 1, so there is nothing
+        # past the first page to ask for
         if page > 1:
-            params["page"] = page
-        url = f"{self.base_url}/search?{urlencode(params)}"
+            return None
+        url = f"{self.base_url}/search?{urlencode({'q': keyword})}"
         return await self.fetch(url)
 
     def _extract_next_data(self, response_text):
@@ -45,29 +45,18 @@ class PantauScraper(BaseScraper):
         if not data:
             return None
 
-        articles = (
-            data.get("props", {})
-            .get("pageProps", {})
-            .get("initialNewsFeed", [])
-        )
+        articles = data.get("props", {}).get("pageProps", {}).get("articles", [])
         if not articles:
             return None
 
-        links = set()
-        for article in articles:
-            slug = article.get("slug", "")
-            category = article.get("categoryName", "")
-            if slug:
-                cat_slug = self._slugify(category)
-                links.add(f"{self.base_url}/{cat_slug}/{slug}")
+        # each row carries its own path (/{category}/{id}/{slug}); rebuilding
+        # it from category + slug drops the id and lands on a 404
+        links = {
+            urljoin(self.base_url, article["urlDetail"])
+            for article in articles
+            if article.get("urlDetail")
+        }
         return links or None
-
-    def _slugify(self, text):
-        """Convert category name to URL-friendly slug."""
-        if not text:
-            return "news"
-        slug = text.lower().replace(" ", "-").replace("&", "dan")
-        return re.sub(r"[^a-z0-9\-]", "", slug) or "news"
 
     async def get_article(self, link, keyword):
         response_text = await self.fetch(link)
@@ -169,20 +158,9 @@ class PantauScraper(BaseScraper):
         if not articles:
             return None
 
-        links = set()
-        for article in articles:
-            # Homepage articles use urlDetail field
-            url_detail = article.get("urlDetail", "")
-            if url_detail:
-                if url_detail.startswith("/"):
-                    links.add(f"{self.base_url}{url_detail}")
-                else:
-                    links.add(url_detail)
-                continue
-            # Search-style articles use slug + categoryName
-            slug = article.get("slug", "")
-            category = article.get("categoryName", "")
-            if slug:
-                cat_slug = self._slugify(category)
-                links.add(f"{self.base_url}/{cat_slug}/{slug}")
+        links = {
+            urljoin(self.base_url, article["urlDetail"])
+            for article in articles
+            if article.get("urlDetail")
+        }
         return links or None

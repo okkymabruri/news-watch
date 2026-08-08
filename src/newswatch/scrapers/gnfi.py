@@ -241,7 +241,8 @@ class GNFIScraper(BaseScraper):
     async def fetch_search_results(self, keyword):
         page = 1
         found = False
-        while self.continue_scraping and page <= _MAX_PAGES:
+        self._reset_pagination()
+        while page <= _MAX_PAGES:
             response_text = await self.build_search_url(keyword, page)
             if not response_text:
                 break

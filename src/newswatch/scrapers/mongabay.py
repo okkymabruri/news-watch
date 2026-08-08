@@ -50,7 +50,8 @@ class MongabayScraper(BaseScraper):
         page = 1
         found_articles = False
 
-        while self.continue_scraping and page <= self.max_pages:
+        self._reset_pagination()
+        while page <= self.max_pages:
             response_text = await self.build_search_url(keyword, page)
             if not response_text:
                 break
@@ -132,7 +133,8 @@ class MongabayScraper(BaseScraper):
         """Override to process API items directly."""
         page = 1
         found = False
-        while self.continue_scraping and page <= self.max_latest_pages:
+        self._reset_pagination()
+        while page <= self.max_latest_pages:
             response_text = await self.build_latest_url(page)
             if not response_text:
                 break

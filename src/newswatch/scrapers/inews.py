@@ -4,6 +4,7 @@ import re
 from bs4 import BeautifulSoup
 
 from .basescraper import BaseScraper
+from ..utils import keyword_url_slug
 
 
 class INewsScraper(BaseScraper):
@@ -28,7 +29,7 @@ class INewsScraper(BaseScraper):
 
     async def build_search_url(self, keyword, page):
         # https://www.inews.id/tag/{keyword}
-        url = f"https://www.{self.base_url}/tag/{keyword.lower()}"
+        url = f"https://www.{self.base_url}/tag/{keyword_url_slug(keyword)}"
         return await self.fetch(url, headers=self.headers, timeout=30)
 
     def parse_article_links(self, response_text):

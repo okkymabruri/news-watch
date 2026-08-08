@@ -87,6 +87,11 @@ from newswatch.scrapers.infobanknews import InfobanknewsScraper
 from newswatch.scrapers.indopolitika import IndopolitikaScraper
 from newswatch.scrapers.ntvnews import NTVNewsScraper
 from newswatch.scrapers.voi import VOIScraper
+from newswatch.scrapers.detik import DetikScraper
+from newswatch.scrapers.inews import INewsScraper
+from newswatch.scrapers.okezone import OkezoneScraper
+from newswatch.scrapers.pantau import PantauScraper
+from newswatch.scrapers.tvrinews import TVRINewsScraper
 
 
 # ── Shared offline test scaffolding ────────────────────────────────────────
@@ -4288,3 +4293,219 @@ class TestNBCNewsFocus:
         await s.get_article(f"{self.BASE}/news/us-news/no-id-suffix", "police")
         assert stub.calls == []
         assert s.queue_.empty()
+
+
+# ── Multi-word keywords must reach publishers as hyphenated slugs ─────────
+
+
+class TestMultiWordKeywordSlugging:
+    """A keyword with spaces is unusable verbatim in a URL.
+
+    Tag endpoints 404 on a space, and sitemap ``<loc>`` values are hyphenated,
+    so a raw substring match never fires. Both shapes are pinned here because
+    each silently returns zero articles rather than erroring.
+    """
+
+    KEYWORD = "makan bergizi gratis"
+    SLUG = "makan-bergizi-gratis"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "factory",
+        [
+            lambda: OkezoneScraper(keywords="x", queue_=asyncio.Queue()),
+            lambda: INewsScraper(keywords="x", queue_=asyncio.Queue()),
+        ],
+        ids=["okezone", "inews"],
+    )
+    async def test_tag_endpoint_requests_hyphenated_path(self, factory):
+        scraper = factory()
+        stub = _attach_fetch(scraper, {})
+        await scraper.build_search_url(self.KEYWORD, 1)
+
+        requested = stub.calls[0][0]
+        assert f"/tag/{self.SLUG}" in requested
+        assert " " not in requested
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "factory,sitemap",
+        [
+            (
+                lambda: DetikScraper(keywords="x", queue_=asyncio.Queue()),
+                "https://news.detik.com/berita/sitemap_news.xml",
+            ),
+            (
+                lambda: TVRINewsScraper(keywords="x", queue_=asyncio.Queue()),
+                None,
+            ),
+        ],
+        ids=["detik", "tvrinews"],
+    )
+    async def test_sitemap_filter_matches_hyphenated_loc(self, factory, sitemap):
+        scraper = factory()
+        hit = f"https://example.test/berita/d-1/anggaran-{self.SLUG}-naik"
+        miss = "https://example.test/berita/d-2/harga-pangan-turun"
+        body = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            f"<urlset><url><loc>{hit}</loc></url>"
+            f"<url><loc>{miss}</loc></url></urlset>"
+        )
+        _attach_fetch(scraper, {"sitemap": body})
+        seen: list[str] = []
+        scraper.get_article = _record_links(seen)
+        scraper._process_article = _record_links(seen)
+
+        await scraper.fetch_search_results(self.KEYWORD)
+
+        assert seen == [hit]
+
+
+class TestDetikIndexPage:
+    """The dated index is the only route to detik history.
+
+    Its news sitemaps span roughly a day, so anything older is reachable
+    only through ``/indeks?date=``. Pagination and headline extraction are
+    pinned here because both fail by returning less, never by raising.
+    """
+
+    @staticmethod
+    def _page(cards: list[str]) -> str:
+        return "<html><body>" + "".join(cards) + "</body></html>"
+
+    @staticmethod
+    def _card(href: str, title: str) -> str:
+        return f'<article><a href="{href}"><h3>{title}</h3></a></article>'
+
+    def _scraper(self):
+        return DetikScraper(keywords="mbg", queue_=asyncio.Queue())
+
+    def test_reports_raw_card_count_not_filtered_count(self):
+        """Pagination keys on cards; filtered entries would end a day early."""
+        html = self._page(
+            [
+                self._card("https://news.detik.com/berita/d-1/kasus-mbg-naik", "Kasus MBG Naik"),
+                self._card("https://news.detik.com/berita/d-2/foto-galeri/", "Galeri"),
+                self._card("https://20.detik.com/detikflash/d-3/klip/", "Klip"),
+            ]
+        )
+        cards, entries = self._scraper()._parse_indeks(html)
+
+        assert cards == 3
+        assert [link for link, _ in entries] == ["https://news.detik.com/berita/d-1/kasus-mbg-naik"]
+
+    def test_accepts_finance_and_health_channels(self):
+        html = self._page(
+            [
+                self._card("https://finance.detik.com/berita-ekonomi-bisnis/d-4/anggaran-mbg/", "Anggaran MBG"),
+                self._card("https://health.detik.com/berita-detikhealth/d-5/gizi-mbg/", "Gizi MBG"),
+                self._card("https://hot.detik.com/celeb/d-6/gosip/", "Gosip"),
+            ]
+        )
+        cards, entries = self._scraper()._parse_indeks(html)
+
+        assert cards == 3
+        assert len(entries) == 2
+
+    def test_empty_response_is_not_an_error(self):
+        assert self._scraper()._parse_indeks(None) == (0, [])
+        assert self._scraper()._parse_indeks("") == (0, [])
+
+    @pytest.mark.asyncio
+    async def test_only_headline_matches_are_fetched(self, caplog):
+        scraper = DetikScraper(
+            keywords="mbg",
+            start_date=datetime(2026, 8, 5),
+            queue_=asyncio.Queue(),
+        )
+        hit = "https://news.detik.com/berita/d-1/dapur-mbg-diperluas/"
+        html = self._page(
+            [
+                self._card(hit, "Dapur MBG Diperluas ke Papua"),
+                self._card("https://news.detik.com/berita/d-2/harga-pangan-turun/", "Harga Pangan Turun"),
+            ]
+        )
+        _attach_fetch(scraper, {"indeks": html})
+        seen: list[str] = []
+        scraper.get_article = _record_links(seen)
+
+        await scraper._walk_indeks("mbg")
+
+        assert seen == [hit]
+
+    @pytest.mark.asyncio
+    async def test_day_cap_announces_itself(self, caplog):
+        scraper = DetikScraper(
+            keywords="mbg",
+            start_date=datetime(2020, 1, 1),
+            queue_=asyncio.Queue(),
+        )
+        _attach_fetch(scraper, {})
+        with caplog.at_level(logging.WARNING):
+            await scraper._walk_indeks("mbg")
+
+        assert any("capped at" in r.getMessage() for r in caplog.records)
+
+    def test_resume_knob_moves_the_starting_day(self, monkeypatch):
+        monkeypatch.setenv("NEWSWATCH_DETIK_INDEX_NEWEST", "2025-08-11")
+        assert self._scraper().index_newest_day == datetime(2025, 8, 11).date()
+
+    def test_unparseable_resume_knob_falls_back_to_today(self, monkeypatch, caplog):
+        monkeypatch.setenv("NEWSWATCH_DETIK_INDEX_NEWEST", "11/08/2025")
+        with caplog.at_level(logging.WARNING):
+            assert self._scraper().index_newest_day is None
+        assert any("not YYYY-MM-DD" in r.getMessage() for r in caplog.records)
+
+
+class TestPantauSearchPayload:
+    """The search page ships its results in ``__NEXT_DATA__``.
+
+    Both halves failed silently before: the key moved, and rebuilding a link
+    from category + slug drops the numeric id and lands on a 404.
+    """
+
+    PAYLOAD = {
+        "props": {
+            "pageProps": {
+                "articles": [
+                    {
+                        "id": 358244,
+                        "title": "Menkes Ungkap Temuan Bakteri E. coli pada Keracunan MBG",
+                        "slug": "menkes-ungkap-temuan-bakteri",
+                        "categoryName": "Ekonomi",
+                        "urlDetail": "/ekonomi/358244/menkes-ungkap-temuan-bakteri",
+                    },
+                    {"id": 1, "title": "no url", "slug": "no-url", "categoryName": "Nasional"},
+                ],
+                "initialNewsFeed": [{"slug": "stale-key", "categoryName": "Nasional"}],
+            }
+        }
+    }
+
+    def _html(self, payload):
+        return (
+            '<html><body><script id="__NEXT_DATA__" type="application/json">'
+            + json.dumps(payload)
+            + "</script></body></html>"
+        )
+
+    def _scraper(self):
+        return PantauScraper(keywords="mbg", queue_=asyncio.Queue())
+
+    def test_builds_links_from_url_detail(self):
+        links = self._scraper().parse_article_links(self._html(self.PAYLOAD))
+
+        assert links == {"https://www.pantau.com/ekonomi/358244/menkes-ungkap-temuan-bakteri"}
+
+    def test_ignores_the_retired_feed_key(self):
+        payload = {"props": {"pageProps": {"initialNewsFeed": [{"slug": "x", "categoryName": "Nasional"}]}}}
+
+        assert self._scraper().parse_article_links(self._html(payload)) is None
+
+    @pytest.mark.asyncio
+    async def test_second_page_is_never_requested(self):
+        scraper = self._scraper()
+        stub = _attach_fetch(scraper, {})
+
+        assert await scraper.build_search_url("mbg", 2) is None
+        assert stub.calls == []

@@ -74,7 +74,8 @@ class CNBCScraper(BaseScraper):
     async def fetch_search_results(self, keyword):
         # Prefer HTML search (richer + supports date filter), but fall back to RSS when blocked.
         page = 1
-        while self.continue_scraping and page <= self.max_pages:
+        self._reset_pagination()
+        while page <= self.max_pages:
             response_text = await self.build_search_url(keyword, page)
             if not response_text:
                 break
@@ -83,9 +84,9 @@ class CNBCScraper(BaseScraper):
             if not filtered_hrefs:
                 break
 
-            continue_scraping = await self.process_page(filtered_hrefs, keyword)
-            if not continue_scraping:
-                return
+            in_window = await self.process_page(filtered_hrefs, keyword)
+            if not self._keep_paginating(in_window):
+                break
 
             page += 1
 
