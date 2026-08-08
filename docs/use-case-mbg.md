@@ -10,6 +10,9 @@ does not duplicate installation, configuration, or troubleshooting content.
 (10,915 cleaned documents, 52 sources). This supersedes an earlier edition
 built on a smaller run over a shorter window; every figure and count below
 has been regenerated, and the superseded totals are not carried forward.
+The topic layer now carries a stability disclosure: see
+[Topic resolution and stability](#topic-resolution-and-stability) before
+quoting any topic-level number.
 
 ## Background: What Is MBG?
 
@@ -123,7 +126,11 @@ cleanly with any dominant theme.
 
 **The outlier class is large and is disclosed rather than hidden: 4,031
 documents (36.9%) carry no topic**, so any topic-level statement below
-describes the remaining 63%.
+describes the remaining 63%. This share is one of the stable properties of
+the corpus: refitting under five different projection seeds moves it only
+between 34.6% and 37.8%, and the substantive topic count stays at 14 every
+time. Several other topic-level numbers below are far less stable, and each
+is qualified where it appears.
 
 ![UMAP scatter of the cleaned corpus colored by topic](assets/mbg/umap_scatter.png)
 
@@ -144,6 +151,12 @@ class. The three largest topics account for **5,248 of 10,915 cleaned
 documents (48.1%)**; T0 alone holds 3,724, so topic structure outside T0
 rests on roughly a quarter of the corpus. The remainder spreads across the
 other 11 substantive topics and the outlier class.
+
+Both figures are seed-dependent. Across five projection seeds the three
+largest topics span 4,745 to 5,796 documents (43.5% to 53.1% of the corpus),
+and T0 spans 2,815 to 4,209, which is 39.5% to 60.3% of assigned documents
+against the 54.1% shown here. The qualitative shape, one dominant topic and a
+long thin tail, holds in every seed; the specific counts do not.
 
 ![Monthly volume for the six largest topics with callout annotations](assets/mbg/topic_trendline.png)
 
@@ -172,10 +185,20 @@ published evidence table rather than take it on trust:
 - **June 2026, T0, 889 documents:** SPPG halted over school holidays, with
   students demanding a stop and SPPG staff rallying to keep it.
 
-In **June 2026** the three largest topics combined reach **1,412 documents**,
-about **3.5×** their previous combined monthly peak of **406**. On all
-documents rather than the top three, the same month is **3.20×** its
-predecessor (2,761 against 863 in October 2025).
+**The peak months are stable; the peak counts are not.** Under five
+projection seeds every one of these topics peaks in the same month it does
+here, but the counts move: the T0 June peak spans 606 to 889, the T1 June
+peak 435 to 508, and the T2 September peak 179 to 218. The values printed
+above are the seed the published model uses, and for T0 and T1 they are the
+highest of the five.
+
+Across **all documents**, June 2026 is **3.20×** its predecessor (2,761
+against 863 in October 2025). That comparison uses no topic assignment and is
+the more reliable statement of the spike. Restricted to the three largest
+topics, the same month reaches **1,412 documents**, about **3.5×** their
+previous combined monthly peak of **406**; that multiple ranges from **1.95×
+to 3.5×** across projection seeds, and the value quoted here is the largest of
+the five. Prefer the all-document figure when citing the spike.
 
 **Treat the peak as real and the multiple as an upper bound.** Distinct
 sources contributing per month rise from 17 to 45 across the window, so
@@ -193,6 +216,98 @@ quoting private records:
 - [Ramadan dry-food adaptation statement, ANTARA](https://en.antaranews.com/news/405814/free-meals-nutrition-maintained-despite-dry-food-shift-minister)
 - [BGN school-holiday audit of MBG kitchens, ANTARA](https://en.antaranews.com/news/419313/bgn-to-fully-audit-free-meal-kitchens-during-school-holidays)
 - [SPPG safety certification push after poisoning cases, Kompas](https://money.kompas.com/read/2025/10/03/100000126/usai-kasus-keracunan-bgn-ngebut-sertifikasi-sppg-agar-pangan-aman-)
+
+### Topic resolution and stability
+
+The pipeline reduces the clustering to a fixed number of display topics. That
+number is an editorial choice, and this section states plainly how it was made
+and what it does not support.
+
+**How it was chosen, and why that no longer holds.** The reduction target was
+selected from the candidates 10, 12, 15, and 18, on a corpus roughly a third
+the size of the current one, using the largest topic's share of assigned
+documents as the criterion: 10 and 12 produced a mega-topic and were rejected,
+15 and 18 did not. Two things follow. Twenty and above were never candidates,
+so the published value was not chosen over them. And on the current corpus the
+criterion no longer endorses the choice: the largest topic now holds 54.1% of
+assigned documents, nearer the level that was rejected than the level that was
+accepted.
+
+**What was run to test it.** A resolution was swept from 8 to 40 in steps of 2,
+under five projection seeds, with twenty bootstrap resamples at 90% of the
+corpus, against three criteria fixed before the sweep: no dominant residual
+bucket and no shattering into slivers; agreement across seeds at adjusted Rand
+index 0.60 or better; and no more than a third of topics failing to survive
+resampling.
+
+| criterion | resolutions that pass |
+|---|---|
+| shape: no dominant bucket, no shattering | 28, 30, 32 |
+| cross-seed agreement | 10, 36, 38 |
+| bootstrap survival | 26 |
+
+**No resolution passes more than one.** The intersection is empty, and it stays
+empty under every way of aggregating the shape criterion across seeds. Mean
+cross-seed agreement never exceeds 0.606 anywhere on the grid, so the
+instability is not a property of the reduction target: it originates in the
+projection and clustering stage, which is also where the 36.9% outlier share is
+set. Refitting at a different target would not repair either.
+
+**What that means for reading the topics.** The fourteen topics are a reading
+aid for the volume and sentiment figures, not a set of categories the corpus
+contains. The three largest are reasonably identifiable across seeds, matching
+at 0.50 to 0.79 by document overlap. Below them the correspondence degrades
+sharply: the budget topic matches at 0.12 to 0.55, and the SPPG-construction
+topic at 0.10 to 0.77, meaning a topic present in one run may have no
+counterpart in another. Topic counts, labels, and per-topic shares should be
+read as one plausible partition rather than the partition.
+
+**No claim is made that this resolution is optimal.** Any earlier implication
+to that effect is withdrawn.
+
+### What the largest topic contains
+
+Reduction merges clusters; it never re-clusters. Every display topic therefore
+has a fan-in, the set of underlying clusters merged into it. For twelve of the
+fourteen topics that number is small, a median of 2.
+
+![Composition of the largest topic and its mobilisation clusters](assets/mbg/t0_composition.png)
+
+**T0 is 83 of the 150 underlying clusters merged into one.** Its constituents
+include chicken prices and poultry farmers (240 documents), SPPG water
+treatment installations (214), viral menu videos (187), Ramadan menus (111),
+hygiene certification (105), breastfeeding and infant nutrition (87), and a
+Persebaya Surabaya football cluster (56). These are not facets of a single
+theme. T0 functions as a residual bucket, and the label "program governance and
+institutional oversight" describes its largest tendency rather than its
+contents. This is structural rather than an artifact of the chosen resolution:
+the largest topic still absorbs 73 clusters at a target of 20 and 51 at 28.
+
+The practical consequence is that a real, well-covered theme can be invisible in
+the topic list. **Street mobilisation is one.** Four of T0's clusters carry it,
+260 documents in total, with these leading terms:
+
+| documents | mobilisation headlines | leading terms |
+|---:|---:|---|
+| 123 | 54 | unjuk rasa, peserta aksi, demonstrasi, perwakilan massa |
+| 53 | 41 | aksi mahasiswa, unjuk rasa, mahasiswa meminta, demonstrasi |
+| 46 | 17 | dinas pendidikan, siswasiswi, pelajar, pendidikan kota |
+| 38 | 16 | masyarakat jakarta, warga jakarta, universitas indonesia |
+
+Titles were matched on `demonstrasi`, `unjuk rasa`, `aksi massa`, `turun ke
+jalan`, `long march`, `massa aksi`, `berunjuk`, and `demo`, giving 162 distinct
+titles. All 138 that matched only on the ambiguous token `demo` were read
+individually, since the word also denotes a product or cooking demonstration in
+Indonesian: 138 of 138 are genuine street mobilisation.
+
+Two features of the coverage are worth stating, because a topic label would hide
+both. **Roughly half is mobilisation in support of the programme**, by SPPG
+staff, kitchen volunteers, and organised supporter groups demanding it continue,
+alongside student protests demanding it stop and a sub-thread disputing whether
+the supporter rallies were paid or state-directed. And the coverage is not
+confined to one month: 137 titles fall in 2026-06 and 13 in 2026-07, but an
+earlier and separate cluster of 11 sits in 2025-02, covering student refusals of
+the programme in Nabire and Jayapura, Papua.
 
 ### Document-similarity network
 
@@ -244,6 +359,16 @@ no positive probability. By contrast, SPPG kitchen construction and
 police-run operations (T4, **n=399**) have a positive mean score of
 **+0.25**.
 
+**The first two directions are robust; the third is not.** Holding the
+document-level predictions fixed and regrouping them under five projection
+seeds, corruption stays between −0.46 and −0.41 and food poisoning between
+−0.47 and −0.43, so both are strongly negative in every seed. Food poisoning's
+negative share ranges 54.2% to 59.9%, and the 59.9% quoted above is the highest
+of the five. **SPPG kitchen construction does not hold: its mean score ranges
+from +0.25 down to −0.04, so the sign itself flips, and in one seed the topic
+has no recognisable counterpart at all.** Read it as "less negative than the
+rest", not as a positive counterweight.
+
 ![Diverging per-topic sentiment distribution](assets/mbg/topic_sentiment_diverging.png)
 
 The figure reports each document's highest-probability label as a share of
@@ -252,9 +377,13 @@ the ordering uses the topic mean of `P(positive) − P(negative)`. The two
 measures can differ: program governance and institutional oversight
 (T0, **n=3,724**) has **1,145 positive**, **1,310 neutral**, and **1,269
 negative** highest-probability labels with a mean score of **−0.02**.
+That mean stays mildly negative in every seed, at −0.07 to −0.01.
 Smaller substantive topics contain at most 186 documents each (T6 Jakarta
 policing and school incident response), so their directions are especially
-provisional. The heterogeneous outlier class is retained in aggregate
+provisional, and per
+[Topic resolution and stability](#topic-resolution-and-stability) the smaller
+topics are also the least likely to reappear under a different projection
+seed. The heterogeneous outlier class is retained in aggregate
 reconciliation but omitted from this substantive-topic figure.
 
 Overall, the cleaned corpus shows **2,620 positive** (24.0%), **4,313
