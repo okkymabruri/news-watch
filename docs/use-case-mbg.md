@@ -323,7 +323,7 @@ figure displays **36 communities within the 4 largest component groups**
 under a **500-node cap**, rendering **499 linked documents**; smaller
 components are shown in grey and carry no group annotations.
 
-![Document-similarity network, 13 largest component groups](assets/mbg/document_similarity_network.png)
+![Document-similarity network, 4 largest component groups](assets/mbg/document_similarity_network.png)
 
 The four leading groups shown are:
 
@@ -493,7 +493,7 @@ influence, endorsement, coordination, political alignment, or causality.
 
 - **Retrieval coverage.** Only registry sources are searched. The stable
   search-capable subset is 68 of 75 entries (see the resolver breakdown in
-  [Collection Command](#collection-command)), and 48 sources contributed
+  [Collection Command](#collection-command)), and 52 sources contributed
   documents retained after cleaning.
 - **Keyword recall.** Retrieval uses six related queries: `mbg`, `makan
   bergizi gratis`, `program MBG`, `satuan pelayanan pemenuhan gizi`, `SPPG`,

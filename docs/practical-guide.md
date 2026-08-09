@@ -1,4 +1,4 @@
-# news-watch Practical Guide
+# Practical Guide
 
 A short, end-to-end walkthrough of `news-watch` covering both retrieval methods and common research and monitoring patterns. For exhaustive function signatures, see the [API Reference](api-reference.md). For installation, see [Getting Started](getting-started.md). For the MBG research workflow, see the [Use Case MBG guide](use-case-mbg.md).
 

@@ -1,4 +1,4 @@
-# news-watch Architecture
+# Architecture
 
 ## Purpose
 
