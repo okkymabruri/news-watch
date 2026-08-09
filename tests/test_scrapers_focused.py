@@ -4608,3 +4608,58 @@ class TestTribunnewsSitemapScope:
         await scraper.fetch_search_results("prabowo")
 
         assert sorted(processed) == sorted(matches)
+
+
+# ── Kompas walks its archive in date windows, not one capped query ─────────
+
+
+class TestKompasDateWindowWalk:
+    """search.kompas.com stops serving at roughly page 38, so a single query
+    reaches back about 700 articles and no further. The endpoint honours
+    start_date/end_date, so the walk is a sequence of windows."""
+
+    @staticmethod
+    def _results_html(link: str) -> str:
+        return f'<div><a class="article-link" href="{link}">hit</a></div>'
+
+    async def test_walk_covers_the_window_in_dated_slices(self):
+        import re
+        from datetime import datetime
+
+        from newswatch.scrapers.kompas import KompasScraper
+
+        scraper = KompasScraper(
+            "prabowo",
+            queue_=asyncio.Queue(),
+            start_date=datetime(2026, 7, 1),
+        )
+        scraper.end_datetime = datetime(2026, 7, 21)
+        requested = []
+
+        async def fake_fetch(url, **kwargs):
+            requested.append(url)
+            page = int(re.search(r"page=(\d+)", url).group(1))
+            if page > 1:
+                return None
+            return self._results_html(f"https://www.kompas.com/read/{len(requested)}")
+
+        fetched = []
+
+        async def fake_article(link, keyword):
+            fetched.append(link)
+
+        scraper.fetch = fake_fetch
+        scraper.get_article = fake_article
+        await scraper.fetch_search_results("prabowo")
+
+        spans = [
+            (m.group(1), m.group(2))
+            for u in requested
+            if (m := re.search(r"start_date=([\d-]+)&end_date=([\d-]+)", u))
+        ]
+        assert sorted(set(spans), reverse=True) == [
+            ("2026-07-15", "2026-07-21"),
+            ("2026-07-08", "2026-07-14"),
+            ("2026-07-01", "2026-07-07"),
+        ]
+        assert len(fetched) == 3
