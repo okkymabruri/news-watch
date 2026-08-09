@@ -34,6 +34,7 @@ class BaseScraper(AsyncScraper, ABC):
         self.queue_ = queue_
         self.continue_scraping = True
         self._stale_pages = 0
+        self._pagination_seen = set()
         self.max_latest_pages = max_latest_pages if max_latest_pages is not None else 1
         self.max_pages = max_pages
         self.dedup_links = dedup_links or set()
@@ -71,6 +72,7 @@ class BaseScraper(AsyncScraper, ABC):
         """Clear pagination state at the start of a keyword or latest run."""
         self.continue_scraping = True
         self._stale_pages = 0
+        self._pagination_seen = set()
 
     def _keep_paginating(self, page_in_window):
         """Record one page's outcome; True to request the next page.
@@ -109,16 +111,21 @@ class BaseScraper(AsyncScraper, ABC):
     async def process_page(self, filtered_hrefs, keyword):
         links = self._filter_links(filtered_hrefs)
         if not links:
-            return self.continue_scraping
+            # a page carrying nothing new means paging is not advancing; report
+            # it as stale so the caller stops instead of refetching the same
+            # articles until the scraper timeout
+            return False
+        self._pagination_seen.update(links)
         tasks = [self.get_article(href, keyword) for href in links]
         await self.run(tasks)
         return self.continue_scraping
 
     def _filter_links(self, links):
-        """Filter links by dedup set before fetching articles."""
-        if not self.dedup_links:
+        """Drop links already handled: the dedup set, or an earlier page."""
+        skip = self._pagination_seen.union(self.dedup_links)
+        if not skip:
             return links
-        return [link for link in links if link not in self.dedup_links]
+        return [link for link in links if link not in skip]
 
     async def fetch_latest_results(self):
         page = 1
