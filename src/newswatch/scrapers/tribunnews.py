@@ -51,7 +51,7 @@ class TribunnewsScraper(BaseScraper):
                 pass
 
         if all_links:
-            for link in list(all_links)[:20]:
+            for link in sorted(all_links):
                 await self._process_article(link, keyword)
         else:
             logging.info(f"No news found on {self.base_url} for keyword: '{keyword}'")

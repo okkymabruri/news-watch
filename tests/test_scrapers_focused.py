@@ -4568,3 +4568,43 @@ class TestSearchResultScoping:
         scraper = cls(keywords="mbg", queue_=asyncio.Queue())
 
         assert scraper.parse_article_links(shell.format(inside="", outside=outside)) is None
+
+
+# ── Sitemap scrapers process every keyword match, not an arbitrary 20 ──────
+
+
+class TestTribunnewsSitemapScope:
+    """Sitemap matches were truncated to the first 20 of an unordered set, so
+    a source with more hits than that lost the rest to insertion order."""
+
+    @staticmethod
+    def _sitemap_xml(urls: list[str]) -> str:
+        locs = "".join(f"<url><loc>{u}</loc></url>" for u in urls)
+        return (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{locs}</urlset>'
+        )
+
+    async def test_every_matching_sitemap_url_is_processed(self):
+        from newswatch.scrapers.tribunnews import TribunnewsScraper
+
+        matches = [
+            f"https://www.tribunnews.com/nasional/2026/08/09/prabowo-agenda-{n}"
+            for n in range(25)
+        ]
+        scraper = TribunnewsScraper("prabowo", queue_=asyncio.Queue())
+        first = scraper.sitemap_urls[0]
+
+        async def fake_fetch(url, **kwargs):
+            return self._sitemap_xml(matches) if url == first else None
+
+        processed = []
+
+        async def fake_process(link, keyword):
+            processed.append(link)
+
+        scraper.fetch = fake_fetch
+        scraper._process_article = fake_process
+        await scraper.fetch_search_results("prabowo")
+
+        assert sorted(processed) == sorted(matches)
