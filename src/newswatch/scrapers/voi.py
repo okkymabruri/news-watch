@@ -1,7 +1,12 @@
 """
-VOI.id scraper — uses search endpoint with HTML parsing.
+VOI.id scraper, search endpoint with HTML parsing.
 
-https://voi.id/en/artikel/cari?q={keyword}
+https://voi.id/artikel/cari?q={keyword}
+
+The site publishes each article twice, once in Indonesian and once machine
+translated into English under /en/. Both trees search and paginate identically,
+so the Indonesian one is used: an English translation in an Indonesian corpus is
+a different document from the one that was actually published.
 """
 
 import json
@@ -32,7 +37,7 @@ class VOIScraper(BaseScraper):
         params = {"q": keyword}
         if page > 1:
             params["page"] = page
-        url = f"{self.base_url}/en/artikel/cari?{urlencode(params)}"
+        url = f"{self.base_url}/artikel/cari?{urlencode(params)}"
         return await self.fetch(url)
 
     def parse_article_links(self, response_text):
@@ -166,8 +171,8 @@ class VOIScraper(BaseScraper):
 
     async def build_latest_url(self, page):
         if page == 1:
-            return await self.fetch(f"{self.base_url}/en/artikel/indeks")
-        return await self.fetch(f"{self.base_url}/en/artikel/indeks?page={page}")
+            return await self.fetch(f"{self.base_url}/artikel/indeks")
+        return await self.fetch(f"{self.base_url}/artikel/indeks?page={page}")
 
     def parse_latest_article_links(self, response_text):
         if not response_text:
@@ -193,12 +198,18 @@ class VOIScraper(BaseScraper):
         ):
             return None
         parts = [part for part in parsed.path.split("/") if part]
+        # the two trees do not share category names, /berita/N is /en/news/N, so
+        # an English link cannot be rewritten into the Indonesian one. Drop it:
+        # the Indonesian listing already carries every article
+        if parts and parts[0] == "en":
+            return None
+        # the Indonesian tree appends a title slug. The id alone resolves, so the
+        # slug is dropped and one article cannot enter twice under two links
         if (
-            len(parts) != 3
-            or parts[0] != "en"
-            or parts[1] in _NON_ARTICLE_CATEGORIES
-            or not _ARTICLE_CATEGORY_RE.fullmatch(parts[1])
-            or not parts[2].isdigit()
+            len(parts) < 2
+            or parts[0] in _NON_ARTICLE_CATEGORIES
+            or not _ARTICLE_CATEGORY_RE.fullmatch(parts[0])
+            or not parts[1].isdigit()
         ):
             return None
-        return f"{self.base_url}/{'/'.join(parts)}"
+        return f"{self.base_url}/{parts[0]}/{parts[1]}"

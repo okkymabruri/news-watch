@@ -3897,19 +3897,20 @@ class TestKatadataLatestDiscovery:
 def _voi_index_html() -> str:
     return """<!doctype html><html><body>
 <div class="section-item-title">
-  <a href="/en/economy/123456?utm_source=index#summary">relative current</a>
+  <a href="/ekonomi/123456/harga-beras-naik?utm_source=index#summary">relative slug</a>
 </div>
 <div class="section-item-title">
-  <a href="https://voi.id/en/technology/987654/">absolute current</a>
-  <a href="https://voi.id/en/technology/987654/">duplicate</a>
-  <a href="https://voi.id/en/index/22">index</a>
-  <a href="https://voi.id/en/search/33">search</a>
-  <a href="https://voi.id/en/artikel/44">listing namespace</a>
-  <a href="https://voi.id/en/economy/not-numeric">non-numeric id</a>
-  <a href="https://www.voi.id/en/economy/55">www host</a>
-  <a href="https://example.test/en/economy/66">offsite</a>
+  <a href="https://voi.id/teknologi/987654/satelit-baru">absolute slug</a>
+  <a href="https://voi.id/en/technology/987654">english tree</a>
+  <a href="https://voi.id/teknologi/987654">same id without slug</a>
+  <a href="https://voi.id/index/22/apa">index</a>
+  <a href="https://voi.id/search/33/apa">search</a>
+  <a href="https://voi.id/artikel/44/apa">listing namespace</a>
+  <a href="https://voi.id/ekonomi/not-numeric/apa">non-numeric id</a>
+  <a href="https://www.voi.id/ekonomi/55/apa">www host</a>
+  <a href="https://example.test/ekonomi/66/apa">offsite</a>
 </div>
-<a href="/en/economy/777777">right path outside live selector</a>
+<a href="/ekonomi/777777/di-luar-selektor">right path outside live selector</a>
 </body></html>"""
 
 
@@ -3919,16 +3920,18 @@ class TestVOIDiscovery:
     @pytest.mark.asyncio
     async def test_latest_keeps_index_endpoint(self):
         scraper = VOIScraper(keywords="ekonomi")
-        stub = _attach_fetch(scraper, {"/en/artikel/indeks": _voi_index_html()})
+        stub = _attach_fetch(scraper, {"/artikel/indeks": _voi_index_html()})
 
         assert await scraper.build_latest_url(1) == _voi_index_html()
-        assert stub.calls[0][0] == f"{self.BASE}/en/artikel/indeks"
+        assert stub.calls[0][0] == f"{self.BASE}/artikel/indeks"
 
     def test_live_title_selector_keeps_only_current_same_host_article_paths(self):
         scraper = VOIScraper(keywords="ekonomi")
+        # the slug is dropped so one article cannot enter twice under two links,
+        # and the English tree is not collected at all
         expected = {
-            f"{self.BASE}/en/economy/123456",
-            f"{self.BASE}/en/technology/987654",
+            f"{self.BASE}/ekonomi/123456",
+            f"{self.BASE}/teknologi/987654",
         }
 
         assert scraper.parse_latest_article_links(_voi_index_html()) == expected
@@ -3938,10 +3941,10 @@ class TestVOIDiscovery:
     @pytest.mark.asyncio
     async def test_search_url_contract_and_zero_result_marker_are_preserved(self):
         scraper = VOIScraper(keywords="pasar modal")
-        stub = _attach_fetch(scraper, {"/en/artikel/cari": _voi_index_html()})
+        stub = _attach_fetch(scraper, {"/artikel/cari": _voi_index_html()})
 
         assert await scraper.build_search_url("pasar modal", 2) == _voi_index_html()
-        assert stub.calls[0][0] == f"{self.BASE}/en/artikel/cari?q=pasar+modal&page=2"
+        assert stub.calls[0][0] == f"{self.BASE}/artikel/cari?q=pasar+modal&page=2"
         assert scraper.parse_article_links("<p>Found 0 articles</p>") is None
 
 
