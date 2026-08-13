@@ -65,7 +65,7 @@ class TirtoScraper(BaseScraper):
                     return
 
                 # Step 3: Navigate to articles from same session (Cloudflare cookie persists)
-                for link in article_links[:20]:
+                for link in article_links:
                     if not self.continue_scraping:
                         break
                     try:

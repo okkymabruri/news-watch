@@ -174,6 +174,37 @@ async def test_pagination_stops_once_the_archive_is_genuinely_exhausted():
     assert scraper.visited_pages == [1, 2, 3, 4, 5]
 
 
+class _NonAdvancingScraper(BaseScraper):
+    """A source that ignores the page parameter and re-serves the first page.
+
+    Without a stop condition this pages forever, refetching the same articles
+    until the scraper timeout: the shape behind alinea, betahita and
+    bloombergtechnoz each returning thousands of rows from a few dozen links.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.visited_pages: list[int] = []
+        self.fetched: list[str] = []
+
+    async def build_search_url(self, keyword, page):
+        self.visited_pages.append(page)
+        return "page-1"
+
+    def parse_article_links(self, response_text):
+        return ["https://example.com/a", "https://example.com/b"]
+
+    async def get_article(self, link, keyword):
+        self.fetched.append(link)
+
+
+async def test_a_source_that_never_advances_stops_instead_of_refetching():
+    scraper = _NonAdvancingScraper("ihsg", queue_=asyncio.Queue())
+    await asyncio.wait_for(scraper.fetch_search_results("ihsg"), timeout=2)
+    assert scraper.fetched == ["https://example.com/a", "https://example.com/b"]
+    assert scraper.visited_pages == [1, 2, 3, 4]
+
+
 async def test_pagination_state_resets_between_keywords():
     scraper = _OutOfOrderScraper(
         "a,b", queue_=asyncio.Queue(), max_pages=4, stale_pages={1, 2, 3}

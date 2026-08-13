@@ -43,8 +43,9 @@ class NiagaAsiaScraper(BaseScraper):
             return None
         soup = BeautifulSoup(response_text, "html.parser")
 
+        # scope to the results list; a no-hit search still renders the nav menu
         links = set()
-        for a in soup.select("a[href]"):
+        for a in soup.select(".archive-list-wrap a[href]"):
             href = a["href"]
             full_url = urljoin(self.base_url, href) if not href.startswith("http") else href
             if self._article_re.match(full_url) and not any(skip in full_url for skip in self._skip_paths):

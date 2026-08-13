@@ -1,27 +1,78 @@
 import logging
 import re
+from datetime import date, timedelta
 
 from bs4 import BeautifulSoup
 
 from .basescraper import BaseScraper
 
 
+def _first_text(soup, selectors, separator=" "):
+    """First selector that resolves, as text. Meta tags read their content."""
+    for selector in selectors:
+        el = soup.select_one(selector)
+        if not el:
+            continue
+        text = (el.get("content") or "") if el.name == "meta" else el.get_text(
+            separator=separator, strip=True
+        )
+        text = text.strip()
+        if text:
+            return text
+    return ""
+
+
 class KompasScraper(BaseScraper):
+    # search.kompas.com stops serving results at roughly page 38 whatever the
+    # sort, so one query can never reach further back than about 700 articles.
+    # The endpoint does honour start_date/end_date, so the walk is a sequence of
+    # date windows narrow enough that each one fits under the cap.
+    PAGES_PER_WINDOW = 38
+    WINDOW_DAYS = 7
+
     def __init__(self, keywords, concurrency=12, start_date=None, queue_=None):
         super().__init__(keywords, concurrency, queue_)
         self.base_url = "https://www.kompas.com"
         self.start_date = start_date
         self.continue_scraping = True
 
-    async def build_search_url(self, keyword, page):
+    async def build_search_url(self, keyword, page, window=None):
+        span = f"&start_date={window[0]}&end_date={window[1]}" if window else ""
         return await self.fetch(
-            f"https://search.kompas.com/search?q={keyword}&sort=latest&page={page}",
+            f"https://search.kompas.com/search?q={keyword}&sort=latest{span}&page={page}",
             headers={
                 "User-Agent": (
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
                 )
             },
         )
+
+    async def fetch_search_results(self, keyword):
+        """Walk the archive one date window at a time, newest first."""
+        if not self.start_date:
+            return await super().fetch_search_results(keyword)
+
+        self._reset_pagination()
+        floor = self.start_date.date()
+        end = self.end_datetime.date() if self.end_datetime else date.today()
+        found = False
+
+        while end >= floor:
+            start = max(floor, end - timedelta(days=self.WINDOW_DAYS - 1))
+            for page in range(1, self.PAGES_PER_WINDOW + 1):
+                text = await self.build_search_url(keyword, page, (start, end))
+                if not text:
+                    break
+                links = self.parse_article_links(text)
+                if not links:
+                    break
+                found = True
+                if not await self.process_page(links, keyword):
+                    break
+            end = start - timedelta(days=1)
+
+        if not found:
+            logging.info(f"No news found on {self.base_url} for keyword: '{keyword}'")
 
     async def build_latest_url(self, page):
         return await self.fetch(
@@ -81,8 +132,15 @@ class KompasScraper(BaseScraper):
             return
         soup = BeautifulSoup(response_text, "html.parser")
         try:
-            category = soup.select_one(".breadcrumb__wrap").get_text(
-                separator="/", strip=True
+            # opinion pieces carry no byline and biz.kompas advertorials carry no
+            # breadcrumb. Both fields are decoration, so a missing one must not
+            # discard an article whose title, date and body are all present
+            category = (
+                _first_text(
+                    soup, [".breadcrumb__wrap"], separator="/"
+                )
+                or _first_text(soup, ['meta[name="content_category"]'])
+                or "Unknown"
             )
             title = soup.select_one(".read__title").get_text(strip=True)
             time_text = soup.select_one(".read__time").get_text(strip=True)
@@ -96,7 +154,17 @@ class KompasScraper(BaseScraper):
 
             # Normalize common Kompas prefix so dateparser can parse it.
             publish_date_str = re.sub(r"^Kompas\.com\s*,\s*", "", publish_date_str)
-            author = soup.select_one(".credit-title-name").get_text(strip=True)
+            author = (
+                _first_text(
+                    soup,
+                    [
+                        ".credit-title-name",
+                        'meta[name="content_author"]',
+                        'meta[name="author"]',
+                    ],
+                )
+                or "Unknown"
+            )
 
             content_div = soup.select_one(".read__content")
 

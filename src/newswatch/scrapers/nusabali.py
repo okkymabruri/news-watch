@@ -80,8 +80,9 @@ class NusaBaliScraper(BaseScraper):
         if not response_text:
             return None
         soup = BeautifulSoup(response_text, "html.parser")
+        # scope to the results list; a no-hit search still renders the carousels
         links = set()
-        for a in soup.select("a[href]"):
+        for a in soup.select("#article-list a[href]"):
             href = a.get("href", "")
             if not href:
                 continue

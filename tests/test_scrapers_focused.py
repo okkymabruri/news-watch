@@ -71,6 +71,8 @@ from newswatch.scrapers.betahita import BetahitaScraper
 from newswatch.scrapers.conversationid import ConversationIDScraper
 from newswatch.scrapers.ddtcnews import DDTCNewsScraper
 from newswatch.scrapers.gnfi import GNFIScraper
+from newswatch.scrapers.grid import GridScraper
+from newswatch.scrapers.niagaasia import NiagaAsiaScraper
 from newswatch.scrapers.dailysocial import DailySocialScraper
 from newswatch.scrapers.katadata import KatadataScraper
 from newswatch.scrapers.hukumonline import HukumonlineScraper
@@ -2601,12 +2603,17 @@ class TestBetahitaFocus:
 
 def _nusabali_search_html() -> str:
     return """<!doctype html><html><body>
-        <a href="/berita/225365/pria-mabuk-diamankan-polisi">article</a>
-        <a href="/berita/7/leading-zero">short id</a>
-        <a href="/opini/123/foo">opini</a>
-        <a href="/tag/bali">tag</a>
-        <a href="/about">about</a>
-        <a href="/berita/not-a-number/slug">non-numeric</a>
+        <div id="article-list">
+            <a href="/berita/225365/pria-mabuk-diamankan-polisi">article</a>
+            <a href="/berita/7/leading-zero">short id</a>
+            <a href="/opini/123/foo">opini</a>
+            <a href="/tag/bali">tag</a>
+            <a href="/about">about</a>
+            <a href="/berita/not-a-number/slug">non-numeric</a>
+        </div>
+        <div class="widget punica-watching-list-widget">
+            <a href="/berita/999999/sidebar-most-read">sidebar</a>
+        </div>
     </body></html>"""
 
 
@@ -3890,19 +3897,20 @@ class TestKatadataLatestDiscovery:
 def _voi_index_html() -> str:
     return """<!doctype html><html><body>
 <div class="section-item-title">
-  <a href="/en/economy/123456?utm_source=index#summary">relative current</a>
+  <a href="/ekonomi/123456/harga-beras-naik?utm_source=index#summary">relative slug</a>
 </div>
 <div class="section-item-title">
-  <a href="https://voi.id/en/technology/987654/">absolute current</a>
-  <a href="https://voi.id/en/technology/987654/">duplicate</a>
-  <a href="https://voi.id/en/index/22">index</a>
-  <a href="https://voi.id/en/search/33">search</a>
-  <a href="https://voi.id/en/artikel/44">listing namespace</a>
-  <a href="https://voi.id/en/economy/not-numeric">non-numeric id</a>
-  <a href="https://www.voi.id/en/economy/55">www host</a>
-  <a href="https://example.test/en/economy/66">offsite</a>
+  <a href="https://voi.id/teknologi/987654/satelit-baru">absolute slug</a>
+  <a href="https://voi.id/en/technology/987654">english tree</a>
+  <a href="https://voi.id/teknologi/987654">same id without slug</a>
+  <a href="https://voi.id/index/22/apa">index</a>
+  <a href="https://voi.id/search/33/apa">search</a>
+  <a href="https://voi.id/artikel/44/apa">listing namespace</a>
+  <a href="https://voi.id/ekonomi/not-numeric/apa">non-numeric id</a>
+  <a href="https://www.voi.id/ekonomi/55/apa">www host</a>
+  <a href="https://example.test/ekonomi/66/apa">offsite</a>
 </div>
-<a href="/en/economy/777777">right path outside live selector</a>
+<a href="/ekonomi/777777/di-luar-selektor">right path outside live selector</a>
 </body></html>"""
 
 
@@ -3912,16 +3920,18 @@ class TestVOIDiscovery:
     @pytest.mark.asyncio
     async def test_latest_keeps_index_endpoint(self):
         scraper = VOIScraper(keywords="ekonomi")
-        stub = _attach_fetch(scraper, {"/en/artikel/indeks": _voi_index_html()})
+        stub = _attach_fetch(scraper, {"/artikel/indeks": _voi_index_html()})
 
         assert await scraper.build_latest_url(1) == _voi_index_html()
-        assert stub.calls[0][0] == f"{self.BASE}/en/artikel/indeks"
+        assert stub.calls[0][0] == f"{self.BASE}/artikel/indeks"
 
     def test_live_title_selector_keeps_only_current_same_host_article_paths(self):
         scraper = VOIScraper(keywords="ekonomi")
+        # the slug is dropped so one article cannot enter twice under two links,
+        # and the English tree is not collected at all
         expected = {
-            f"{self.BASE}/en/economy/123456",
-            f"{self.BASE}/en/technology/987654",
+            f"{self.BASE}/ekonomi/123456",
+            f"{self.BASE}/teknologi/987654",
         }
 
         assert scraper.parse_latest_article_links(_voi_index_html()) == expected
@@ -3931,10 +3941,10 @@ class TestVOIDiscovery:
     @pytest.mark.asyncio
     async def test_search_url_contract_and_zero_result_marker_are_preserved(self):
         scraper = VOIScraper(keywords="pasar modal")
-        stub = _attach_fetch(scraper, {"/en/artikel/cari": _voi_index_html()})
+        stub = _attach_fetch(scraper, {"/artikel/cari": _voi_index_html()})
 
         assert await scraper.build_search_url("pasar modal", 2) == _voi_index_html()
-        assert stub.calls[0][0] == f"{self.BASE}/en/artikel/cari?q=pasar+modal&page=2"
+        assert stub.calls[0][0] == f"{self.BASE}/artikel/cari?q=pasar+modal&page=2"
         assert scraper.parse_article_links("<p>Found 0 articles</p>") is None
 
 
@@ -4509,3 +4519,214 @@ class TestPantauSearchPayload:
 
         assert await scraper.build_search_url("mbg", 2) is None
         assert stub.calls == []
+
+
+class TestSearchResultScoping:
+    """A no-hit search page still renders nav, sidebar, and carousel article links.
+
+    Each of these three sources returns the same 200 page shell whether or not the
+    query matched, so page-wide link harvesting yields the site's latest headlines
+    for any keyword. The parsers must read only the results container.
+    """
+
+    CASES = [
+        pytest.param(
+            GridScraper,
+            '<div class="news-list__list">{inside}</div><div class="popular">{outside}</div>',
+            '<a href="https://www.grid.id/read/154321/kronologi-nanik-mundur">hit</a>',
+            '<a href="https://www.grid.id/read/999999/populer-pekan-ini">popular</a>',
+            {"https://www.grid.id/read/154321/kronologi-nanik-mundur"},
+            id="grid",
+        ),
+        pytest.param(
+            NiagaAsiaScraper,
+            '<div class="archive-list-wrap">{inside}</div><ul id="top-menu">{outside}</ul>',
+            '<a href="https://www.niaga.asia/sindikat-penipuan-daring">hit</a>',
+            '<a href="https://www.niaga.asia/kaltara">menu</a>',
+            {"https://www.niaga.asia/sindikat-penipuan-daring"},
+            id="niagaasia",
+        ),
+        pytest.param(
+            NusaBaliScraper,
+            '<div id="article-list">{inside}</div><div class="widget">{outside}</div>',
+            '<a href="/berita/225365/pria-mabuk-diamankan-polisi">hit</a>',
+            '<a href="/berita/999999/sidebar-most-read">sidebar</a>',
+            {"https://www.nusabali.com/berita/225365/pria-mabuk-diamankan-polisi"},
+            id="nusabali",
+        ),
+    ]
+
+    @pytest.mark.parametrize("cls,shell,inside,outside,expected", CASES)
+    def test_search_parser_reads_only_the_results_container(
+        self, cls, shell, inside, outside, expected
+    ):
+        scraper = cls(keywords="mbg", queue_=asyncio.Queue())
+
+        assert scraper.parse_article_links(shell.format(inside=inside, outside=outside)) == expected
+
+    @pytest.mark.parametrize("cls,shell,inside,outside,expected", CASES)
+    def test_empty_results_container_returns_none(
+        self, cls, shell, inside, outside, expected
+    ):
+        scraper = cls(keywords="mbg", queue_=asyncio.Queue())
+
+        assert scraper.parse_article_links(shell.format(inside="", outside=outside)) is None
+
+
+# ── Sitemap scrapers process every keyword match, not an arbitrary 20 ──────
+
+
+class TestTribunnewsSitemapScope:
+    """Sitemap matches were truncated to the first 20 of an unordered set, so
+    a source with more hits than that lost the rest to insertion order."""
+
+    @staticmethod
+    def _sitemap_xml(urls: list[str]) -> str:
+        locs = "".join(f"<url><loc>{u}</loc></url>" for u in urls)
+        return (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{locs}</urlset>'
+        )
+
+    async def test_every_matching_sitemap_url_is_processed(self):
+        from newswatch.scrapers.tribunnews import TribunnewsScraper
+
+        matches = [
+            f"https://www.tribunnews.com/nasional/2026/08/09/prabowo-agenda-{n}"
+            for n in range(25)
+        ]
+        scraper = TribunnewsScraper("prabowo", queue_=asyncio.Queue())
+        first = scraper.sitemap_urls[0]
+
+        async def fake_fetch(url, **kwargs):
+            return self._sitemap_xml(matches) if url == first else None
+
+        processed = []
+
+        async def fake_process(link, keyword):
+            processed.append(link)
+
+        scraper.fetch = fake_fetch
+        scraper._process_article = fake_process
+        await scraper.fetch_search_results("prabowo")
+
+        assert sorted(processed) == sorted(matches)
+
+
+# ── Kompas walks its archive in date windows, not one capped query ─────────
+
+
+class TestKompasDateWindowWalk:
+    """search.kompas.com stops serving at roughly page 38, so a single query
+    reaches back about 700 articles and no further. The endpoint honours
+    start_date/end_date, so the walk is a sequence of windows."""
+
+    @staticmethod
+    def _results_html(link: str) -> str:
+        return f'<div><a class="article-link" href="{link}">hit</a></div>'
+
+    async def test_walk_covers_the_window_in_dated_slices(self):
+        import re
+        from datetime import datetime
+
+        from newswatch.scrapers.kompas import KompasScraper
+
+        scraper = KompasScraper(
+            "prabowo",
+            queue_=asyncio.Queue(),
+            start_date=datetime(2026, 7, 1),
+        )
+        scraper.end_datetime = datetime(2026, 7, 21)
+        requested = []
+
+        async def fake_fetch(url, **kwargs):
+            requested.append(url)
+            page = int(re.search(r"page=(\d+)", url).group(1))
+            if page > 1:
+                return None
+            return self._results_html(f"https://www.kompas.com/read/{len(requested)}")
+
+        fetched = []
+
+        async def fake_article(link, keyword):
+            fetched.append(link)
+
+        scraper.fetch = fake_fetch
+        scraper.get_article = fake_article
+        await scraper.fetch_search_results("prabowo")
+
+        spans = [
+            (m.group(1), m.group(2))
+            for u in requested
+            if (m := re.search(r"start_date=([\d-]+)&end_date=([\d-]+)", u))
+        ]
+        assert sorted(set(spans), reverse=True) == [
+            ("2026-07-15", "2026-07-21"),
+            ("2026-07-08", "2026-07-14"),
+            ("2026-07-01", "2026-07-07"),
+        ]
+        assert len(fetched) == 3
+
+
+class TestKompasOptionalBylineAndBreadcrumb:
+    """Opinion pieces carry no .credit-title-name and biz.kompas advertorials no
+    .breadcrumb__wrap. Either absence used to discard the whole article."""
+
+    ARTICLE = """
+    <html><head>
+      <meta name="content_category" content="Advertorial">
+      <meta name="content_author" content="advertorial">
+    </head><body>
+      <h1 class="read__title">Presiden Prabowo Dorong Motor Listrik</h1>
+      <div class="read__time">Kompas.com, 03/08/2026, 17:53 WIB</div>
+      <div class="read__content"><p>Isi berita lengkap di sini.</p></div>
+    </body></html>
+    """
+
+    async def test_article_survives_a_missing_byline_and_breadcrumb(self):
+        from datetime import datetime
+
+        from newswatch.scrapers.kompas import KompasScraper
+
+        queue_ = asyncio.Queue()
+        scraper = KompasScraper(
+            "prabowo", queue_=queue_, start_date=datetime(2024, 10, 20)
+        )
+
+        async def fake_fetch(url, **kwargs):
+            return self.ARTICLE
+
+        scraper.fetch = fake_fetch
+        await scraper.get_article("https://biz.kompas.com/read/1/x", "prabowo")
+
+        assert queue_.qsize() == 1
+        item = queue_.get_nowait()
+        assert item["title"] == "Presiden Prabowo Dorong Motor Listrik"
+        # the meta tags stand in rather than the article being dropped
+        assert item["category"] == "Advertorial"
+        assert item["author"] == "advertorial"
+
+    async def test_breadcrumb_and_byline_still_win_when_present(self):
+        from datetime import datetime
+
+        from newswatch.scrapers.kompas import KompasScraper
+
+        queue_ = asyncio.Queue()
+        scraper = KompasScraper(
+            "prabowo", queue_=queue_, start_date=datetime(2024, 10, 20)
+        )
+        html = self.ARTICLE.replace(
+            "<body>",
+            '<body><div class="breadcrumb__wrap"><a>News</a><a>Nasional</a></div>'
+            '<div class="credit-title-name">Mudhofir Abdullah</div>',
+        )
+
+        async def fake_fetch(url, **kwargs):
+            return html
+
+        scraper.fetch = fake_fetch
+        await scraper.get_article("https://nasional.kompas.com/read/1/x", "prabowo")
+
+        item = queue_.get_nowait()
+        assert item["category"] == "News/Nasional"
+        assert item["author"] == "Mudhofir Abdullah"
