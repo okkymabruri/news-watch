@@ -4666,3 +4666,67 @@ class TestKompasDateWindowWalk:
             ("2026-07-01", "2026-07-07"),
         ]
         assert len(fetched) == 3
+
+
+class TestKompasOptionalBylineAndBreadcrumb:
+    """Opinion pieces carry no .credit-title-name and biz.kompas advertorials no
+    .breadcrumb__wrap. Either absence used to discard the whole article."""
+
+    ARTICLE = """
+    <html><head>
+      <meta name="content_category" content="Advertorial">
+      <meta name="content_author" content="advertorial">
+    </head><body>
+      <h1 class="read__title">Presiden Prabowo Dorong Motor Listrik</h1>
+      <div class="read__time">Kompas.com, 03/08/2026, 17:53 WIB</div>
+      <div class="read__content"><p>Isi berita lengkap di sini.</p></div>
+    </body></html>
+    """
+
+    async def test_article_survives_a_missing_byline_and_breadcrumb(self):
+        from datetime import datetime
+
+        from newswatch.scrapers.kompas import KompasScraper
+
+        queue_ = asyncio.Queue()
+        scraper = KompasScraper(
+            "prabowo", queue_=queue_, start_date=datetime(2024, 10, 20)
+        )
+
+        async def fake_fetch(url, **kwargs):
+            return self.ARTICLE
+
+        scraper.fetch = fake_fetch
+        await scraper.get_article("https://biz.kompas.com/read/1/x", "prabowo")
+
+        assert queue_.qsize() == 1
+        item = queue_.get_nowait()
+        assert item["title"] == "Presiden Prabowo Dorong Motor Listrik"
+        # the meta tags stand in rather than the article being dropped
+        assert item["category"] == "Advertorial"
+        assert item["author"] == "advertorial"
+
+    async def test_breadcrumb_and_byline_still_win_when_present(self):
+        from datetime import datetime
+
+        from newswatch.scrapers.kompas import KompasScraper
+
+        queue_ = asyncio.Queue()
+        scraper = KompasScraper(
+            "prabowo", queue_=queue_, start_date=datetime(2024, 10, 20)
+        )
+        html = self.ARTICLE.replace(
+            "<body>",
+            '<body><div class="breadcrumb__wrap"><a>News</a><a>Nasional</a></div>'
+            '<div class="credit-title-name">Mudhofir Abdullah</div>',
+        )
+
+        async def fake_fetch(url, **kwargs):
+            return html
+
+        scraper.fetch = fake_fetch
+        await scraper.get_article("https://nasional.kompas.com/read/1/x", "prabowo")
+
+        item = queue_.get_nowait()
+        assert item["category"] == "News/Nasional"
+        assert item["author"] == "Mudhofir Abdullah"

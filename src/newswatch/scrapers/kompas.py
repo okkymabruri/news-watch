@@ -7,6 +7,21 @@ from bs4 import BeautifulSoup
 from .basescraper import BaseScraper
 
 
+def _first_text(soup, selectors, separator=" "):
+    """First selector that resolves, as text. Meta tags read their content."""
+    for selector in selectors:
+        el = soup.select_one(selector)
+        if not el:
+            continue
+        text = (el.get("content") or "") if el.name == "meta" else el.get_text(
+            separator=separator, strip=True
+        )
+        text = text.strip()
+        if text:
+            return text
+    return ""
+
+
 class KompasScraper(BaseScraper):
     # search.kompas.com stops serving results at roughly page 38 whatever the
     # sort, so one query can never reach further back than about 700 articles.
@@ -117,8 +132,15 @@ class KompasScraper(BaseScraper):
             return
         soup = BeautifulSoup(response_text, "html.parser")
         try:
-            category = soup.select_one(".breadcrumb__wrap").get_text(
-                separator="/", strip=True
+            # opinion pieces carry no byline and biz.kompas advertorials carry no
+            # breadcrumb. Both fields are decoration, so a missing one must not
+            # discard an article whose title, date and body are all present
+            category = (
+                _first_text(
+                    soup, [".breadcrumb__wrap"], separator="/"
+                )
+                or _first_text(soup, ['meta[name="content_category"]'])
+                or "Unknown"
             )
             title = soup.select_one(".read__title").get_text(strip=True)
             time_text = soup.select_one(".read__time").get_text(strip=True)
@@ -132,7 +154,17 @@ class KompasScraper(BaseScraper):
 
             # Normalize common Kompas prefix so dateparser can parse it.
             publish_date_str = re.sub(r"^Kompas\.com\s*,\s*", "", publish_date_str)
-            author = soup.select_one(".credit-title-name").get_text(strip=True)
+            author = (
+                _first_text(
+                    soup,
+                    [
+                        ".credit-title-name",
+                        'meta[name="content_author"]',
+                        'meta[name="author"]',
+                    ],
+                )
+                or "Unknown"
+            )
 
             content_div = soup.select_one(".read__content")
 
