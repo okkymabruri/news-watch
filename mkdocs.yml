@@ -10,7 +10,7 @@
 
 site_name: news-watch
 site_description: Scrape structured news data from Indonesia's top news websites.
-site_url: https://okkymabruri.github.io/news-watch
+site_url: https://okky.dev/news-watch
 repo_url: https://github.com/okkymabruri/news-watch
 repo_name: okkymabruri/news-watch
 
