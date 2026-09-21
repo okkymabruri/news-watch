@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 
@@ -164,4 +165,9 @@ class BaseScraper(AsyncScraper, ABC):
                 await self.fetch_latest_results()
             else:
                 tasks = [self._run_keyword(keyword) for keyword in self.keywords]
-                await self.run(tasks)
+                results = await self.run(tasks)
+                for result in results:
+                    if isinstance(result, asyncio.CancelledError):
+                        raise result
+                    if isinstance(result, Exception):
+                        raise result

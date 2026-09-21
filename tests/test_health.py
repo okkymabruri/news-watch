@@ -34,6 +34,34 @@ class TestHealthReportAPI:
         result = health_report(scrapers="kompas")
         assert result == []
 
+    def test_health_report_exposes_search_error(self):
+        from newswatch.scrapers.basescraper import BaseScraper
+
+        class FailingSearchScraper(BaseScraper):
+            async def build_search_url(self, keyword, page):
+                return None
+
+            def parse_article_links(self, response_text):
+                return []
+
+            async def get_article(self, link, keyword):
+                return None
+
+            async def fetch_search_results(self, keyword):
+                raise ValueError("keyword failed")
+
+        available = {
+            "cnbcindonesia": {"class": FailingSearchScraper, "params": {}}
+        }
+        with patch("newswatch.health.get_available_scrapers", return_value=available):
+            result = health_report(
+                method="search", scrapers="cnbcindonesia", scraper_timeout=0
+            )
+
+        assert result[0]["status"] == "error"
+        assert result[0]["error_type"] == "ValueError"
+        assert result[0]["error_message"] == "keyword failed"
+
 
 class TestHealthReportToDataFrame:
     """Test DataFrame conversion."""
