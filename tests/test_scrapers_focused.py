@@ -58,7 +58,7 @@ import logging
 import warnings
 from datetime import datetime, timezone
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import parse_qs, quote, urlparse
 
 import pytest
 from bs4 import BeautifulSoup
@@ -69,6 +69,7 @@ from newswatch.scrapers.alinea import AlineaScraper
 from newswatch.scrapers.nbcnews import NBCNewsScraper
 from newswatch.scrapers.betahita import BetahitaScraper
 from newswatch.scrapers.conversationid import ConversationIDScraper
+from newswatch.scrapers.cnbcindonesia import CNBCScraper
 from newswatch.scrapers.ddtcnews import DDTCNewsScraper
 from newswatch.scrapers.gnfi import GNFIScraper
 from newswatch.scrapers.grid import GridScraper
@@ -94,6 +95,32 @@ from newswatch.scrapers.inews import INewsScraper
 from newswatch.scrapers.okezone import OkezoneScraper
 from newswatch.scrapers.pantau import PantauScraper
 from newswatch.scrapers.tvrinews import TVRINewsScraper
+
+
+class TestCNBCSearchURL:
+    @pytest.mark.parametrize(
+        ("start_date", "expected_fromdate"),
+        [(None, [""]), (datetime(2026, 7, 5), ["2026/07/05"])],
+    )
+    async def test_build_search_url_preserves_query_page_and_optional_date(
+        self, start_date, expected_fromdate
+    ):
+        scraper = CNBCScraper("bank indonesia", start_date=start_date)
+        fetched = []
+
+        async def fake_fetch(url):
+            fetched.append(url)
+            return "response"
+
+        scraper.fetch = fake_fetch
+
+        assert await scraper.build_search_url("bank indonesia", 3) == "response"
+        query = parse_qs(urlparse(fetched[0]).query, keep_blank_values=True)
+        assert query == {
+            "query": ["bank indonesia"],
+            "fromdate": expected_fromdate,
+            "page": ["3"],
+        }
 
 
 # ── Shared offline test scaffolding ────────────────────────────────────────

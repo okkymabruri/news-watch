@@ -18,7 +18,7 @@ class CNBCScraper(BaseScraper):
         # https://www.cnbcindonesia.com/search?query=&fromdate=&page=
         query_params = {
             "query": keyword,
-            "fromdate": self.start_date.strftime("%Y/%m/%d"),
+            "fromdate": "" if self.start_date is None else self.start_date.strftime("%Y/%m/%d"),
             "page": page,
         }
         url = f"{self.base_url}/search?{urlencode(query_params)}"
