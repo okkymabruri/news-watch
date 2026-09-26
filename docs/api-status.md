@@ -1,6 +1,6 @@
 # Source Status
 
-✅ Passed · 🧪 Sampled · 🧪 Partial · ⏱️ Audit cap · ⚠️ Relevance unverified · ⚠️ Partial timeout/error · 🔎 Empty · ⏱️ Timeout · ⏱️ Probe limit (count unknown) · ❌ Error · ➖ Unsupported · ⏸️ Excluded · ❔ Not checked.
+✅ Passed · 🧪 Limited validation · ⚠️ Needs review · 🔎 Empty · ⏱️ Time/request limit · ❌ Error · ➖ Unsupported · ⏸️ Excluded · ❔ Not checked.
 
 | Source | Search | Latest | Checked at |
 |---|---|---|---|
@@ -17,7 +17,7 @@
 | Betahita | ✅ Passed | ✅ Passed | 2026-09-26 |
 | Bisnis.com | 🔎 Empty | 🔎 Empty | 2026-09-26 |
 | Bloomberg Technoz | ⏱️ Probe limit (count unknown) | ✅ Passed | 2026-09-26 |
-| CNA Indonesia | ⚠️ Relevance unverified (9) | ✅ Passed | 2026-09-27 |
+| CNA Indonesia | ⚠️ Needs review (topics) | ✅ Passed | 2026-09-27 |
 | CNBC Indonesia | ✅ Passed | ✅ Passed | 2026-09-26 |
 | CNN Indonesia | ✅ Passed | ✅ Passed | 2026-09-26 |
 | The Conversation Indonesia | ⏱️ Probe limit (count unknown) | ✅ Passed | 2026-09-26 |
@@ -28,7 +28,7 @@
 | Fajar | ⏱️ Probe limit (count unknown) | 🔎 Empty | 2026-09-26 |
 | Galamedia | 🔎 Empty | ✅ Passed | 2026-09-26 |
 | Gatra | 🔎 Empty | 🔎 Empty | 2026-09-26 |
-| Good News From Indonesia | ⏱️ Audit cap (7 relevant) | ✅ Passed | 2026-09-27 |
+| Good News From Indonesia | 🧪 Partial (2) | ✅ Passed | 2026-09-27 |
 | Grid | ✅ Passed | ✅ Passed | 2026-09-26 |
 | Harian Jogja | ✅ Passed | ✅ Passed | 2026-09-26 |
 | Hipwee | ⏱️ Probe limit (count unknown) | ✅ Passed | 2026-09-26 |
@@ -55,7 +55,7 @@
 | Liputan6 | ✅ Passed | ✅ Passed | 2026-09-26 |
 | Media Indonesia | ⏱️ Probe limit (count unknown) | ✅ Passed | 2026-09-26 |
 | Merdeka | 🔎 Empty | 🔎 Empty | 2026-09-26 |
-| MetroTV News | ⏱️ Probe limit (count unknown) | 🔎 Empty | 2026-09-26 |
+| MetroTV News | ⏱️ Probe limit (count unknown) | ✅ Passed | S: 2026-09-26 / L: 2026-09-27 |
 | Mojok | ✅ Passed | 🔎 Empty | 2026-09-26 |
 | Mongabay Indonesia | ✅ Passed | ✅ Passed | 2026-09-26 |
 | NBC News | ✅ Passed | ✅ Passed | 2026-09-26 |

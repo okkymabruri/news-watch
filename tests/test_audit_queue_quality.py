@@ -90,10 +90,12 @@ def _offline_enter(request):
 
 
 @pytest.mark.asyncio
-async def test_swallowed_article_denial_still_stops_dispatch(monkeypatch):
+@pytest.mark.parametrize("slug, method", [("gnfi", "latest"), ("metrotvnews", "latest"),
+                                         ("metrotvnews", "search")])
+async def test_swallowed_article_denial_still_stops_dispatch(monkeypatch, slug, method):
     from newswatch.registry import SCRAPERS
 
-    entry = SCRAPERS["gnfi"]
+    entry = SCRAPERS[slug]
     module = __import__(f"newswatch.scrapers.{entry.module}", fromlist=[entry.class_name])
     scraper_cls = getattr(module, entry.class_name)
     calls = []
@@ -119,7 +121,7 @@ async def test_swallowed_article_denial_still_stops_dispatch(monkeypatch):
 
     monkeypatch.setattr(scraper_cls, "scrape", fake_scrape)
     monkeypatch.setattr("newswatch.utils.AsyncScraper.__aenter__", _offline_enter(request))
-    row = await audit.child("gnfi", "latest")
+    row = await audit.child(slug, method)
     assert (row["status"], row["reason"], row["requests"]) == ("denied", "http_403", 2)
     assert calls == ["https://example.org/robots.txt", "https://example.org/first"]
 
@@ -295,13 +297,121 @@ async def test_bounded_article_selection_reserves_request_and_restores_method(mo
     row = await audit.child("gnfi", "search")
     assert row["candidate_links"] == 20
     assert row["selected_links"] == 11
-    assert len(seen[0][0]) == 11
+    assert seen[0][0] == [f"https://example.org/{i}" for i in range(11)]
     assert BaseScraper.process_page is fake_process
     assert original is not fake_process
 
 
+@pytest.mark.asyncio
+async def test_gnfi_search_listing_stops_after_first_page(monkeypatch):
+    from newswatch.scrapers.gnfi import GNFIScraper
+    from newswatch import utils
+
+    calls = []
+
+    async def fetch(self, url, **kwargs):
+        calls.append(url)
+        return '<a href="/2026/01/01/bali-report">Bali report</a>'
+
+    async def process(self, links, keyword):
+        return True
+
+    monkeypatch.setattr(utils.AsyncScraper, "fetch", fetch)
+    monkeypatch.setattr(GNFIScraper, "process_page", process)
+    original = GNFIScraper.build_search_url
+    await audit.child("gnfi", "search")
+    assert calls == ["https://www.goodnewsfromindonesia.id/search?keyword=bali"]
+    assert GNFIScraper.build_search_url is original
+    assert utils.AsyncScraper.fetch is fetch
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("provenance", [True, False])
+async def test_cna_topic_requires_provenance_and_manual_review(monkeypatch, provenance):
+    from newswatch.scrapers.cnaindonesia import CNAIndonesiaScraper
+    from newswatch import utils
+
+    links = [f"https://www.cna.id/indonesia/election-report-{i}" for i in range(3)]
+
+    async def fetch(self, url, **kwargs):
+        return "".join(f'<a href="{link}">Election report</a>' for link in links)
+
+    async def scrape(self, method="search"):
+        if provenance:
+            await self.build_search_url("politik", 1)
+        for link in links:
+            await self.queue_.put({"link": link, "publish_date": date.today(),
+                                   "title": "Election campaign continues",
+                                   "content": "A substantial report about elections and their regional impact."})
+
+    monkeypatch.setattr(utils.AsyncScraper, "fetch", fetch)
+    monkeypatch.setattr(CNAIndonesiaScraper, "scrape", scrape)
+    row = await audit.child("cnaindonesia", "search")
+    assert row["title_url_token_matches"] == 0
+    assert row["status"] == ("manual_review" if provenance else "fail")
+    assert row["topic_backed_valid"] == (3 if provenance else 0)
+    assert row["topic_listing_url"] == ("https://www.cna.id/topic/politik" if provenance else None)
+
+
+@pytest.mark.parametrize("method", ["search", "latest", "both"])
+@pytest.mark.parametrize("slug", ["gnfi", "metrotvnews"])
+def test_method_selection_creates_fresh_reports(monkeypatch, tmp_path, method, slug):
+    monkeypatch.setattr(audit, "ROOT", tmp_path)
+    probe = Mock(return_value={"status": "fail"})
+    monkeypatch.setattr(audit, "probe", probe)
+    monkeypatch.setattr(audit.time, "sleep", Mock())
+    for _ in range(2):
+        assert audit.main(["--live", "--method", method, slug]) == 0
+    reports = list(tmp_path.glob("queue-quality-audit-*.json"))
+    assert len(reports) == 2
+    expected = ["search", "latest"] if method == "both" else [method]
+    for report in reports:
+        rows = audit.json.loads(report.read_text())
+        assert [row["method"] for row in rows] == expected
+        assert all(datetime.fromisoformat(row["checked_at"]).tzinfo for row in rows)
+    assert probe.call_count == 2 * len(expected)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("method", ["search", "latest"])
+@pytest.mark.parametrize("valid_count", [2, 3])
+async def test_metrotv_first_listing_and_quality_threshold(monkeypatch, method, valid_count):
+    from newswatch import utils
+    from newswatch.scrapers.basescraper import BaseScraper
+
+    calls = []
+
+    async def fetch(self, url, **kwargs):
+        calls.append(url)
+        return "".join(
+            f'<div class="item"><div class="text"><h3><a href="/read/{i}-prabowo-report">'
+            'Prabowo report</a></h3></div></div>' for i in range(20)
+        )
+
+    async def process(self, links, keyword):
+        assert len(links) == 11  # No dispatch in this fixture; reserve one of twelve.
+        for i in range(valid_count):
+            await self.queue_.put({"link": f"https://www.metrotvnews.com/read/{i}-prabowo-report",
+                                   "publish_date": date.today(), "title": "Prabowo regional report",
+                                   "content": "A substantial report about regional developments and their impact."})
+        return True
+
+    monkeypatch.setattr(utils.AsyncScraper, "fetch", fetch)
+    monkeypatch.setattr(BaseScraper, "process_page", process)
+    row = await audit.child("metrotvnews", method)
+    expected = ("https://www.metrotvnews.com/search?query=prabowo&page=1"
+                if method == "search" else "https://www.metrotvnews.com")
+    assert calls == [expected]
+    assert (row["candidate_links"], row["selected_links"]) == (20, 11)
+    assert row["valid_distinct"] == valid_count
+    assert row["status"] == ("pass" if valid_count == 3 else "fail")
+
+
 def test_whitelist_and_default_closed():
-    assert audit.SOURCES == {"cnaindonesia", "gnfi", "rmid"}
+    assert audit.SOURCES == {"cnaindonesia", "gnfi", "rmid", "metrotvnews"}
+    assert audit.DOMAINS["metrotvnews"] == "metrotvnews.com"
+    with pytest.raises(SystemExit):
+        audit.main(["--live", "antaranews"])
     with pytest.raises(SystemExit):
         audit.main(["--live"])
 

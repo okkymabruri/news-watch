@@ -1,4 +1,4 @@
-"""Advisory queue-quality audit for three HTTP-only adapters; no network on import.
+"""Advisory queue-quality audit for four HTTP-only adapters; no network on import.
 
 Run with --live explicitly. Browser/CSE and other adapters are deliberately unbound.
 """
@@ -15,15 +15,16 @@ import tempfile
 import time
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from urllib.parse import urljoin, urlsplit, urlunsplit
+from urllib.parse import quote, urljoin, urlsplit, urlunsplit
 from urllib.robotparser import RobotFileParser
 
 from newswatch.registry import SCRAPERS
 from newswatch.timeutils import project_timezone
 
-SOURCES = frozenset({"cnaindonesia", "gnfi", "rmid"})
+SOURCES = frozenset({"cnaindonesia", "gnfi", "rmid", "metrotvnews"})
 CAP = 12
-DOMAINS = {"cnaindonesia": "cna.id", "gnfi": "goodnewsfromindonesia.id", "rmid": "rm.id"}
+DOMAINS = {"cnaindonesia": "cna.id", "gnfi": "goodnewsfromindonesia.id", "rmid": "rm.id",
+           "metrotvnews": "metrotvnews.com"}
 PROMO = re.compile(r"\b(?:advertorial|sponsored|promo|diskon|voucher)\b", re.I)
 ROOT = Path(__file__).resolve().parents[1] / "tmp"
 
@@ -191,11 +192,14 @@ async def _guarded_child(slug, method):
     from newswatch.scrapers.basescraper import BaseScraper
     original_process_page = BaseScraper.process_page
     selection = {"candidate_links": 0, "selected_links": 0}
+    topic_links = set()
+    topic_listing_url = None
+    curated = slug == "cnaindonesia" and method == "search"
 
     async def bounded_process_page(self, links, keyword):
-        # Audit a deterministic subset through the real article/queue pipeline.
-        # Reserve one request for a redirect or another origin's robots policy.
-        ordered = sorted(set(links))
+        # Preserve the adapter's iteration order; reserve one request for a
+        # redirect or another origin's robots policy.
+        ordered = list(dict.fromkeys(links))
         selection["candidate_links"] += len(ordered)
         remaining = max(0, CAP - shared.count - 1)
         chosen = ordered[:remaining]
@@ -205,7 +209,14 @@ async def _guarded_child(slug, method):
     BaseScraper.process_page = bounded_process_page
 
     async def observed_fetch(self, *args, **kwargs):
+        nonlocal topic_listing_url
         result = await original_fetch(self, *args, **kwargs)
+        if curated and result:
+            url = str(args[0] if args else kwargs.get("url", ""))
+            expected = f"https://www.cna.id/topic/{quote(entry.smoke_keyword, safe='')}"
+            if url == expected:
+                topic_listing_url = url
+                topic_links.update(canonical(link) for link in (self.parse_article_links(result) or []))
         if result is None and shared.count and not shared.stopped:
             shared.transport_error = True
             shared.stopped = "transport_error"
@@ -218,6 +229,16 @@ async def _guarded_child(slug, method):
     scraper = cls(keywords=entry.smoke_keyword if method == "search" else "latest", queue_=queue)
     scraper.max_pages = 1
     scraper.max_latest_pages = 1
+    original_search_url = scraper.build_search_url
+
+    async def first_search_page(keyword, page):
+        # Some adapters use a module-level page limit instead of max_pages.
+        # Returning no listing ends their loop without altering production code.
+        if page != 1:
+            return None
+        return await original_search_url(keyword, page)
+
+    scraper.build_search_url = first_search_page
     status = None
     reason = None
     try:
@@ -237,6 +258,7 @@ async def _guarded_child(slug, method):
     unique = set()
     valid = 0
     relevant = 0
+    topic_backed = 0
     diagnostics = []
     now = datetime.now(timezone.utc)
     for item in items:
@@ -259,6 +281,8 @@ async def _guarded_child(slug, method):
             unique.add(link)
             if good:
                 valid += 1
+                if link in topic_links:
+                    topic_backed += 1
                 tokens = re.findall(r"\w+", entry.smoke_keyword.casefold())
                 visible = re.findall(r"\w+", title.casefold() + " " + urlsplit(link).path.casefold())
                 if tokens and all(token in visible for token in tokens):
@@ -270,12 +294,19 @@ async def _guarded_child(slug, method):
             pass
     count = shared.count
     threshold = valid >= 3 and (method != "search" or relevant >= 3)
+    if curated:
+        threshold = valid >= 3 and topic_backed == valid and topic_listing_url is not None
+        if not status:
+            status = "manual_review" if threshold else "fail"
+            reason = "curated_topic_requires_review" if threshold else "topic_provenance_or_quality_missing"
     return {"status": status or ("pass" if threshold else "fail"),
             "reason": reason, "requests": count, "queued": len(items), "valid_distinct": valid,
             "candidate_links": selection["candidate_links"], "selected_links": selection["selected_links"],
             "title_url_token_matches": relevant if method == "search" else None,
             "diagnostics": diagnostics,
-            "topic_semantics": "curated" if slug == "cnaindonesia" and method == "search" else "not_verified"}
+            "topic_semantics": "manual_review_required" if curated else "not_verified",
+            "topic_listing_url": topic_listing_url,
+            "topic_backed_valid": topic_backed if curated else None}
 
 
 def cleanup(proc):
@@ -311,7 +342,7 @@ def probe(slug, method, deadline):
         output.seek(0)
         try:
             row = json.load(output)
-            if row.get("status") not in {"pass", "fail", "denied", "skipped", "error"}:
+            if row.get("status") not in {"pass", "fail", "manual_review", "denied", "skipped", "error"}:
                 raise ValueError
             return row
         except (ValueError, TypeError, AttributeError):
@@ -322,6 +353,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--live", action="store_true")
     parser.add_argument("--child", action="store_true")
+    parser.add_argument("--method", choices=("search", "latest", "both"), default="both")
     parser.add_argument("slugs", nargs="*")
     args = parser.parse_args(argv)
     if args.child:
@@ -334,11 +366,12 @@ def main(argv=None):
     if not args.live:
         parser.error("explicit --live required")
     if not args.slugs or any(slug not in SOURCES and slug != "jakartapost" for slug in args.slugs):
-        parser.error("specify only cnaindonesia, gnfi, rmid, or jakartapost (skipped)")
+        parser.error("specify only cnaindonesia, gnfi, rmid, metrotvnews, or jakartapost (skipped)")
     ROOT.mkdir(exist_ok=True)
     path = ROOT / f"queue-quality-audit-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')}.json"
     deadline = time.monotonic() + 1800
-    pairs = [(slug, method) for slug in args.slugs for method in ("search", "latest")]
+    methods = ("search", "latest") if args.method == "both" else (args.method,)
+    pairs = [(slug, method) for slug in args.slugs for method in methods]
     report = []
     halted = False
     for slug, method in pairs:
