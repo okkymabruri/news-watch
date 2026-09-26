@@ -1,10 +1,8 @@
 # Source Status
 
-Last checked: **2026-09-26**. Smoke-test snapshot, not a live guarantee.
+Last checked: **2026-09-26**. Smoke-test snapshot, except 🧪 Sampled denotes a targeted offline replay (not an end-to-end check).
 
-**Targeted follow-up (2026-09-26, not part of the table snapshot):** The Jakarta Post latest-link and publication-date repair extracted 60 dated-link candidates from a permitted homepage capture and queued one sampled article in an offline replay of its captured page. This was not an end-to-end browser health check; search was not retested. The table retains the original full-campaign results until another complete campaign.
-
-✅ Passed · ⚠️ Partial timeout/error · 🔎 Empty · ⏱️ Timeout · ⏱️ Probe limit (count unknown) · ❌ Error · ➖ Unsupported · ⏸️ Excluded · ❔ Not checked.
+✅ Passed · 🧪 Sampled · ⚠️ Partial timeout/error · 🔎 Empty · ⏱️ Timeout · ⏱️ Probe limit (count unknown) · ❌ Error · ➖ Unsupported · ⏸️ Excluded · ❔ Not checked.
 
 | Source | Search | Latest | Checked at |
 |---|---|---|---|
@@ -46,7 +44,7 @@ Last checked: **2026-09-26**. Smoke-test snapshot, not a live guarantee.
 | Infobanknews | ✅ Passed | ✅ Passed | 2026-09-26 |
 | Investor.id | ⏸️ Excluded | ⏸️ Excluded | — |
 | Jakarta Globe | 🔎 Empty | 🔎 Empty | 2026-09-26 |
-| The Jakarta Post | 🔎 Empty | 🔎 Empty | 2026-09-26 |
+| The Jakarta Post | 🔎 Empty | 🧪 Sampled (1) | 2026-09-26 |
 | Jakarta Selaras | 🔎 Empty | ✅ Passed | 2026-09-26 |
 | Jawa Pos | ⏱️ Probe limit (count unknown) | 🔎 Empty | 2026-09-26 |
 | JPNN (Jawa Pos News Network) | ⏱️ Probe limit (count unknown) | ✅ Passed | 2026-09-26 |
