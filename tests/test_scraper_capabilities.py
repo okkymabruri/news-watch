@@ -165,6 +165,7 @@ def test_bali_latest_parser_keeps_article_links():
 
 def test_registry_matches_verified_cna_bali_capabilities():
     assert SCRAPERS["cnaindonesia"].supports_search is True
+    assert SCRAPERS["cnaindonesia"].strict_search is False  # curated topics, not arbitrary queries
     assert SCRAPERS["cnaindonesia"].supports_latest is True
     assert SCRAPERS["balipost"].supports_search is False
     assert SCRAPERS["balipost"].supports_latest is True

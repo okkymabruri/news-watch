@@ -70,6 +70,7 @@ from newswatch.scrapers.nbcnews import NBCNewsScraper
 from newswatch.scrapers.betahita import BetahitaScraper
 from newswatch.scrapers.conversationid import ConversationIDScraper
 from newswatch.scrapers.cnbcindonesia import CNBCScraper
+from newswatch.scrapers.cnaindonesia import CNAIndonesiaScraper
 from newswatch.scrapers.ddtcnews import DDTCNewsScraper
 from newswatch.scrapers.gnfi import GNFIScraper
 from newswatch.scrapers.grid import GridScraper
@@ -95,6 +96,49 @@ from newswatch.scrapers.inews import INewsScraper
 from newswatch.scrapers.okezone import OkezoneScraper
 from newswatch.scrapers.pantau import PantauScraper
 from newswatch.scrapers.tvrinews import TVRINewsScraper
+
+
+class TestCNATopicLinkScope:
+    def test_topic_navigation_is_not_an_article_in_search_or_latest(self):
+        html = (
+            '<a class="link link--trending" href="/topic/malaysia-0">Malaysia</a>'
+            '<a href="/asia/valid-report-12345">Article</a>'
+        )
+        scraper = CNAIndonesiaScraper("politik", queue_=asyncio.Queue())
+        expected = {"https://www.cna.id/asia/valid-report-12345"}
+        assert scraper.parse_article_links(html) == expected
+        assert scraper.parse_latest_article_links(html) == expected
+        assert scraper.parse_article_links(
+            '<a href="/topic/malaysia-0">Malaysia</a>'
+        ) is None
+
+
+class TestCNAGraphPublishedDate:
+    async def test_article_uses_valid_graph_date_after_invalid_nodes(self):
+        link = "https://www.cna.id/indonesia/contoh-12345"
+        payload = {
+            "@context": "https://schema.org",
+            "@graph": [
+                None,
+                {"@type": "WebPage", "datePublished": ["invalid"]},
+                {"@type": "NewsArticle", "datePublished": "not a date"},
+                {"@type": "NewsArticle", "datePublished": "2026-09-26T03:15:00Z"},
+            ],
+        }
+        html = (
+            '<html><head><meta property="og:title" content="Fixture headline">'
+            f'<script type="application/ld+json">{json.dumps(payload)}</script>'
+            '</head><body><div class="field--name-body">Fixture article text.</div>'
+            '</body></html>'
+        )
+        queue = asyncio.Queue()
+        scraper = CNAIndonesiaScraper("indonesia", queue_=queue)
+        _attach_fetch(scraper, {link: html})
+
+        await scraper.get_article(link, "indonesia")
+
+        assert queue.qsize() == 1
+        assert (await queue.get())["publish_date"] == datetime(2026, 9, 26, 10, 15)
 
 
 class TestCNBCSearchURL:
