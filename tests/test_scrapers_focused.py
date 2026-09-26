@@ -77,6 +77,7 @@ from newswatch.scrapers.grid import GridScraper
 from newswatch.scrapers.niagaasia import NiagaAsiaScraper
 from newswatch.scrapers.dailysocial import DailySocialScraper
 from newswatch.scrapers.katadata import KatadataScraper
+from newswatch.scrapers.jakartapost import JakartaPostScraper
 from newswatch.scrapers.hukumonline import HukumonlineScraper
 from newswatch.scrapers.kaltimpost import KaltimPostScraper
 from newswatch.scrapers.idnfinancials import IDNFinancialsScraper
@@ -96,6 +97,91 @@ from newswatch.scrapers.inews import INewsScraper
 from newswatch.scrapers.okezone import OkezoneScraper
 from newswatch.scrapers.pantau import PantauScraper
 from newswatch.scrapers.tvrinews import TVRINewsScraper
+
+
+class TestJakartaPostLatest:
+    LINK = "https://www.thejakartapost.com/indonesia/2026/09/24/batam-report"
+
+    def test_latest_normalizes_relative_links_and_rejects_navigation(self):
+        html = (
+            '<a href="/indonesia/2026/09/24/batam-report">relative</a>'
+            f'<a href="{self.LINK}">absolute duplicate</a>'
+            '<a href="https://thejakartapost.com/world/2026/09/25/another-report">absolute</a>'
+            '<a href="https://other.example.com/world/2026/09/25/offsite">offsite</a>'
+            '<a href="//other.example.com/world/2026/09/25/offsite">offsite scheme-relative</a>'
+            '<a href="/indonesia/archipelago">navigation</a>'
+            '<a href="/tag/2026/09/24">taxonomy</a>'
+        )
+        scraper = JakartaPostScraper("batam", queue_=asyncio.Queue())
+        assert scraper.parse_latest_article_links(html) == {
+            self.LINK,
+            "https://thejakartapost.com/world/2026/09/25/another-report",
+        }
+
+    @pytest.mark.parametrize(
+        ("head_date", "published_at", "date_published", "expected"),
+        [
+            ("Published on Sep. 22, 2026", "2026-09-23T09:23:27+07:00", None,
+             datetime(2026, 9, 22)),
+            (None, "2026-09-23T09:23:27+07:00", None,
+             datetime(2026, 9, 23, 9, 23, 27)),
+            ("Published on nonsense", "invalid", "2026-09-21T10:15:00+07:00",
+             datetime(2026, 9, 21, 10, 15)),
+            (None, None, None, None),
+        ],
+    )
+    async def test_article_publication_date_precedence_and_queue(
+        self, monkeypatch, head_date, published_at, date_published, expected,
+    ):
+        from newswatch.scrapers import jakartapost
+
+        class Response:
+            status = 200
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                pass
+
+            async def text(self):
+                return html
+
+        class Session:
+            def __init__(self, **kwargs):
+                pass
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                pass
+
+            def get(self, *args, **kwargs):
+                return Response()
+
+        head = f'<div class="tjp-single__head"><span class="created">{head_date}</span></div>' if head_date else ""
+        meta = "".join(
+            f'<meta name="{name}" content="{value}">'
+            for name, value in (("published-at", published_at), ("datePublished", date_published))
+            if value is not None
+        )
+        html = (
+            f'<html><head><meta property="og:title" content="Batam report - The Jakarta Post">{meta}'
+            '<meta name="dateModified" content="2026-09-26T12:00:00+07:00"></head>'
+            f'<body>{head}<div class="tjp-single__content"><p>Batam article body.</p></div></body></html>'
+        )
+        monkeypatch.setattr(jakartapost.aiohttp, "ClientSession", Session)
+        scraper = JakartaPostScraper("batam", queue_=asyncio.Queue())
+        await scraper.get_article(self.LINK, "batam")
+        if expected is None:
+            assert scraper.queue_.empty()
+        else:
+            item = scraper.queue_.get_nowait()
+            assert item["publish_date"] == expected
+            assert item["title"] == "Batam report"
+            assert item["content"] == "Batam article body."
+            assert item["link"] == self.LINK
 
 
 class TestCNATopicLinkScope:

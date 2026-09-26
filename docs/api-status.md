@@ -2,6 +2,8 @@
 
 Last checked: **2026-09-26**. Smoke-test snapshot, not a live guarantee.
 
+**Targeted follow-up (2026-09-26, not part of the table snapshot):** The Jakarta Post latest-link and publication-date repair extracted 60 dated-link candidates from a permitted homepage capture and queued one sampled article in an offline replay of its captured page. This was not an end-to-end browser health check; search was not retested. The table retains the original full-campaign results until another complete campaign.
+
 ✅ Passed · ⚠️ Partial timeout/error · 🔎 Empty · ⏱️ Timeout · ⏱️ Probe limit (count unknown) · ❌ Error · ➖ Unsupported · ⏸️ Excluded · ❔ Not checked.
 
 | Source | Search | Latest | Checked at |
