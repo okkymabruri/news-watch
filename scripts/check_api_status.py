@@ -80,8 +80,11 @@ def render_markdown(report):
     def escape(value):
         return str(value).replace("\\", "\\\\").replace("|", "\\|").replace("\n", " ").replace("\r", " ")
 
+    def short_date(value):
+        return escape(value[:10])  # ISO date; full timestamp stays in report.json.
+
     lines = ["# Source Status", "",
-             f"Last checked: **{escape(report['completed_at'])}**. Smoke-test snapshot, not a live guarantee.",
+             f"Last checked: **{short_date(report['completed_at'])}**. Smoke-test snapshot, not a live guarantee.",
              "", "✅ Passed · ⚠️ Partial timeout/error · 🔎 Empty · ⏱️ Timeout · ⏱️ Probe limit (count unknown) · ❌ Error · ➖ Unsupported · ⏸️ Excluded · ❔ Not checked.",
              "", "| Source | Search | Latest | Checked at |", "|---|---|---|---|"]
     for entry in report["registry"]:
@@ -101,11 +104,12 @@ def render_markdown(report):
             )
             if pair and pair.get("checked_at"):
                 times[method] = pair["checked_at"]
-        if len(set(times.values())) > 1:
-            checked = " / ".join(f"{method[0].upper()}:{escape(times[method])}"
-                                   for method in ("search", "latest") if method in times)
+        dates = {method: short_date(value) for method, value in times.items()}
+        if len(set(dates.values())) > 1:
+            checked = " / ".join(f"{method[0].upper()}: {dates[method]}"
+                                   for method in ("search", "latest") if method in dates)
         else:
-            checked = escape(next(iter(times.values()))) if times else "—"
+            checked = next(iter(dates.values())) if dates else "—"
         lines.append(f"| {escape(entry['name'])} | {cells[0]} | {cells[1]} | {checked} |")
     return "\n".join(lines) + "\n"
 

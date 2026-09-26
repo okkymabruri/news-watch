@@ -169,7 +169,8 @@ def test_publish_guards_and_differing_dates(tmp_path, monkeypatch):
                               "--output-dir", str(tmp_path / "run")])
     pairs = []
     for slug, entry in sorted(checker.SCRAPERS.items()):
-        for mode, date in (("search", "day1"), ("latest", "day2")):
+        for mode, date in (("search", "2026-09-26T23:59:00+00:00"),
+                           ("latest", "2026-09-27T00:01:00+00:00")):
             status = ("excluded" if entry.status != "stable" else
                       "unsupported" if not getattr(entry, f"supports_{mode}") else "ok")
             pairs.append({"slug": slug, "method": mode, "status": status,
@@ -183,7 +184,7 @@ def test_publish_guards_and_differing_dates(tmp_path, monkeypatch):
               "pairs": pairs}
     original = checker.digest(doc)
     checker.publish(report, args, original)
-    assert "S:day1 / L:day2" in doc.read_text()
+    assert "S: 2026-09-26 / L: 2026-09-27" in doc.read_text()
     valid = doc.read_text()
     checker.publish(report, args, checker.digest(doc))
     for mutation in (lambda r: r.update(complete=False),
@@ -200,6 +201,20 @@ def test_publish_guards_and_differing_dates(tmp_path, monkeypatch):
     with pytest.raises(ValueError, match="changed"):
         checker.publish(report, args, original)
     assert doc.read_text() == "concurrent edit"
+
+
+def test_render_same_day_uses_one_date():
+    report = {"completed_at": "2026-09-26T09:00:00+00:00", "registry": [{
+        "slug": "bbc", "name": "BBC", "status": "stable",
+        "supports_search": True, "supports_latest": True,
+    }], "pairs": [{
+        "slug": "bbc", "method": mode, "status": "ok", "article_count": 1,
+        "checked_at": f"2026-09-26T{hour}:00:00+00:00",
+    } for mode, hour in (("search", "04"), ("latest", "05"))]}
+    text = checker.render_markdown(report)
+    assert "Last checked: **2026-09-26**" in text
+    assert "| 2026-09-26 |" in text
+    assert "S: " not in text
 
 
 def test_render_distinguishes_hard_limit_from_scraper_timeout():
