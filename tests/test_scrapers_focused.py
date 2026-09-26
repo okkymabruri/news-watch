@@ -98,6 +98,65 @@ from newswatch.scrapers.okezone import OkezoneScraper
 from newswatch.scrapers.pantau import PantauScraper
 from newswatch.scrapers.tvrinews import TVRINewsScraper
 from newswatch.scrapers.rmid import RmidScraper
+from newswatch.scrapers.metrotvnews import MetrotvnewsScraper
+
+
+class TestMetroTVLatest:
+    def test_editorial_blocks_exclude_superbrand_and_keep_legacy_selectors(self):
+        html = (
+            '<div class="big-news"><div class="news-item"><h2>'
+            '<a href="/read/KYVCe11J-editorial-lead">Lead</a>'
+            '</h2></div></div>'
+            '<div class="small-news"><div class="news-item"><div class="news-text">'
+            '<h2><a href="https://www.metrotvnews.com/read/ba4CPwG1-editorial-small">Small</a></h2>'
+            '<a href="/read/KYVCe11J-editorial-lead">Duplicate</a>'
+            '</div></div></div>'
+            '<div class="superBrand"><ul><li>'
+            '<a href="/read/NA0CrgOv-promotion">Promotion</a>'
+            '</li></ul></div>'
+            '<div class="item"><div class="text"><h3>'
+            '<a href="/read/Legacy12-existing-headline">Legacy</a>'
+            '</h3></div></div>'
+        )
+        scraper = MetrotvnewsScraper("ekonomi")
+        assert scraper.parse_latest_article_links(html) == {
+            "https://www.metrotvnews.com/read/KYVCe11J-editorial-lead",
+            "https://www.metrotvnews.com/read/ba4CPwG1-editorial-small",
+            "https://www.metrotvnews.com/read/Legacy12-existing-headline",
+        }
+
+    @pytest.mark.parametrize("href", [
+        "https://other.example/read/Ab123-headline",
+        "https://www.metrotvnews.com.evil.example/read/Ab123-headline",
+        "https://video.metrotvnews.com/read/Ab123-headline",
+        "/tag/123/headline", "/read/", "/read/Ab123", "/read/Ab123-headline/extra",
+        "/read/Ab123-headline?promo=1", "/read/Ab123-headline#promo",
+    ])
+    def test_new_editorial_selectors_reject_noncanonical_articles(self, href):
+        scraper = MetrotvnewsScraper("ekonomi")
+        html = f'<div class="big-news"><div class="news-item"><h2><a href="{href}">Bad</a></h2></div></div>'
+        assert scraper.parse_latest_article_links(html) is None
+
+    async def test_search_article_layout_queues_offline_item(self):
+        # Search capture layout; this does not establish latest article extraction.
+        link = "https://www.metrotvnews.com/read/KdZCAB8D-narapidana-yang-diduga-dapat-fasilitas-mewah-di-lapas-cibinong"
+        html = (
+            '<h1>Narapidana yang Diduga Dapat Fasilitas Mewah di Lapas Cibinong</h1>'
+            '<div class="breadcrumb-content"><p>Nasional</p></div>'
+            '<p class="pt-20 date">Achmad Zulfikar Fazli • 24 September 2026 22:37</p>'
+            '<div class="news-text"><p>Jakarta: Lapas Kelas IIA Cibinong menjadi sorotan.</p></div>'
+        )
+        scraper = MetrotvnewsScraper("lapas", queue_=asyncio.Queue())
+        _attach_fetch(scraper, {link: html})
+        await scraper.get_article(link, "lapas")
+        item = scraper.queue_.get_nowait()
+        assert tuple(item) == _QUEUE_KEYS
+        assert item["publish_date"] == datetime(2026, 9, 24, 22, 37)
+        assert item["author"] == "Achmad Zulfikar Fazli"
+        assert item["category"] == "Nasional"
+        assert item["content"] == "Jakarta: Lapas Kelas IIA Cibinong menjadi sorotan."
+        assert item["link"] == link
+        assert scraper.queue_.empty()
 
 
 class TestRMIDLatest:
