@@ -10,9 +10,9 @@ Article extraction sources (verified 2026-07-12):
 - date:     JSON-LD "datePublished" (fallback: meta article:published_time)
 - author:   meta[name="author"]
 - category: div.article-category a
-- body:     all <p data-path-to-node="..."> inside div.article-sheet
+- body:     paragraphs inside div.article-sheet .article-content (legacy data-path-to-node fallback)
 
-Only same-site dated article URLs (YYYY/MM/DD/{slug}) are accepted.
+Same-site dated URLs and section/subsection/slug title-card URLs are accepted.
 """
 
 import json
@@ -27,6 +27,11 @@ from .basescraper import BaseScraper
 
 _ARTICLE_RE = re.compile(
     r"^https?://(?:www\.)?goodnewsfromindonesia\.id/\d{4}/\d{2}/\d{2}/[a-z0-9][a-z0-9-]*$",
+    re.IGNORECASE,
+)
+_CARD_ARTICLE_RE = re.compile(
+    r"^https?://(?:www\.)?goodnewsfromindonesia\.id/[a-z0-9][a-z0-9-]*/"
+    r"[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*$",
     re.IGNORECASE,
 )
 _BASE_URL = "https://www.goodnewsfromindonesia.id"
@@ -70,7 +75,13 @@ class GNFIScraper(BaseScraper):
             full = href if href.startswith("http") else urljoin(self.base_url, href)
             title = a.get("title", "") or a.get_text(" ", strip=True)
             haystack = f"{full} {title}".lower()
-            if _ARTICLE_RE.match(full) and all(token in haystack for token in tokens):
+            is_card_title = bool(a.find_parent("h2", class_="thumbnail-list--title"))
+            is_card_title = is_card_title and bool(a.find_parent(class_="thumbnail-list"))
+            if (_ARTICLE_RE.fullmatch(full) or (is_card_title and _CARD_ARTICLE_RE.fullmatch(full) and not re.match(
+                r"https?://(?:www\.)?goodnewsfromindonesia\.id/video/", full, re.IGNORECASE
+            ))) and all(
+                token in haystack for token in tokens
+            ):
                 links.add(full)
         return links or None
 
@@ -232,7 +243,17 @@ class GNFIScraper(BaseScraper):
             ),
         ):
             tag.extract()
-        paragraphs = sheet.select("p[data-path-to-node]")
+        bodies = sheet.select(".article-content")
+        if bodies:
+            paragraphs = []
+            for body in bodies:
+                attributed = [
+                    p for p in body.select("p[data-path-to-node]")
+                    if not p.find_parent("figure")
+                ]
+                paragraphs.extend(attributed or body.find_all("p", recursive=False))
+        else:
+            paragraphs = sheet.select("p[data-path-to-node]")
         if not paragraphs:
             return ""
         text = " ".join(p.get_text(separator=" ", strip=True) for p in paragraphs)

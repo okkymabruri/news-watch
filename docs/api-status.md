@@ -1,7 +1,5 @@
 # Source Status
 
-Last checked: **2026-09-26**. Smoke-test snapshot, except 🧪 Sampled denotes a targeted offline replay (not an end-to-end check).
-
 ✅ Passed · 🧪 Sampled · ⚠️ Partial timeout/error · 🔎 Empty · ⏱️ Timeout · ⏱️ Probe limit (count unknown) · ❌ Error · ➖ Unsupported · ⏸️ Excluded · ❔ Not checked.
 
 | Source | Search | Latest | Checked at |
@@ -30,7 +28,7 @@ Last checked: **2026-09-26**. Smoke-test snapshot, except 🧪 Sampled denotes a
 | Fajar | ⏱️ Probe limit (count unknown) | 🔎 Empty | 2026-09-26 |
 | Galamedia | 🔎 Empty | ✅ Passed | 2026-09-26 |
 | Gatra | 🔎 Empty | 🔎 Empty | 2026-09-26 |
-| Good News From Indonesia | 🔎 Empty | 🔎 Empty | 2026-09-26 |
+| Good News From Indonesia | 🧪 Sampled (1) | 🧪 Sampled (1) | 2026-09-26 |
 | Grid | ✅ Passed | ✅ Passed | 2026-09-26 |
 | Harian Jogja | ✅ Passed | ✅ Passed | 2026-09-26 |
 | Hipwee | ⏱️ Probe limit (count unknown) | ✅ Passed | 2026-09-26 |

@@ -2586,6 +2586,29 @@ class TestGNFIFocus:
             "https://www.goodnewsfromindonesia.id/2025/12/01/old-article",
         }
 
+    def test_card_titles_from_search_and_latest_not_taxonomy_or_offsite(self):
+        base = "https://www.goodnewsfromindonesia.id"
+        html = '''<nav><a href="/ragam/alam-lingkungan/bali-story">Bali story</a></nav>
+            <div class="thumbnail-list container">
+              <a href="/ragam/alam-lingkungan/bali-story"><img alt="Bali"></a>
+              <div class="thumbnail-list--category"><a href="/ragam/alam-lingkungan">Bali</a></div>
+              <h2 class="thumbnail-list--title"><a href="/ragam/alam-lingkungan/bali-story">Bali story</a></h2>
+              <h2 class="thumbnail-list--title"><a href="https://other.example.com/ragam/alam-lingkungan/bali-foreign">Bali foreign</a></h2>
+              <a href="/u/bali-author">Bali author</a>
+            </div>
+            <div class="thumbnail-list">
+              <h2 class="thumbnail-list--title"><a href="/indonesiana/wisata/artotel-bali">Artotel Bali</a></h2>
+              <h2 class="thumbnail-list--title"><a href="/video/wisata/bali-clip">Bali clip</a></h2>
+              <h2 class="thumbnail-list--title"><a href="/indonesiana/wisata">Wisata taxonomy</a></h2>
+            </div>'''
+        s = self._scraper()
+        s._current_keyword = "bali story"
+        assert s.parse_article_links(html) == {f"{base}/ragam/alam-lingkungan/bali-story"}
+        assert s.parse_latest_article_links(html) == {
+            f"{base}/ragam/alam-lingkungan/bali-story",
+            f"{base}/indonesiana/wisata/artotel-bali",
+        }
+
     @pytest.mark.asyncio
     async def test_latest_targets_explore_page_one_only(self):
         s = GNFIScraper(keywords="bali", queue_=asyncio.Queue())
@@ -2610,6 +2633,48 @@ class TestGNFIFocus:
         assert item["category"] == "Lingkungan"
         assert item["source"] == "goodnewsfromindonesia.id"
         assert item["link"] == link
+
+    @pytest.mark.asyncio
+    async def test_ordinary_article_content_queues_without_promo_or_caption(self):
+        link = "https://www.goodnewsfromindonesia.id/ragam/alam-lingkungan/bali-story"
+        html = '''<meta property="og:title" content="Bali story">
+            <meta property="article:published_time" content="2026-09-25T11:37:28+07:00">
+            <div class="article-sheet">
+              <div class="article-content"><p>First Bali paragraph.</p><p>Second paragraph.</p>
+                <figure><figcaption><p>Image caption.</p></figcaption></figure></div>
+              <div class="article-read"><p>Promo article-read.</p></div>
+              <footer><p>Footer paragraph.</p></footer>
+            </div>'''
+        s = self._scraper()
+        _attach_fetch(s, {link: html})
+        await s.get_article(link, "bali")
+        assert s.queue_.get_nowait()["content"] == "First Bali paragraph. Second paragraph."
+
+    @pytest.mark.asyncio
+    async def test_attributed_body_excludes_attributed_caption_and_promo(self):
+        link = "https://www.goodnewsfromindonesia.id/ragam/alam-lingkungan/bali-story"
+        html = '''<meta property="og:title" content="Bali story">
+            <meta property="article:published_time" content="2026-09-25T11:37:28+07:00">
+            <div class="article-sheet">
+              <div class="article-content"><p data-path-to-node="0">Actual body.</p>
+                <figure><figcaption><p data-path-to-node="1">Caption.</p></figcaption></figure></div>
+              <div class="article-read"><p data-path-to-node="2">Promo.</p></div>
+            </div>'''
+        s = self._scraper()
+        _attach_fetch(s, {link: html})
+        await s.get_article(link, "bali")
+        assert s.queue_.get_nowait()["content"] == "Actual body."
+
+    @pytest.mark.asyncio
+    async def test_no_article_body_does_not_queue_promo(self):
+        link = "https://www.goodnewsfromindonesia.id/ragam/alam-lingkungan/bali-story"
+        html = '''<meta property="og:title" content="Bali story">
+            <meta property="article:published_time" content="2026-09-25T11:37:28+07:00">
+            <div class="article-sheet"><div class="article-read"><p>Promo only.</p></div></div>'''
+        s = self._scraper()
+        _attach_fetch(s, {link: html})
+        await s.get_article(link, "bali")
+        assert s.queue_.empty()
 
     @pytest.mark.asyncio
     async def test_missing_date_short_circuits(self):
