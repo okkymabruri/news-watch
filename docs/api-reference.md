@@ -175,7 +175,7 @@ The stable API includes:
 - `health_report_to_dataframe`
 - `health_report_to_file`
 
-Health probes are advisory source checks; they do not replace deterministic tests. See the [Practical Guide](practical-guide.md) for usage.
+Health probes are advisory source checks; they do not replace deterministic tests. `status` is `ok` only when a clean probe queues articles, `no_results` when a clean probe queues none, `timeout` or `error` when an empty probe fails, and `partial_timeout` or `partial_error` when it fails after queuing articles. Partial records retain `article_count`, `error_type`, and `error_message`; unavailable eligible imports and constructor failures are `error`, while unsupported methods or unknown slugs are `unsupported`. Site adapters that swallow their own errors can still appear clean. See the [Practical Guide](practical-guide.md) for usage.
 
 ## Errors
 

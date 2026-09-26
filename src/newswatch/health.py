@@ -78,13 +78,15 @@ async def _async_health_report(
     """Run health probes and return list of report records."""
     from .registry import get_stable_scrapers
 
-    # Suppress logging during health probes
-    logging.disable(logging.CRITICAL)
+    stable_entries = get_stable_scrapers()
 
     scraper_classes = get_available_scrapers(method=method)
 
     if scrapers.lower() in ("all", "auto"):
-        slugs_to_run = list(scraper_classes.keys())
+        slugs_to_run = [
+            slug for slug, entry in stable_entries.items()
+            if getattr(entry, f"supports_{method}", False)
+        ]
     else:
         slugs_to_run = [s.strip().lower() for s in scrapers.split(",")]
 
@@ -92,17 +94,22 @@ async def _async_health_report(
     for slug in slugs_to_run:
         scraper_info = scraper_classes.get(slug)
         if not scraper_info:
+            entry = stable_entries.get(slug)
+            eligible = entry and getattr(entry, f"supports_{method}", False)
             results.append({
                 "slug": slug,
-                "status": "unsupported",
+                "status": "error" if eligible else "unsupported",
                 "article_count": 0,
                 "elapsed_seconds": 0,
-                "error_type": None,
-                "error_message": f"Not available for {method} method",
+                "error_type": "ImportError" if eligible else None,
+                "error_message": (
+                    "Eligible scraper unavailable (module or class failed to load)"
+                    if eligible else f"Not available for {method} method"
+                ),
             })
             continue
 
-        entry = get_stable_scrapers().get(slug)
+        entry = stable_entries.get(slug)
         if not entry:
             results.append({
                 "slug": slug,
@@ -116,12 +123,23 @@ async def _async_health_report(
 
         scraper_class = scraper_info["class"]
         scraper_params = dict(scraper_info.get("params", {}))
-        scraper_instance = scraper_class(
-            keywords="latest" if method == "latest" else entry.smoke_keyword,
-            queue_=asyncio.Queue(),
-            **scraper_params,
-        )
-        scraper_instance.max_latest_pages = max_pages
+        try:
+            scraper_instance = scraper_class(
+                keywords="latest" if method == "latest" else entry.smoke_keyword,
+                queue_=asyncio.Queue(),
+                **scraper_params,
+            )
+            scraper_instance.max_latest_pages = max_pages
+        except Exception as exc:
+            results.append({
+                "slug": slug,
+                "status": "error",
+                "article_count": 0,
+                "elapsed_seconds": 0,
+                "error_type": type(exc).__name__,
+                "error_message": str(exc),
+            })
+            continue
         instance_queue = scraper_instance.queue_
 
         items_collected = []
@@ -156,15 +174,14 @@ async def _async_health_report(
 
         items_collected, run_result = await _run_and_collect()
 
-        # Determine final status: prefer collected count, else preserve timeout/error
-        if items_collected:
-            status = "ok"
-            error_type = None
-            error_message = None
+        # Terminal failures take precedence over articles already queued.
+        run_status = run_result["status"]
+        if run_status in ("timeout", "error"):
+            status = f"partial_{run_status}" if items_collected else run_status
         else:
-            status = run_result.get("status", "no_results")
-            error_type = run_result.get("error_type")
-            error_message = run_result.get("error_message")
+            status = "ok" if items_collected else "no_results"
+        error_type = run_result["error_type"]
+        error_message = run_result["error_message"]
 
         record = {
             "slug": slug,
@@ -210,7 +227,9 @@ def health_report(
             error_type, error_message, browser_required, strict_search,
             supports_search, supports_latest, smoke_keyword, checked_at
     """
+    previous_logging_disable = logging.root.manager.disable
     try:
+        logging.disable(logging.CRITICAL)
         return asyncio.run(
             _async_health_report(
                 method=method,
@@ -226,7 +245,7 @@ def health_report(
         logger.error(f"Health report failed: {e}")
         return []
     finally:
-        logging.disable(logging.NOTSET)
+        logging.disable(previous_logging_disable)
 
 
 def health_report_to_dataframe(report: List[Dict]) -> pd.DataFrame:
@@ -335,13 +354,13 @@ def _print_health_summary(report: List[Dict]) -> None:
         return
 
     # Table header
-    fmt = "{:<20} {:<10} {:>5} {:>8} {}"
+    fmt = "{:<20} {:<16} {:>5} {:>8} {}"
     print(fmt.format("SOURCE", "STATUS", "COUNT", "SEC", "ERROR"))
     print("-" * 72)
 
     for r in report:
         slug = r.get("slug", "?")[:19]
-        status = r.get("status", "?")[:9]
+        status = r.get("status", "?")
         count = r.get("article_count", 0)
         elapsed = r.get("elapsed_seconds", 0)
         error = r.get("error_message") or ""
@@ -352,7 +371,7 @@ def _print_health_summary(report: List[Dict]) -> None:
     print("-" * 72)
     total = len(report)
     ok = sum(1 for r in report if r.get("status") == "ok")
-    err = sum(1 for r in report if r.get("status") == "error")
-    timeout = sum(1 for r in report if r.get("status") == "timeout")
+    err = sum(1 for r in report if r.get("status") in ("error", "partial_error"))
+    timeout = sum(1 for r in report if r.get("status") in ("timeout", "partial_timeout"))
     no_res = sum(1 for r in report if r.get("status") == "no_results")
     print(f"Summary: {ok}/{total} OK, {no_res} no results, {timeout} timeouts, {err} errors")
