@@ -2231,6 +2231,38 @@ class TestGNFIRelevance:
         '</body></html>'
     )
 
+    def test_search_matches_whole_words_in_title_text_or_final_slug_only(self):
+        base = "https://www.goodnewsfromindonesia.id"
+        cases = [
+            ("/2026/09/22/cerita-di-balik-batik", "Cerita di Balik Batik", ""),
+            ("/2026/09/22/kuliner-balika", "Kuliner Nusantara", ""),
+            ("/2026/09/22/wisata-bali", "Wisata Nusantara", ""),
+            ("/2026/09/22/cerita-pantai", "Cerita Bali", ""),
+            ("/2026/09/22/cerita-balik", "", "Bali hari ini"),
+            ("/2026/09/22/wisata-pantai", "", '<img alt="Bali">'),
+            ("/bali/wisata/cerita-pantai", "Cerita pantai", ""),
+            ("/ragam/wisata/cerita-pantai", "Cerita pantai", ""),
+        ]
+        html = "".join(
+            f'<a href="{base}{path}" title="{title}">{body}</a>'
+            for path, title, body in cases
+        )
+        s = GNFIScraper(keywords="bali", queue_=asyncio.Queue())
+        s._current_keyword = "bali"
+        assert s.parse_article_links(html) == {
+            f"{base}/2026/09/22/wisata-bali",
+            f"{base}/2026/09/22/cerita-pantai",
+            f"{base}/2026/09/22/cerita-balik",
+        }
+        assert s.parse_latest_article_links(html) == {
+            f"{base}{path}" for path, _, _ in cases[:6]
+        }
+
+        s._current_keyword = "bali pantai"
+        assert s.parse_article_links(html) == {
+            f"{base}/2026/09/22/cerita-pantai",
+        }
+
     @pytest.mark.asyncio
     async def test_strict_search_then_unfiltered_latest(self):
         s = GNFIScraper(keywords=self.KEYWORD, queue_=asyncio.Queue())

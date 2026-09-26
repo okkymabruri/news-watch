@@ -73,14 +73,17 @@ class GNFIScraper(BaseScraper):
         for a in soup.select("a[href]"):
             href = a.get("href", "")
             full = href if href.startswith("http") else urljoin(self.base_url, href)
-            title = a.get("title", "") or a.get_text(" ", strip=True)
-            haystack = f"{full} {title}".lower()
+            visible_text = a.get_text(" ", strip=True)
+            slug = full.rsplit("/", 1)[-1]
+            match_tokens = set(re.findall(
+                r"\w+", f"{a.get('title', '')} {visible_text} {slug}".lower()
+            ))
             is_card_title = bool(a.find_parent("h2", class_="thumbnail-list--title"))
             is_card_title = is_card_title and bool(a.find_parent(class_="thumbnail-list"))
             if (_ARTICLE_RE.fullmatch(full) or (is_card_title and _CARD_ARTICLE_RE.fullmatch(full) and not re.match(
                 r"https?://(?:www\.)?goodnewsfromindonesia\.id/video/", full, re.IGNORECASE
             ))) and all(
-                token in haystack for token in tokens
+                token in match_tokens for token in tokens
             ):
                 links.add(full)
         return links or None
