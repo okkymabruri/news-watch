@@ -97,6 +97,68 @@ from newswatch.scrapers.inews import INewsScraper
 from newswatch.scrapers.okezone import OkezoneScraper
 from newswatch.scrapers.pantau import PantauScraper
 from newswatch.scrapers.tvrinews import TVRINewsScraper
+from newswatch.scrapers.rmid import RmidScraper
+
+
+class TestRMIDLatest:
+    LINK = "https://rm.id/baca-berita/ekonomi-bisnis/123/energi-bersih"
+    ARTICLE = (
+        '<h1>Kejar Energi Bersih, Indonesia Buka Peluang Investasi</h1>'
+        '<meta name="author" content="Reporter">'
+        '<span>2026-09-26 13:52:58 || WIB</span>'
+        '<div class="content-berita"><p>Isi artikel energi bersih.</p></div>'
+    )
+
+    async def test_latest_uses_project_date_index_only_on_page_one(self, monkeypatch):
+        from newswatch.scrapers import rmid
+
+        class Clock:
+            @staticmethod
+            def now(tz):
+                # UTC remains on the previous day; the index uses the project day.
+                return datetime(2026, 9, 26, 0, 15, tzinfo=tz)
+
+        monkeypatch.setattr(rmid, "datetime", Clock)
+        scraper = RmidScraper("ekonomi", queue_=asyncio.Queue())
+        stub = _attach_fetch(scraper, {"/index-berita/": "listing"})
+        assert await scraper.build_latest_url(1) == "listing"
+        assert await scraper.build_latest_url(2) is None
+        assert stub.calls == [
+            ("https://rm.id/index-berita/26-09-2026", None, {"data": None, "timeout": 30})
+        ]
+
+    async def test_latest_queues_unrelated_headline_with_date_and_original_item_fields(self):
+        scraper = RmidScraper("ekonomi", queue_=asyncio.Queue())
+        listing = f'<a href="{self.LINK}">Unrelated headline</a>'
+        _attach_fetch(scraper, {"/index-berita/": listing, self.LINK: self.ARTICLE})
+        await scraper.fetch_latest_results()
+        item = scraper.queue_.get_nowait()
+        assert scraper.queue_.empty()
+        assert tuple(item) == _QUEUE_KEYS
+        assert item == {
+            "title": "Kejar Energi Bersih, Indonesia Buka Peluang Investasi",
+            "publish_date": datetime(2026, 9, 26, 13, 52, 58),
+            "author": "Reporter",
+            "content": "Isi artikel energi bersih.",
+            "keyword": "latest",
+            "category": "ekonomi-bisnis",
+            "source": "rmid",
+            "link": self.LINK,
+        }
+
+    async def test_search_keeps_title_and_article_keyword_gates(self):
+        scraper = RmidScraper("ekonomi", queue_=asyncio.Queue())
+        listing = (
+            f'<a href="{self.LINK}">Unrelated headline</a>'
+            '<a href="https://rm.id/baca-berita/nasional/456/other">Ekonomi headline</a>'
+        )
+        _attach_fetch(scraper, {"/?s=ekonomi": listing, self.LINK: self.ARTICLE})
+        body = await scraper.build_search_url("ekonomi", 1)
+        assert scraper.parse_article_links(body) == {
+            "https://rm.id/baca-berita/nasional/456/other"
+        }
+        await scraper.get_article(self.LINK, "politik")
+        assert scraper.queue_.empty()
 
 
 class TestJakartaPostLatest:

@@ -68,7 +68,7 @@
 | Poskota | ✅ Passed | ✅ Passed | 2026-09-26 |
 | Project Multatuli | ✅ Passed | ✅ Passed | 2026-09-26 |
 | Republika | ✅ Passed | 🔎 Empty | 2026-09-26 |
-| RM.ID (Rakyat Merdeka) | 🔎 Empty | 🔎 Empty | 2026-09-26 |
+| RM.ID (Rakyat Merdeka) | 🔎 Empty | 🧪 Sampled (1) | 2026-09-26 |
 | RMOL | ⏱️ Probe limit (count unknown) | ✅ Passed | 2026-09-26 |
 | RRI (RRI.co.id) | ✅ Passed | ✅ Passed | 2026-09-26 |
 | SINDOnews | ✅ Passed | ✅ Passed | 2026-09-26 |
