@@ -770,6 +770,20 @@ _SCRAPER_ENTRIES: Tuple[ScraperEntry, ...] = (
         supports_latest=True,
         note="POST /search with redirect-token pagination; dated /indeks/YYYYMMDD archive",
     ),
+    ScraperEntry(
+        "rakyataceh",
+        "Harian Rakyat Aceh",
+        "rakyataceh", "RakyatAcehScraper",
+        concurrency=1,
+        keyword_concurrency=1,
+        strict_search=True,
+        smoke_keyword="ekonomi",
+        supports_search=True,
+        supports_latest=True,
+        note=("harianrakyataceh.com online news; first-page /search/?q= and "
+              "homepage Berita Terkini; max 3 cards/mode, 10s crawl-delay. "
+              "No .net or print-edition coverage claimed."),
+    ),
 
     ScraperEntry(
         "bantennews",

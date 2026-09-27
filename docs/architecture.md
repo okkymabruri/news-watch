@@ -98,8 +98,8 @@ date-only range means local calendar days.
 
 | State | Count |
 |---|---|
-| registered | 81 |
-| stable | 79 |
+| registered | 82 |
+| stable | 80 |
 | quarantined | 1 |
 | investigating | 1 |
 <!-- END GENERATED: architecture-state -->

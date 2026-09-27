@@ -99,6 +99,93 @@ from newswatch.scrapers.pantau import PantauScraper
 from newswatch.scrapers.tvrinews import TVRINewsScraper
 from newswatch.scrapers.rmid import RmidScraper
 from newswatch.scrapers.metrotvnews import MetrotvnewsScraper
+from newswatch.scrapers.rakyataceh import RakyatAcehScraper
+
+
+class TestRakyatAcehOffline:
+    base = "https://harianrakyataceh.com/news/"
+
+    def card(self, slug, date="2026-09-21T10:00:00+07:00"):
+        return (f'<article><a class="title" href="{self.base}{slug}/index.html">'
+                f'{slug}</a><time datetime="{date}"></time></article>')
+
+    def test_search_and_latest_scope_and_sample_limit(self):
+        scraper = RakyatAcehScraper("ekonomi")
+        assert scraper.sample_limit == 3
+        assert RakyatAcehScraper("ekonomi", sample_limit=10).sample_limit == 3
+        sidebar = self.card("sidebar")
+        nonsense = f'<main><div class="row"><div class="col-md-8"><div class="no-result">Tidak ditemukan</div></div><aside class="sidebar">{sidebar}</aside></div></main>'
+        assert scraper.parse_article_links(nonsense) is None
+        search = (f'<main><div class="row"><div class="col-md-8">{self.card("ekonomi-baru")}'
+                  f'{self.card("ekonomi-lama", "2026-09-01T10:00:00+07:00")}'
+                  f'{self.card("ketiga")}{self.card("keempat")}</div>'
+                  f'<aside class="sidebar">{sidebar}</aside></div></main>')
+        assert scraper.parse_article_links(search) == [self.base + slug + "/index.html"
+                                                        for slug in ("ekonomi-baru", "ekonomi-lama", "ketiga")]
+        latest = (f'<main><div class="headline">{self.card("headline")}</div>'
+                  f'<div class="block"><div class="block-title">Berita Terkini</div>'
+                  f'<div class="block-content">{self.card("first")}{self.card("second")}'
+                  f'{self.card("third")}{self.card("fourth")}</div></div></main>')
+        assert scraper.parse_latest_article_links(latest) == [self.base + slug + "/index.html"
+                                                              for slug in ("first", "second", "third")]
+
+    @pytest.mark.asyncio
+    async def test_article_boundary_timezone_keyword_and_missing_date(self):
+        scraper = RakyatAcehScraper("ekonomi", queue_=asyncio.Queue())
+        link = self.base + "ekonomi-lama/index.html"
+        async def offline_fetch(url, **kwargs):
+            return html
+        scraper.fetch = offline_fetch
+        html = (f'<link rel="canonical" href="{link}"><main><article><div class="detail">'
+                '<h1>Peluang ekonomi</h1><div class="meta-post"><time datetime="2026-09-21T10:00:00+07:00"></time></div>'
+                '<div class="the-content"><p>Awal berita.</p><div><p>Penutup ekonomi.</p></div></div>'
+                '<div class="meta-info">Jangan masuk</div><a href="/related">Berita lain</a></div></article></main>')
+        await scraper.get_article(link, "ekonomi")
+        item = scraper.queue_.get_nowait()
+        assert item["publish_date"] == to_project_naive(datetime.fromisoformat("2026-09-21T10:00:00+07:00"))
+        assert item["content"] == "Awal berita.\n\nPenutup ekonomi."
+        await scraper.get_article(link, "tidakada")
+        assert scraper.queue_.empty()
+        html = html.replace(' datetime="2026-09-21T10:00:00+07:00"', "")
+        await scraper.get_article(link, "latest")
+        assert scraper.queue_.empty()
+        html = html.replace('<div class="meta-info">', '<a rel="next" href="/page/2">Next</a><div class="meta-info">')
+        await scraper.get_article(link, "latest")
+        assert scraper.queue_.empty()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("chunks, expected", [
+        ([b"<html>", b"normal publisher", b"</html>", b""], "<html>normal publisher</html>"),
+        ([b"x" * 262145], None),
+    ])
+    async def test_fetch_streaming_complete_or_oversized(self, chunks, expected):
+        scraper = RakyatAcehScraper("ekonomi")
+
+        class Stream:
+            async def read(self, size):
+                return chunks.pop(0) if chunks else b""
+
+        class Response:
+            status = 200
+            headers = {}
+            charset = "utf-8"
+            content = Stream()
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                pass
+
+        class Session:
+            def get(self, url, **kwargs):
+                assert kwargs["allow_redirects"] is False
+                return Response()
+
+        scraper.session = Session()
+        assert await scraper.fetch("https://harianrakyataceh.com/search/?q=ekonomi") == expected
+        assert len(scraper.request_receipts) == 1
+        assert scraper.request_receipts[0]["outcome"] == ("ok" if expected else "oversized")
 
 
 class TestMetroTVLatest:

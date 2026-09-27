@@ -68,6 +68,7 @@
 | Poskota | ✅ Passed | ✅ Passed | 2026-09-26 |
 | Project Multatuli | ✅ Passed | ✅ Passed | 2026-09-26 |
 | Republika | ✅ Passed | 🔎 Empty | 2026-09-26 |
+| Harian Rakyat Aceh | 🧪 Bounded runtime (3) | 🧪 Bounded runtime (3) | 2026-09-27 |
 | RM.ID (Rakyat Merdeka) | 🧪 Partial (1) | ✅ Passed | 2026-09-27 |
 | RMOL | ⏱️ Probe limit (count unknown) | ✅ Passed | 2026-09-26 |
 | RRI (RRI.co.id) | ✅ Passed | ✅ Passed | 2026-09-26 |
