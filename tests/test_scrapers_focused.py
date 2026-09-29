@@ -2668,7 +2668,7 @@ def _alinea_article_html() -> str:
 
 
 class TestAlineaFocus:
-    """Alinea: search URL + parser, latest /indeks page 1, extraction."""
+    """Alinea: search URL + parser, latest RSS page 1, extraction."""
 
     def _scraper(self):
         return AlineaScraper(keywords="politik", queue_=asyncio.Queue())
@@ -2715,13 +2715,55 @@ class TestAlineaFocus:
         assert s.continue_scraping is False
 
     @pytest.mark.asyncio
-    async def test_latest_targets_indeks_page_one_only(self):
-        s = AlineaScraper(keywords="politik", queue_=asyncio.Queue())
-        stub = _attach_fetch(s, {"indeks": "<html></html>"})
-        body = await s.build_latest_url(1)
-        assert body == "<html></html>"
-        assert stub.calls[0][0].endswith("/indeks")
+    async def test_latest_targets_rss_page_one_only(self):
+        s = self._scraper()
+        stub = _attach_fetch(s, {"/rss": "<rss><channel/></rss>"})
+        assert await s.build_latest_url(1) == "<rss><channel/></rss>"
+        assert stub.calls[0][0] == "https://www.alinea.id/rss"
         assert await s.build_latest_url(2) is None
+
+    def test_latest_feed_keeps_only_allowed_article_items(self):
+        s = self._scraper()
+        feed = """<rss version="2.0"><channel>
+            <item><link>https://www.alinea.id/peristiwa/first-b123</link>
+                <pubDate>2026-09-28 19:48:00</pubDate></item>
+            <item><link>https://www.alinea.id/politik/second-b456</link>
+                <pubDate>2026-09-28 19:41:00</pubDate></item>
+            <item><link>https://www.alinea.id/peristiwa/first-b123</link></item>
+            <item><link>https://other.example/peristiwa/foreign-b123</link></item>
+            <item><link>https://www.alinea.id/search?q=politik</link></item>
+            <item><link>https://www.alinea.id/peristiwa</link></item>
+            <item><link>https://www.alinea.id/peristiwa/third-b789?promo=1</link></item>
+        </channel></rss>"""
+        assert s.parse_latest_article_links(feed) == {
+            "https://www.alinea.id/peristiwa/first-b123",
+            "https://www.alinea.id/politik/second-b456",
+        }
+
+    @pytest.mark.parametrize("body", [
+        "", "<rss><channel><item>",
+        "<rss><channel></channel></rss>",
+        '<html><body><a href="https://www.alinea.id/politik/foo-b123">news</a></body></html>',
+    ])
+    def test_latest_rejects_empty_malformed_or_non_feed(self, body):
+        assert self._scraper().parse_latest_article_links(body) is None
+
+    @pytest.mark.asyncio
+    async def test_latest_feed_article_queues_and_obeys_cutoff(self):
+        link = "https://www.alinea.id/peristiwa/first-b123"
+        feed = f"<rss><channel><item><link>{link}</link></item></channel></rss>"
+        article = _alinea_article_html().replace("12 Juli 2026", "28 September 2026")
+        for start_date, expected_count in ((None, 1), (datetime(2026, 9, 29), 0)):
+            s = AlineaScraper(keywords="politik", start_date=start_date, queue_=asyncio.Queue())
+            stub = _attach_fetch(s, {"/rss": feed, link: article})
+            await s.fetch_latest_results()
+            assert s.queue_.qsize() == expected_count
+            assert [call[0] for call in stub.calls] == ["https://www.alinea.id/rss", link]
+            if expected_count:
+                item = s.queue_.get_nowait()
+                assert item["keyword"] == "latest"
+                assert item["publish_date"] == datetime(2026, 9, 28)
+                assert item["link"] == link
 
     @pytest.mark.asyncio
     async def test_extracts_full_queue_item_with_path_category(self):

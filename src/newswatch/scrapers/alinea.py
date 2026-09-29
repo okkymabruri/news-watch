@@ -1,5 +1,6 @@
 import logging
 import re
+import xml.etree.ElementTree as ET
 from urllib.parse import urlencode
 
 from bs4 import BeautifulSoup
@@ -12,7 +13,7 @@ class AlineaScraper(BaseScraper):
 
     Discovery:
         search: /search?q={keyword}  (server-rendered article cards)
-        latest: /indeks              (server-rendered latest listing)
+        latest: /rss                 (publisher-advertised RSS items)
     Article URL pattern: /<section>/<slug>-b<code> where sections are
     peristiwa | politik | bisnis | kolom | gaya-hidup.
     """
@@ -138,10 +139,24 @@ class AlineaScraper(BaseScraper):
         if page > 1:
             return None
         return await self.fetch(
-            f"{self.BASE_URL}/indeks",
+            f"{self.BASE_URL}/rss",
             headers=self.headers,
             timeout=30,
         )
 
     def parse_latest_article_links(self, response_text):
-        return self.parse_article_links(response_text)
+        if not response_text:
+            return None
+        try:
+            root = ET.fromstring(response_text)
+        except ET.ParseError:
+            return None
+        if root.tag != "rss":
+            return None
+        links = {
+            href
+            for link in root.findall("./channel/item/link")
+            if (href := (link.text or "").strip())
+            and self.ARTICLE_RE.fullmatch(href)
+        }
+        return links or None

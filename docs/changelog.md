@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Alinea latest-news discovery now uses its publisher-advertised RSS feed instead of `/indeks`, which redirects to a homepage incompatible with the search-card parser. Search and article date filtering are unchanged. Validated with captured-feed replay and offline regressions; a fresh end-to-end live run remains unverified.
+
 ## [1.2.5] - 2026-07-27
 
 ### Added

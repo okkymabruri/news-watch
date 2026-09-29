@@ -5,7 +5,7 @@
 | Source | Search | Latest | Checked at |
 |---|---|---|---|
 | ABC News | ✅ Passed | ✅ Passed | 2026-09-26 |
-| Alinea.id | ✅ Passed | 🔎 Empty | 2026-09-26 |
+| Alinea.id | ✅ Passed | 🧪 RSS fix; offline replay | S: 2026-09-26 / L: 2026-09-29 |
 | Al Jazeera | ➖ Unsupported | ✅ Passed | 2026-09-26 |
 | Antara News | ⏱️ Probe limit (count unknown) | ✅ Passed | 2026-09-26 |
 | AP News | 🔎 Empty | 🔎 Empty | 2026-09-26 |
@@ -86,3 +86,13 @@
 | VOA Indonesia | ✅ Passed | ✅ Passed | 2026-09-26 |
 | VOI.id | ⏱️ Probe limit (count unknown) | ⏱️ Probe limit (count unknown) | 2026-09-26 |
 | Warta Ekonomi | 🔎 Empty | ✅ Passed | 2026-09-26 |
+
+## Targeted follow-up — 2026-09-29
+
+These bounded diagnostics are not a new full-source health campaign. Unchanged rows retain their earlier observation dates.
+
+- **Alinea latest:** `/indeks` redirected to the homepage, which the search-card parser could not read. Latest discovery now uses the homepage-advertised RSS feed. The captured feed yielded 100 allowed article links; one recent article was fetched and replayed through the existing extractor. Focused offline regressions cover the new feed path and date cutoff. No post-fix end-to-end live run was performed; the six-request diagnostic allowance was exhausted. Search was not rechecked.
+- **BBC latest:** the RSS feed yielded 17 links, but the article host's published policy prohibits scraping/systematic extraction. Validation stopped before article requests. The historical Search Passed result is not permission for further requests; no capability or lifecycle change is implied.
+- **Fajar latest:** a captured homepage yielded 39 article links; one captured article extracted successfully offline. This does not reproduce or explain the earlier Empty result, nor validate all 39 articles. No production change.
+- **Jawa Pos latest:** the homepage exceeded the 256 KiB complete-response limit. A parser mismatch remains unverified; no production change.
+- **MetroTV search:** offline replay of earlier captures found 21 article links and nine video links; one article extracted successfully. Video extraction and the earlier hard-timeout cause remain unverified. Search coverage and limits were not changed.
