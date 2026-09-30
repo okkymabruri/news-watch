@@ -8,6 +8,7 @@ Route interception captures results without needing explicit token capture.
 import json
 import logging
 import re
+from urllib.parse import urljoin
 
 import aiohttp
 from playwright.async_api import async_playwright
@@ -169,6 +170,15 @@ class JakartaPostScraper(BaseScraper):
                     if match:
                         publish_date_str = match.group(1).strip()
 
+            publish_date = self.parse_date(publish_date_str)
+            if not publish_date:
+                for name in ("published-at", "datePublished"):
+                    meta_date = soup.find("meta", {"name": name})
+                    if meta_date and meta_date.get("content"):
+                        publish_date = self.parse_date(meta_date["content"])
+                        if publish_date:
+                            break
+
             content_div = soup.select_one(".tjp-single__content") or soup.select_one("article")
             if not content_div:
                 return
@@ -190,7 +200,6 @@ class JakartaPostScraper(BaseScraper):
             author_elem = soup.select_one(".author")
             author = author_elem.get_text(strip=True) if author_elem else "Unknown"
 
-            publish_date = self.parse_date(publish_date_str)
             if not publish_date:
                 logging.debug(
                     "Jakarta Post date parse failed | url: %s | date: %r",
@@ -248,6 +257,7 @@ class JakartaPostScraper(BaseScraper):
         links = set()
         for a in soup.select("a[href]"):
             href = a.get("href", "")
-            if self._article_href.match(href):
-                links.add(href)
+            url = urljoin(self.base_url, href)
+            if self._article_href.match(url):
+                links.add(url)
         return links or None

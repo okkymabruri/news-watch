@@ -129,12 +129,22 @@ class TestScraperParseContract:
             start_date=datetime.now() - timedelta(days=7),
             queue_=asyncio.Queue(),
         )
-        async with s:
-            with aioresponses() as m:
-                m.get(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True)
-                m.post(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True)
-                await s.fetch_search_results(entry.smoke_keyword)
-            assert s._articles_collected == 0
+        if slug == "rakyataceh":
+            # Its capped transport uses an aiohttp response stream that this
+            # version of aioresponses cannot construct; exercise the pipeline
+            # with a mocked response instead of touching the network.
+            async def empty_fetch(url, **kwargs):
+                return _PASSTHROUGH_HTML
+
+            s.fetch = empty_fetch
+            await s.fetch_search_results(entry.smoke_keyword)
+        else:
+            async with s:
+                with aioresponses() as m:
+                    m.get(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True)
+                    m.post(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True)
+                    await s.fetch_search_results(entry.smoke_keyword)
+        assert s._articles_collected == 0
 
 
 # ── Layer 2b: latest-mode parse contract (offline via aioresponses) ───────
@@ -163,12 +173,19 @@ class TestScraperLatestParseContract:
             start_date=datetime.now() - timedelta(days=7),
             queue_=asyncio.Queue(),
         )
-        async with s:
-            with aioresponses() as m:
-                m.get(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True)
-                m.post(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True)
-                await s.fetch_latest_results()
-            assert s._articles_collected == 0
+        if slug == "rakyataceh":
+            async def empty_fetch(url, **kwargs):
+                return _PASSTHROUGH_HTML
+
+            s.fetch = empty_fetch
+            await s.fetch_latest_results()
+        else:
+            async with s:
+                with aioresponses() as m:
+                    m.get(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True)
+                    m.post(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True)
+                    await s.fetch_latest_results()
+        assert s._articles_collected == 0
 
 
 # ── Layer 3: block detection ─────────────────────────────────────────────

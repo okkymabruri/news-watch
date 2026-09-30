@@ -1,6 +1,6 @@
 import logging
 import re
-from urllib.parse import quote_plus, urljoin
+from urllib.parse import quote_plus, urljoin, urlsplit
 
 from bs4 import BeautifulSoup
 
@@ -139,5 +139,18 @@ class MetrotvnewsScraper(BaseScraper):
             href = a.get("href")
             if href:
                 links.add(urljoin(self.base_url, href))
+        for a in soup.select(
+            ".big-news .news-item h2 a[href], .small-news .news-item .news-text a[href]"
+        ):
+            link = urljoin(self.base_url, a["href"])
+            parsed = urlsplit(link)
+            if (
+                parsed.scheme in {"http", "https"}
+                and parsed.netloc == "www.metrotvnews.com"
+                and re.fullmatch(r"/read/[A-Za-z0-9]+-[a-z0-9]+(?:-[a-z0-9]+)*", parsed.path)
+                and not parsed.query
+                and not parsed.fragment
+            ):
+                links.add(link)
         links = {link for link in links if link.startswith("http")}
         return links or None

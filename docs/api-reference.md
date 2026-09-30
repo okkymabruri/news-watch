@@ -175,7 +175,7 @@ The stable API includes:
 - `health_report_to_dataframe`
 - `health_report_to_file`
 
-Health probes are advisory source checks; they do not replace deterministic tests. See the [Practical Guide](practical-guide.md) for usage.
+Health probes are advisory source checks; they do not replace deterministic tests. `status` is `ok` only when a clean probe queues articles, `no_results` when a clean probe queues none, `timeout` or `error` when an empty probe fails, and `partial_timeout` or `partial_error` when it fails after queuing articles. Partial records retain `article_count`, `error_type`, and `error_message`; unavailable eligible imports and constructor failures are `error`, while unsupported methods or unknown slugs are `unsupported`. Site adapters that swallow their own errors can still appear clean. See the [Practical Guide](practical-guide.md) for usage.
 
 ## Errors
 
@@ -196,13 +196,13 @@ except NewsWatchError as exc:
 <!-- BEGIN GENERATED: api-notes -->
 ## Stable API Notes
 
-All 81 registered scrapers are exposed via `list_scrapers()` and the public `SCRAPERS` mapping. 76 of them support the `search` method; all 81 support `latest`.
+All 82 registered scrapers are exposed via `list_scrapers()` and the public `SCRAPERS` mapping. 77 of them support the `search` method; all 82 support `latest`.
 
 ## Notes
 
 - Prefer `scrapers="auto"` unless you know which sites you need.
 - Cloud/server environments are more likely to be blocked.
-- Stable support currently covers 79 scrapers (74 search-capable, 79 latest-capable).
+- Stable support currently covers 80 scrapers (75 search-capable, 80 latest-capable).
 - 1 source under investigation; 1 source quarantined.
 
 **Empty results**: Check if your keywords are in Indonesian or try broader terms.

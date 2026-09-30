@@ -90,6 +90,7 @@ SOURCE_URLS: Dict[str, str] = {
     "poskota": "https://poskota.co.id",
     "projectmultatuli": "https://projectmultatuli.org",
     "republika": "https://republika.co.id",
+    "rakyataceh": "https://harianrakyataceh.com",
     "rmid": "https://rm.id",
     "rri": "https://rri.co.id",
     "rmol": "https://rmol.id",

@@ -2,6 +2,8 @@
 
 import csv
 import json
+import asyncio
+import logging
 import tempfile
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
@@ -33,6 +35,119 @@ class TestHealthReportAPI:
         mock_async.side_effect = RuntimeError("fail")
         result = health_report(scrapers="kompas")
         assert result == []
+
+    @pytest.mark.parametrize(
+        ("failure", "expected", "count"),
+        [
+            (None, "ok", 1),
+            ("empty", "no_results", 0),
+            ("error", "partial_error", 1),
+            ("timeout", "partial_timeout", 1),
+            ("error_empty", "error", 0),
+            ("timeout_empty", "timeout", 0),
+        ],
+    )
+    def test_queue_and_terminal_outcome(self, failure, expected, count, tmp_path, capsys):
+        class QueueScraper:
+            def __init__(self, keywords, queue_, **kwargs):
+                self.queue_ = queue_
+                self._articles_collected = 0
+
+            async def scrape(self, method):
+                if failure not in ("empty", "error_empty", "timeout_empty"):
+                    await self.queue_.put({"title": "queued"})
+                    self._articles_collected = 1
+                if failure in ("error", "error_empty"):
+                    raise ValueError("probe failed")
+                if failure in ("timeout", "timeout_empty"):
+                    await asyncio.sleep(1)
+
+        with patch("newswatch.health.get_available_scrapers", return_value={
+            "kompas": {"class": QueueScraper, "params": {}}
+        }):
+            record = health_report(scrapers="kompas", scraper_timeout=0.001, limit=1)[0]
+        assert record["status"] == expected
+        assert record["article_count"] == count
+        assert record["error_type"] == (
+            "TimeoutError" if "timeout" in expected else "ValueError" if "error" in expected else None
+        )
+        assert bool(record["error_message"]) == ("error" in expected or "timeout" in expected)
+        _print_health_summary([record])
+        assert expected in capsys.readouterr().out
+        path = tmp_path / "history.jsonl"
+        append_health_history([record], path)
+        assert json.loads(path.read_text())["status"] == expected
+
+    def test_missing_import_and_constructor_failure_are_per_source(self):
+        class BrokenScraper:
+            def __init__(self, **kwargs):
+                raise RuntimeError("constructor failed")
+
+        class EmptyScraper:
+            def __init__(self, keywords, queue_, **kwargs):
+                self.queue_ = queue_
+                self._articles_collected = 0
+
+            async def scrape(self, method):
+                pass
+
+        available = {
+            "bbc": {"class": BrokenScraper, "params": {}},
+            "kompas": {"class": EmptyScraper, "params": {}},
+        }
+        with patch("newswatch.health.get_available_scrapers", return_value=available):
+            records = health_report(scrapers="antaranews,bbc,kompas,not-a-source")
+        assert [r["status"] for r in records] == [
+            "error", "error", "no_results", "unsupported"
+        ]
+        assert records[0]["error_type"] == "ImportError"
+        assert records[1]["error_message"] == "constructor failed"
+
+    def test_auto_includes_eligible_import_failure(self):
+        with patch("newswatch.health.get_available_scrapers", return_value={}):
+            records = health_report(method="search", scrapers="auto")
+        by_slug = {record["slug"]: record for record in records}
+        assert by_slug["antaranews"]["status"] == "error"
+        assert by_slug["antaranews"]["error_type"] == "ImportError"
+        assert "hukumonline" not in by_slug  # latest-only
+
+    def test_restores_callers_logging_disable_level(self):
+        previous = logging.root.manager.disable
+        try:
+            logging.disable(logging.ERROR)
+            with patch("newswatch.health.get_available_scrapers", return_value={}):
+                health_report(scrapers="not-a-source")
+            assert logging.root.manager.disable == logging.ERROR
+        finally:
+            logging.disable(previous)
+
+    def test_health_report_exposes_search_error(self):
+        from newswatch.scrapers.basescraper import BaseScraper
+
+        class FailingSearchScraper(BaseScraper):
+            async def build_search_url(self, keyword, page):
+                return None
+
+            def parse_article_links(self, response_text):
+                return []
+
+            async def get_article(self, link, keyword):
+                return None
+
+            async def fetch_search_results(self, keyword):
+                raise ValueError("keyword failed")
+
+        available = {
+            "cnbcindonesia": {"class": FailingSearchScraper, "params": {}}
+        }
+        with patch("newswatch.health.get_available_scrapers", return_value=available):
+            result = health_report(
+                method="search", scrapers="cnbcindonesia", scraper_timeout=0
+            )
+
+        assert result[0]["status"] == "error"
+        assert result[0]["error_type"] == "ValueError"
+        assert result[0]["error_message"] == "keyword failed"
 
 
 class TestHealthReportToDataFrame:

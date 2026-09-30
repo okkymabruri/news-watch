@@ -1,5 +1,7 @@
 import asyncio
 
+import pytest
+
 from newswatch.scrapers.basescraper import BaseScraper
 
 
@@ -99,12 +101,68 @@ async def test_scrape_with_keyword_concurrency_caps_parallel_keywords():
     assert scraper.max_active <= 2
 
 
+class _KeywordFailureScraper(DummyScraper):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.sibling_completed = asyncio.Event()
+
+    async def fetch_search_results(self, keyword):
+        if keyword == "first":
+            await asyncio.sleep(0)
+            raise ValueError("first failed")
+        if keyword == "second":
+            raise RuntimeError("second failed")
+        await asyncio.sleep(0.01)
+        self.sibling_completed.set()
+
+
+async def test_scrape_waits_for_keyword_siblings_then_raises_first_error():
+    scraper = _KeywordFailureScraper("first,success,second")
+
+    with pytest.raises(ValueError, match="first failed"):
+        await scraper.scrape(method="search")
+
+    assert scraper.sibling_completed.is_set()
+
+
+async def test_scrape_does_not_swallow_keyword_cancellation():
+    scraper = _KeywordFailureScraper("cancelled")
+
+    async def cancel(_keyword):
+        raise asyncio.CancelledError
+
+    scraper.fetch_search_results = cancel
+    with pytest.raises(asyncio.CancelledError):
+        await scraper.scrape(method="search")
+
+
+async def test_process_page_keeps_article_level_exception_tolerance():
+    class _ArticleFailureScraper(DummyScraper):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.collected_links = []
+
+        async def get_article(self, link, keyword):
+            if link.endswith("bad"):
+                raise ValueError("bad article")
+            self.collected_links.append(link)
+
+    scraper = _ArticleFailureScraper("keyword")
+    await scraper.process_page(
+        ["https://example.com/bad", "https://example.com/good"], "keyword"
+    )
+
+    assert scraper.collected_links == ["https://example.com/good"]
+
+
 class _HttpPathScraper(BaseScraper):
     """Routes through self.fetch() like most scrapers -- proves
     keyword_concurrency=1 alongside concurrency=1 doesn't self-deadlock.
     If keyword_semaphore reused self.semaphore, a single task would try to
     acquire the same non-reentrant lock twice (once via _run_keyword, again
     inside fetch()) and hang forever."""
+
+    base_url = "https://example.com"
 
     async def build_search_url(self, keyword, page):
         return await self.fetch("https://example.com")

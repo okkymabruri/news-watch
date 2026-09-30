@@ -47,7 +47,7 @@ class CNAIndonesiaScraper(BaseScraper):
         for a in soup.select("a[href]"):
             href = a.get("href", "")
             full_url = urljoin(self.base_url, href) if not href.startswith("http") else href
-            if self._article_re.match(full_url):
+            if "/topic/" not in full_url and self._article_re.fullmatch(full_url):
                 links.add(full_url)
         return links or None
 
@@ -131,12 +131,24 @@ class CNAIndonesiaScraper(BaseScraper):
             if script and script.string:
                 try:
                     data = json.loads(script.string)
-                    date_str = data.get("datePublished", "")
-                    if date_str:
-                        parsed = self.parse_date(date_str)
+                    if not isinstance(data, dict):
+                        continue
+                    nodes = [data]
+                    if isinstance(data.get("@graph"), list):
+                        nodes.extend(data["@graph"])
+                    for node in nodes:
+                        if not isinstance(node, dict):
+                            continue
+                        date_str = node.get("datePublished")
+                        if not isinstance(date_str, str) or not date_str.strip():
+                            continue
+                        try:
+                            parsed = self.parse_date(date_str)
+                        except (TypeError, ValueError, OverflowError):
+                            continue
                         if parsed:
                             return parsed
-                except (json.JSONDecodeError, AttributeError):
+                except json.JSONDecodeError:
                     continue
 
         logging.debug("CNA Indonesia date parse failed | url: %s", link)
@@ -174,6 +186,6 @@ class CNAIndonesiaScraper(BaseScraper):
         for a in soup.select("a[href]"):
             href = a["href"]
             full_url = urljoin(self.base_url, href) if not href.startswith("http") else href
-            if self._article_re.match(full_url):
+            if "/topic/" not in full_url and self._article_re.fullmatch(full_url):
                 links.add(full_url)
         return links or None

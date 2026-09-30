@@ -6,10 +6,12 @@ https://rm.id/?s=KEYWORD
 
 import logging
 import re
+from datetime import datetime
 from urllib.parse import quote
 
 from bs4 import BeautifulSoup
 
+from ..timeutils import project_timezone
 from .basescraper import BaseScraper
 
 
@@ -58,7 +60,7 @@ class RmidScraper(BaseScraper):
             return
 
         kw_lower = keyword.lower()
-        if kw_lower not in title.lower() and kw_lower not in link.lower():
+        if keyword != "latest" and kw_lower not in title.lower() and kw_lower not in link.lower():
             return
 
         author_elem = soup.select_one('meta[name="author"]') or soup.select_one(".author")
@@ -112,7 +114,10 @@ class RmidScraper(BaseScraper):
         await self.queue_.put(item)
 
     async def build_latest_url(self, page):
-        return await self.fetch(f"{self.base_url}/page/{page}/", timeout=30)
+        if page != 1:
+            return None
+        today = datetime.now(project_timezone()).strftime("%d-%m-%Y")
+        return await self.fetch(f"{self.base_url}/index-berita/{today}", timeout=30)
 
     def parse_latest_article_links(self, response_text):
         if not response_text:

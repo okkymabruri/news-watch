@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-30
+
+### Added
+- Harian Rakyat Aceh's `harianrakyataceh.com` news product, with keyword search and unfiltered latest discovery bounded to page one and at most three article cards per mode. Direct runtime samples returned three complete dated articles per mode; this does not establish print-edition, alternate-domain, or exhaustive archive coverage.
+- Bounded source-status campaign and queue-quality audit scripts, with dated search/latest evidence and distinct partial, empty, error, and time/request-limit outcomes.
+- A Prabowo presidency news use case and refreshed MBG analysis documentation, including topic-stability and coverage caveats.
+
+### Changed
+- Offline tests are the default for `make test`; advisory live probes use `make test-network`.
+- Dependency lock updates include aiohttp 3.14.3 and soupsieve 2.9.
+- Source documentation now distinguishes full smoke observations, targeted samples, and offline replay rather than treating them as equivalent validation.
+
+### Fixed
+- Multi-word keyword URL handling across affected sources; Liputan6 and IDN Times result-container discovery; Pantau's search payload extraction; and Detik's dated index walk for historical search.
+- Shared pagination tolerates isolated out-of-window articles and stops on nonadvancing result pages. Grid, Niaga.Asia, and NusaBali search links are scoped to result containers; sitemap matching no longer drops arbitrary results at twenty; Kompas historical search walks date windows.
+- Keyword-task failures are surfaced after sibling tasks complete, and health probes preserve collected articles when a run ends in an error or timeout.
+- CNBC Indonesia search without a start date; CNA JSON-LD graph dates and topic-link scoping; GNFI current article discovery, body extraction, and whole-token relevance; Jakarta Post latest links/date fallback; RM.ID latest index discovery; and MetroTV editorial latest cards.
+- Harian Rakyat Aceh now initializes through the registry-backed API/CLI path without passing keyword concurrency twice. Offline integration tests cover both modes and retain the one-listing, at-most-three-article bound even with page overrides.
+- Galamedia search normalizes relative article links and filters results using each search task's keyword instead of always the first keyword. Article titles are checked against that keyword; latest remains unfiltered. Verified with offline regression fixtures, not a fresh publisher health check.
+- Alinea latest-news discovery now uses its publisher-advertised RSS feed instead of `/indeks`, which redirects to a homepage incompatible with the search-card parser. Search and article date filtering are unchanged. Validated with captured-feed replay and offline regressions; a fresh end-to-end live run remains unverified.
+
 ## [1.2.5] - 2026-07-27
 
 ### Added

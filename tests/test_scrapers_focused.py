@@ -58,7 +58,7 @@ import logging
 import warnings
 from datetime import datetime, timezone
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import parse_qs, quote, urlparse
 
 import pytest
 from bs4 import BeautifulSoup
@@ -69,12 +69,15 @@ from newswatch.scrapers.alinea import AlineaScraper
 from newswatch.scrapers.nbcnews import NBCNewsScraper
 from newswatch.scrapers.betahita import BetahitaScraper
 from newswatch.scrapers.conversationid import ConversationIDScraper
+from newswatch.scrapers.cnbcindonesia import CNBCScraper
+from newswatch.scrapers.cnaindonesia import CNAIndonesiaScraper
 from newswatch.scrapers.ddtcnews import DDTCNewsScraper
 from newswatch.scrapers.gnfi import GNFIScraper
 from newswatch.scrapers.grid import GridScraper
 from newswatch.scrapers.niagaasia import NiagaAsiaScraper
 from newswatch.scrapers.dailysocial import DailySocialScraper
 from newswatch.scrapers.katadata import KatadataScraper
+from newswatch.scrapers.jakartapost import JakartaPostScraper
 from newswatch.scrapers.hukumonline import HukumonlineScraper
 from newswatch.scrapers.kaltimpost import KaltimPostScraper
 from newswatch.scrapers.idnfinancials import IDNFinancialsScraper
@@ -94,6 +97,536 @@ from newswatch.scrapers.inews import INewsScraper
 from newswatch.scrapers.okezone import OkezoneScraper
 from newswatch.scrapers.pantau import PantauScraper
 from newswatch.scrapers.tvrinews import TVRINewsScraper
+from newswatch.scrapers.rmid import RmidScraper
+from newswatch.scrapers.metrotvnews import MetrotvnewsScraper
+from newswatch.scrapers.rakyataceh import RakyatAcehScraper
+from newswatch.scrapers.galamedia import GalamediaScraper
+from newswatch.registry import get_available_scrapers_from_registry
+
+
+class TestGalamediaOffline:
+    base = "https://galamedia.pikiran-rakyat.com"
+
+    def card(self, href, title):
+        return f'<div class="latest__item"><a href="{href}">{title}</a></div>'
+
+    def test_search_and_latest_normalize_dedupe_and_reject_offsite(self):
+        scraper = GalamediaScraper("ekonomi")
+        path = "/news/pr-123456789/ekonomi-baru"
+        html = "".join((
+            self.card(path, "Ekonomi baru"),
+            self.card(self.base + path, "Ekonomi baru"),
+            self.card("https://evil.example/news/pr-123456789/ekonomi-baru", "Ekonomi palsu"),
+            self.card("https://galamedia.pikiran-rakyat.com.evil.example" + path, "Ekonomi palsu"),
+            self.card("/news/pr-123456789/", "Ekonomi tanpa slug"),
+            self.card("/search?q=ekonomi", "Ekonomi hasil pencarian"),
+            self.card("/news/pr-987654321/politik-baru", "Politik baru"),
+        ))
+        assert scraper.parse_article_links(html) == {self.base + path}
+        assert scraper.parse_latest_article_links(html) == {
+            self.base + path, self.base + "/news/pr-987654321/politik-baru"
+        }
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("second_keyword", ("politik", "latest"))
+    async def test_concurrent_keywords_keep_page_attribution_and_detail_guard(
+        self, monkeypatch, second_keyword
+    ):
+        scraper = GalamediaScraper(f"ekonomi,{second_keyword}", queue_=asyncio.Queue())
+        scraper.max_pages = 1
+        ekonomi = self.base + "/news/pr-123456789/ekonomi"
+        politik = self.base + "/news/pr-987654321/politik"
+        # Each listing has a crossed result title that belongs to the other
+        # keyword; neither should be fetched under the wrong query.
+        crossed_ekonomi = self.base + "/news/pr-111111111/crossed-ekonomi"
+        crossed_politik = self.base + "/news/pr-222222222/crossed-politik"
+        mismatch = self.base + "/news/pr-456789123/mismatch"
+        second_mismatch = self.base + "/news/pr-456789124/second-mismatch"
+        listings = {
+            "ekonomi": "".join((self.card(ekonomi, "Ekonomi naik"),
+                               self.card(crossed_politik, "Politik lain"),
+                               self.card(mismatch, "Ekonomi headline"))),
+            second_keyword: "".join((self.card(politik, f"{second_keyword} baru"),
+                                     self.card(crossed_ekonomi, "Ekonomi lain"),
+                                     self.card(second_mismatch, f"{second_keyword} headline"))),
+        }
+        articles = {
+            ekonomi: "Ekonomi naik",
+            politik: f"{second_keyword} baru",
+            mismatch: "Tidak terkait",
+            second_mismatch: "Tidak terkait",
+        }
+        calls = []
+
+        async def offline_fetch(url, **kwargs):
+            calls.append(url)
+            if "/search?" in url:
+                await asyncio.sleep(0)
+                return listings[parse_qs(urlparse(url).query)["q"][0]]
+            assert url in articles
+            return (f'<h1>{articles[url]}</h1><span>21 Sep 2026</span>'
+                    '<div class="read__article">Isi berita.</div>')
+
+        async def offline_enter(self):
+            return self
+
+        monkeypatch.setattr(GalamediaScraper, "__aenter__", offline_enter)
+        scraper.fetch = offline_fetch
+        await scraper.scrape("search")
+        items = [scraper.queue_.get_nowait() for _ in range(scraper.queue_.qsize())]
+        assert {(item["link"], item["keyword"]) for item in items} == {
+            (ekonomi, "ekonomi"), (politik, second_keyword)
+        }
+        assert calls.count(ekonomi) == calls.count(politik) == 1
+        assert calls.count(mismatch) == calls.count(second_mismatch) == 1
+        assert crossed_ekonomi not in calls and crossed_politik not in calls
+
+        latest = GalamediaScraper("ekonomi", queue_=asyncio.Queue())
+
+        async def latest_fetch(url, **kwargs):
+            if url == self.base:
+                return self.card(mismatch, "Tidak terkait")
+            return await offline_fetch(url, **kwargs)
+
+        latest.fetch = latest_fetch
+        await latest.scrape("latest")
+        item = latest.queue_.get_nowait()
+        assert (item["link"], item["title"], item["keyword"]) == (
+            mismatch, "Tidak terkait", "latest"
+        )
+        assert latest.queue_.empty()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("fetch_error", (False, True))
+    async def test_direct_search_resets_mode_before_direct_latest(self, fetch_error):
+        scraper = GalamediaScraper("latest", queue_=asyncio.Queue())
+        scraper.max_pages = 1
+        link = self.base + "/news/pr-123456789/unrelated"
+
+        async def offline_fetch(url, **kwargs):
+            if "/search?" in url:
+                if fetch_error:
+                    raise RuntimeError("controlled listing failure")
+                return self.card(link, "Latest listing")
+            return ('<h1>Tidak terkait</h1><span>21 Sep 2026</span>'
+                    '<div class="read__article">Isi berita.</div>')
+
+        scraper.fetch = offline_fetch
+        if fetch_error:
+            with pytest.raises(RuntimeError, match="controlled listing failure"):
+                await scraper.fetch_search_results("latest")
+        else:
+            await scraper.fetch_search_results("latest")
+        assert scraper.queue_.empty()
+        await scraper.get_article(link, "latest")
+        item = scraper.queue_.get_nowait()
+        assert (item["link"], item["keyword"]) == (link, "latest")
+        assert scraper.queue_.empty()
+
+
+class TestRakyatAcehOffline:
+    base = "https://harianrakyataceh.com/news/"
+
+    def card(self, slug, date="2026-09-21T10:00:00+07:00"):
+        return (f'<article><a class="title" href="{self.base}{slug}/index.html">'
+                f'{slug}</a><time datetime="{date}"></time></article>')
+
+    def test_search_and_latest_scope_and_sample_limit(self):
+        scraper = RakyatAcehScraper("ekonomi")
+        assert scraper.sample_limit == 3
+        assert RakyatAcehScraper("ekonomi", sample_limit=10).sample_limit == 3
+        sidebar = self.card("sidebar")
+        nonsense = f'<main><div class="row"><div class="col-md-8"><div class="no-result">Tidak ditemukan</div></div><aside class="sidebar">{sidebar}</aside></div></main>'
+        assert scraper.parse_article_links(nonsense) is None
+        search = (f'<main><div class="row"><div class="col-md-8">{self.card("ekonomi-baru")}'
+                  f'{self.card("ekonomi-lama", "2026-09-01T10:00:00+07:00")}'
+                  f'{self.card("ketiga")}{self.card("keempat")}</div>'
+                  f'<aside class="sidebar">{sidebar}</aside></div></main>')
+        assert scraper.parse_article_links(search) == [self.base + slug + "/index.html"
+                                                        for slug in ("ekonomi-baru", "ekonomi-lama", "ketiga")]
+        latest = (f'<main><div class="headline">{self.card("headline")}</div>'
+                  f'<div class="block"><div class="block-title">Berita Terkini</div>'
+                  f'<div class="block-content">{self.card("first")}{self.card("second")}'
+                  f'{self.card("third")}{self.card("fourth")}</div></div></main>')
+        assert scraper.parse_latest_article_links(latest) == [self.base + slug + "/index.html"
+                                                              for slug in ("first", "second", "third")]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("method", ("search", "latest"))
+    @pytest.mark.parametrize("sample_limit, expected_count", ((2, 2), (10, 3)))
+    async def test_registry_params_scrape_bounded_even_with_page_override(
+        self, monkeypatch, method, sample_limit, expected_count
+    ):
+        info = get_available_scrapers_from_registry(method)["rakyataceh"]
+        scraper = info["class"](
+            "ekonomi", queue_=asyncio.Queue(), sample_limit=sample_limit, **info["params"]
+        )
+        scraper.max_pages = scraper.max_latest_pages = 20  # API/CLI page override
+        calls = []
+        slugs = ("ekonomi-satu", "ekonomi-dua", "ekonomi-tiga", "ekonomi-empat")
+        cards = "".join(self.card(slug) for slug in (slugs[0], slugs[0], *slugs[1:]))
+        listing = (f'<main><div class="row"><div class="col-md-8">{cards}</div></div></main>'
+                   if method == "search" else
+                   f'<main><div class="block"><div class="block-title">Berita Terkini</div>'
+                   f'<div class="block-content">{cards}</div></div></main>')
+
+        async def offline_fetch(url, **kwargs):
+            calls.append(url)  # Count mocked fetch calls, not URL-builder invocations.
+            if url == scraper.base_url + ("/search/?q=ekonomi" if method == "search" else "/"):
+                return listing
+            assert url in {self.base + slug + "/index.html" for slug in slugs[:expected_count]}
+            return (f'<link rel="canonical" href="{url}"><main><article><div class="detail">'
+                    '<h1>Berita ekonomi</h1><div class="meta-post">'
+                    '<time datetime="2026-09-21T10:00:00+07:00"></time></div>'
+                    '<div class="the-content"><p>Isi ekonomi.</p></div>'
+                    '</div></article></main>')
+
+        async def offline_enter(self):
+            return self
+
+        monkeypatch.setattr(RakyatAcehScraper, "__aenter__", offline_enter)
+        scraper.fetch = offline_fetch
+        await scraper.scrape(method)
+        listing_calls = [url for url in calls if "/news/" not in url]
+        detail_calls = [url for url in calls if "/news/" in url]
+        assert len(listing_calls) == 1
+        assert detail_calls == [self.base + slug + "/index.html" for slug in slugs[:expected_count]]
+        assert len(detail_calls) == len(set(detail_calls)) <= 3
+        items = [scraper.queue_.get_nowait() for _ in range(expected_count)]
+        assert scraper.queue_.empty()
+        assert [item["link"] for item in items] == detail_calls
+        assert {item["keyword"] for item in items} == {"ekonomi" if method == "search" else "latest"}
+
+    @pytest.mark.asyncio
+    async def test_article_boundary_timezone_keyword_and_missing_date(self):
+        scraper = RakyatAcehScraper("ekonomi", queue_=asyncio.Queue())
+        link = self.base + "ekonomi-lama/index.html"
+        async def offline_fetch(url, **kwargs):
+            return html
+        scraper.fetch = offline_fetch
+        html = (f'<link rel="canonical" href="{link}"><main><article><div class="detail">'
+                '<h1>Peluang ekonomi</h1><div class="meta-post"><time datetime="2026-09-21T10:00:00+07:00"></time></div>'
+                '<div class="the-content"><p>Awal berita.</p><div><p>Penutup ekonomi.</p></div></div>'
+                '<div class="meta-info">Jangan masuk</div><a href="/related">Berita lain</a></div></article></main>')
+        await scraper.get_article(link, "ekonomi")
+        item = scraper.queue_.get_nowait()
+        assert item["publish_date"] == to_project_naive(datetime.fromisoformat("2026-09-21T10:00:00+07:00"))
+        assert item["content"] == "Awal berita.\n\nPenutup ekonomi."
+        await scraper.get_article(link, "tidakada")
+        assert scraper.queue_.empty()
+        html = html.replace(' datetime="2026-09-21T10:00:00+07:00"', "")
+        await scraper.get_article(link, "latest")
+        assert scraper.queue_.empty()
+        html = html.replace('<div class="meta-info">', '<a rel="next" href="/page/2">Next</a><div class="meta-info">')
+        await scraper.get_article(link, "latest")
+        assert scraper.queue_.empty()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("chunks, expected", [
+        ([b"<html>", b"normal publisher", b"</html>", b""], "<html>normal publisher</html>"),
+        ([b"x" * 262145], None),
+    ])
+    async def test_fetch_streaming_complete_or_oversized(self, chunks, expected):
+        scraper = RakyatAcehScraper("ekonomi")
+
+        class Stream:
+            async def read(self, size):
+                return chunks.pop(0) if chunks else b""
+
+        class Response:
+            status = 200
+            headers = {}
+            charset = "utf-8"
+            content = Stream()
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                pass
+
+        class Session:
+            def get(self, url, **kwargs):
+                assert kwargs["allow_redirects"] is False
+                return Response()
+
+        scraper.session = Session()
+        assert await scraper.fetch("https://harianrakyataceh.com/search/?q=ekonomi") == expected
+        assert len(scraper.request_receipts) == 1
+        assert scraper.request_receipts[0]["outcome"] == ("ok" if expected else "oversized")
+
+
+class TestMetroTVLatest:
+    def test_editorial_blocks_exclude_superbrand_and_keep_legacy_selectors(self):
+        html = (
+            '<div class="big-news"><div class="news-item"><h2>'
+            '<a href="/read/KYVCe11J-editorial-lead">Lead</a>'
+            '</h2></div></div>'
+            '<div class="small-news"><div class="news-item"><div class="news-text">'
+            '<h2><a href="https://www.metrotvnews.com/read/ba4CPwG1-editorial-small">Small</a></h2>'
+            '<a href="/read/KYVCe11J-editorial-lead">Duplicate</a>'
+            '</div></div></div>'
+            '<div class="superBrand"><ul><li>'
+            '<a href="/read/NA0CrgOv-promotion">Promotion</a>'
+            '</li></ul></div>'
+            '<div class="item"><div class="text"><h3>'
+            '<a href="/read/Legacy12-existing-headline">Legacy</a>'
+            '</h3></div></div>'
+        )
+        scraper = MetrotvnewsScraper("ekonomi")
+        assert scraper.parse_latest_article_links(html) == {
+            "https://www.metrotvnews.com/read/KYVCe11J-editorial-lead",
+            "https://www.metrotvnews.com/read/ba4CPwG1-editorial-small",
+            "https://www.metrotvnews.com/read/Legacy12-existing-headline",
+        }
+
+    @pytest.mark.parametrize("href", [
+        "https://other.example/read/Ab123-headline",
+        "https://www.metrotvnews.com.evil.example/read/Ab123-headline",
+        "https://video.metrotvnews.com/read/Ab123-headline",
+        "/tag/123/headline", "/read/", "/read/Ab123", "/read/Ab123-headline/extra",
+        "/read/Ab123-headline?promo=1", "/read/Ab123-headline#promo",
+    ])
+    def test_new_editorial_selectors_reject_noncanonical_articles(self, href):
+        scraper = MetrotvnewsScraper("ekonomi")
+        html = f'<div class="big-news"><div class="news-item"><h2><a href="{href}">Bad</a></h2></div></div>'
+        assert scraper.parse_latest_article_links(html) is None
+
+    async def test_search_article_layout_queues_offline_item(self):
+        # Search capture layout; this does not establish latest article extraction.
+        link = "https://www.metrotvnews.com/read/KdZCAB8D-narapidana-yang-diduga-dapat-fasilitas-mewah-di-lapas-cibinong"
+        html = (
+            '<h1>Narapidana yang Diduga Dapat Fasilitas Mewah di Lapas Cibinong</h1>'
+            '<div class="breadcrumb-content"><p>Nasional</p></div>'
+            '<p class="pt-20 date">Achmad Zulfikar Fazli • 24 September 2026 22:37</p>'
+            '<div class="news-text"><p>Jakarta: Lapas Kelas IIA Cibinong menjadi sorotan.</p></div>'
+        )
+        scraper = MetrotvnewsScraper("lapas", queue_=asyncio.Queue())
+        _attach_fetch(scraper, {link: html})
+        await scraper.get_article(link, "lapas")
+        item = scraper.queue_.get_nowait()
+        assert tuple(item) == _QUEUE_KEYS
+        assert item["publish_date"] == datetime(2026, 9, 24, 22, 37)
+        assert item["author"] == "Achmad Zulfikar Fazli"
+        assert item["category"] == "Nasional"
+        assert item["content"] == "Jakarta: Lapas Kelas IIA Cibinong menjadi sorotan."
+        assert item["link"] == link
+        assert scraper.queue_.empty()
+
+
+class TestRMIDLatest:
+    LINK = "https://rm.id/baca-berita/ekonomi-bisnis/123/energi-bersih"
+    ARTICLE = (
+        '<h1>Kejar Energi Bersih, Indonesia Buka Peluang Investasi</h1>'
+        '<meta name="author" content="Reporter">'
+        '<span>2026-09-26 13:52:58 || WIB</span>'
+        '<div class="content-berita"><p>Isi artikel energi bersih.</p></div>'
+    )
+
+    async def test_latest_uses_project_date_index_only_on_page_one(self, monkeypatch):
+        from newswatch.scrapers import rmid
+
+        class Clock:
+            @staticmethod
+            def now(tz):
+                # UTC remains on the previous day; the index uses the project day.
+                return datetime(2026, 9, 26, 0, 15, tzinfo=tz)
+
+        monkeypatch.setattr(rmid, "datetime", Clock)
+        scraper = RmidScraper("ekonomi", queue_=asyncio.Queue())
+        stub = _attach_fetch(scraper, {"/index-berita/": "listing"})
+        assert await scraper.build_latest_url(1) == "listing"
+        assert await scraper.build_latest_url(2) is None
+        assert stub.calls == [
+            ("https://rm.id/index-berita/26-09-2026", None, {"data": None, "timeout": 30})
+        ]
+
+    async def test_latest_queues_unrelated_headline_with_date_and_original_item_fields(self):
+        scraper = RmidScraper("ekonomi", queue_=asyncio.Queue())
+        listing = f'<a href="{self.LINK}">Unrelated headline</a>'
+        _attach_fetch(scraper, {"/index-berita/": listing, self.LINK: self.ARTICLE})
+        await scraper.fetch_latest_results()
+        item = scraper.queue_.get_nowait()
+        assert scraper.queue_.empty()
+        assert tuple(item) == _QUEUE_KEYS
+        assert item == {
+            "title": "Kejar Energi Bersih, Indonesia Buka Peluang Investasi",
+            "publish_date": datetime(2026, 9, 26, 13, 52, 58),
+            "author": "Reporter",
+            "content": "Isi artikel energi bersih.",
+            "keyword": "latest",
+            "category": "ekonomi-bisnis",
+            "source": "rmid",
+            "link": self.LINK,
+        }
+
+    async def test_search_keeps_title_and_article_keyword_gates(self):
+        scraper = RmidScraper("ekonomi", queue_=asyncio.Queue())
+        listing = (
+            f'<a href="{self.LINK}">Unrelated headline</a>'
+            '<a href="https://rm.id/baca-berita/nasional/456/other">Ekonomi headline</a>'
+        )
+        _attach_fetch(scraper, {"/?s=ekonomi": listing, self.LINK: self.ARTICLE})
+        body = await scraper.build_search_url("ekonomi", 1)
+        assert scraper.parse_article_links(body) == {
+            "https://rm.id/baca-berita/nasional/456/other"
+        }
+        await scraper.get_article(self.LINK, "politik")
+        assert scraper.queue_.empty()
+
+
+class TestJakartaPostLatest:
+    LINK = "https://www.thejakartapost.com/indonesia/2026/09/24/batam-report"
+
+    def test_latest_normalizes_relative_links_and_rejects_navigation(self):
+        html = (
+            '<a href="/indonesia/2026/09/24/batam-report">relative</a>'
+            f'<a href="{self.LINK}">absolute duplicate</a>'
+            '<a href="https://thejakartapost.com/world/2026/09/25/another-report">absolute</a>'
+            '<a href="https://other.example.com/world/2026/09/25/offsite">offsite</a>'
+            '<a href="//other.example.com/world/2026/09/25/offsite">offsite scheme-relative</a>'
+            '<a href="/indonesia/archipelago">navigation</a>'
+            '<a href="/tag/2026/09/24">taxonomy</a>'
+        )
+        scraper = JakartaPostScraper("batam", queue_=asyncio.Queue())
+        assert scraper.parse_latest_article_links(html) == {
+            self.LINK,
+            "https://thejakartapost.com/world/2026/09/25/another-report",
+        }
+
+    @pytest.mark.parametrize(
+        ("head_date", "published_at", "date_published", "expected"),
+        [
+            ("Published on Sep. 22, 2026", "2026-09-23T09:23:27+07:00", None,
+             datetime(2026, 9, 22)),
+            (None, "2026-09-23T09:23:27+07:00", None,
+             datetime(2026, 9, 23, 9, 23, 27)),
+            ("Published on nonsense", "invalid", "2026-09-21T10:15:00+07:00",
+             datetime(2026, 9, 21, 10, 15)),
+            (None, None, None, None),
+        ],
+    )
+    async def test_article_publication_date_precedence_and_queue(
+        self, monkeypatch, head_date, published_at, date_published, expected,
+    ):
+        from newswatch.scrapers import jakartapost
+
+        class Response:
+            status = 200
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                pass
+
+            async def text(self):
+                return html
+
+        class Session:
+            def __init__(self, **kwargs):
+                pass
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                pass
+
+            def get(self, *args, **kwargs):
+                return Response()
+
+        head = f'<div class="tjp-single__head"><span class="created">{head_date}</span></div>' if head_date else ""
+        meta = "".join(
+            f'<meta name="{name}" content="{value}">'
+            for name, value in (("published-at", published_at), ("datePublished", date_published))
+            if value is not None
+        )
+        html = (
+            f'<html><head><meta property="og:title" content="Batam report - The Jakarta Post">{meta}'
+            '<meta name="dateModified" content="2026-09-26T12:00:00+07:00"></head>'
+            f'<body>{head}<div class="tjp-single__content"><p>Batam article body.</p></div></body></html>'
+        )
+        monkeypatch.setattr(jakartapost.aiohttp, "ClientSession", Session)
+        scraper = JakartaPostScraper("batam", queue_=asyncio.Queue())
+        await scraper.get_article(self.LINK, "batam")
+        if expected is None:
+            assert scraper.queue_.empty()
+        else:
+            item = scraper.queue_.get_nowait()
+            assert item["publish_date"] == expected
+            assert item["title"] == "Batam report"
+            assert item["content"] == "Batam article body."
+            assert item["link"] == self.LINK
+
+
+class TestCNATopicLinkScope:
+    def test_topic_navigation_is_not_an_article_in_search_or_latest(self):
+        html = (
+            '<a class="link link--trending" href="/topic/malaysia-0">Malaysia</a>'
+            '<a href="/asia/valid-report-12345">Article</a>'
+        )
+        scraper = CNAIndonesiaScraper("politik", queue_=asyncio.Queue())
+        expected = {"https://www.cna.id/asia/valid-report-12345"}
+        assert scraper.parse_article_links(html) == expected
+        assert scraper.parse_latest_article_links(html) == expected
+        assert scraper.parse_article_links(
+            '<a href="/topic/malaysia-0">Malaysia</a>'
+        ) is None
+
+
+class TestCNAGraphPublishedDate:
+    async def test_article_uses_valid_graph_date_after_invalid_nodes(self):
+        link = "https://www.cna.id/indonesia/contoh-12345"
+        payload = {
+            "@context": "https://schema.org",
+            "@graph": [
+                None,
+                {"@type": "WebPage", "datePublished": ["invalid"]},
+                {"@type": "NewsArticle", "datePublished": "not a date"},
+                {"@type": "NewsArticle", "datePublished": "2026-09-26T03:15:00Z"},
+            ],
+        }
+        html = (
+            '<html><head><meta property="og:title" content="Fixture headline">'
+            f'<script type="application/ld+json">{json.dumps(payload)}</script>'
+            '</head><body><div class="field--name-body">Fixture article text.</div>'
+            '</body></html>'
+        )
+        queue = asyncio.Queue()
+        scraper = CNAIndonesiaScraper("indonesia", queue_=queue)
+        _attach_fetch(scraper, {link: html})
+
+        await scraper.get_article(link, "indonesia")
+
+        assert queue.qsize() == 1
+        assert (await queue.get())["publish_date"] == datetime(2026, 9, 26, 10, 15)
+
+
+class TestCNBCSearchURL:
+    @pytest.mark.parametrize(
+        ("start_date", "expected_fromdate"),
+        [(None, [""]), (datetime(2026, 7, 5), ["2026/07/05"])],
+    )
+    async def test_build_search_url_preserves_query_page_and_optional_date(
+        self, start_date, expected_fromdate
+    ):
+        scraper = CNBCScraper("bank indonesia", start_date=start_date)
+        fetched = []
+
+        async def fake_fetch(url):
+            fetched.append(url)
+            return "response"
+
+        scraper.fetch = fake_fetch
+
+        assert await scraper.build_search_url("bank indonesia", 3) == "response"
+        query = parse_qs(urlparse(fetched[0]).query, keep_blank_values=True)
+        assert query == {
+            "query": ["bank indonesia"],
+            "fromdate": expected_fromdate,
+            "page": ["3"],
+        }
 
 
 # ── Shared offline test scaffolding ────────────────────────────────────────
@@ -2012,6 +2545,38 @@ class TestGNFIRelevance:
         '</body></html>'
     )
 
+    def test_search_matches_whole_words_in_title_text_or_final_slug_only(self):
+        base = "https://www.goodnewsfromindonesia.id"
+        cases = [
+            ("/2026/09/22/cerita-di-balik-batik", "Cerita di Balik Batik", ""),
+            ("/2026/09/22/kuliner-balika", "Kuliner Nusantara", ""),
+            ("/2026/09/22/wisata-bali", "Wisata Nusantara", ""),
+            ("/2026/09/22/cerita-pantai", "Cerita Bali", ""),
+            ("/2026/09/22/cerita-balik", "", "Bali hari ini"),
+            ("/2026/09/22/wisata-pantai", "", '<img alt="Bali">'),
+            ("/bali/wisata/cerita-pantai", "Cerita pantai", ""),
+            ("/ragam/wisata/cerita-pantai", "Cerita pantai", ""),
+        ]
+        html = "".join(
+            f'<a href="{base}{path}" title="{title}">{body}</a>'
+            for path, title, body in cases
+        )
+        s = GNFIScraper(keywords="bali", queue_=asyncio.Queue())
+        s._current_keyword = "bali"
+        assert s.parse_article_links(html) == {
+            f"{base}/2026/09/22/wisata-bali",
+            f"{base}/2026/09/22/cerita-pantai",
+            f"{base}/2026/09/22/cerita-balik",
+        }
+        assert s.parse_latest_article_links(html) == {
+            f"{base}{path}" for path, _, _ in cases[:6]
+        }
+
+        s._current_keyword = "bali pantai"
+        assert s.parse_article_links(html) == {
+            f"{base}/2026/09/22/cerita-pantai",
+        }
+
     @pytest.mark.asyncio
     async def test_strict_search_then_unfiltered_latest(self):
         s = GNFIScraper(keywords=self.KEYWORD, queue_=asyncio.Queue())
@@ -2271,7 +2836,7 @@ def _alinea_article_html() -> str:
 
 
 class TestAlineaFocus:
-    """Alinea: search URL + parser, latest /indeks page 1, extraction."""
+    """Alinea: search URL + parser, latest RSS page 1, extraction."""
 
     def _scraper(self):
         return AlineaScraper(keywords="politik", queue_=asyncio.Queue())
@@ -2318,13 +2883,55 @@ class TestAlineaFocus:
         assert s.continue_scraping is False
 
     @pytest.mark.asyncio
-    async def test_latest_targets_indeks_page_one_only(self):
-        s = AlineaScraper(keywords="politik", queue_=asyncio.Queue())
-        stub = _attach_fetch(s, {"indeks": "<html></html>"})
-        body = await s.build_latest_url(1)
-        assert body == "<html></html>"
-        assert stub.calls[0][0].endswith("/indeks")
+    async def test_latest_targets_rss_page_one_only(self):
+        s = self._scraper()
+        stub = _attach_fetch(s, {"/rss": "<rss><channel/></rss>"})
+        assert await s.build_latest_url(1) == "<rss><channel/></rss>"
+        assert stub.calls[0][0] == "https://www.alinea.id/rss"
         assert await s.build_latest_url(2) is None
+
+    def test_latest_feed_keeps_only_allowed_article_items(self):
+        s = self._scraper()
+        feed = """<rss version="2.0"><channel>
+            <item><link>https://www.alinea.id/peristiwa/first-b123</link>
+                <pubDate>2026-09-28 19:48:00</pubDate></item>
+            <item><link>https://www.alinea.id/politik/second-b456</link>
+                <pubDate>2026-09-28 19:41:00</pubDate></item>
+            <item><link>https://www.alinea.id/peristiwa/first-b123</link></item>
+            <item><link>https://other.example/peristiwa/foreign-b123</link></item>
+            <item><link>https://www.alinea.id/search?q=politik</link></item>
+            <item><link>https://www.alinea.id/peristiwa</link></item>
+            <item><link>https://www.alinea.id/peristiwa/third-b789?promo=1</link></item>
+        </channel></rss>"""
+        assert s.parse_latest_article_links(feed) == {
+            "https://www.alinea.id/peristiwa/first-b123",
+            "https://www.alinea.id/politik/second-b456",
+        }
+
+    @pytest.mark.parametrize("body", [
+        "", "<rss><channel><item>",
+        "<rss><channel></channel></rss>",
+        '<html><body><a href="https://www.alinea.id/politik/foo-b123">news</a></body></html>',
+    ])
+    def test_latest_rejects_empty_malformed_or_non_feed(self, body):
+        assert self._scraper().parse_latest_article_links(body) is None
+
+    @pytest.mark.asyncio
+    async def test_latest_feed_article_queues_and_obeys_cutoff(self):
+        link = "https://www.alinea.id/peristiwa/first-b123"
+        feed = f"<rss><channel><item><link>{link}</link></item></channel></rss>"
+        article = _alinea_article_html().replace("12 Juli 2026", "28 September 2026")
+        for start_date, expected_count in ((None, 1), (datetime(2026, 9, 29), 0)):
+            s = AlineaScraper(keywords="politik", start_date=start_date, queue_=asyncio.Queue())
+            stub = _attach_fetch(s, {"/rss": feed, link: article})
+            await s.fetch_latest_results()
+            assert s.queue_.qsize() == expected_count
+            assert [call[0] for call in stub.calls] == ["https://www.alinea.id/rss", link]
+            if expected_count:
+                item = s.queue_.get_nowait()
+                assert item["keyword"] == "latest"
+                assert item["publish_date"] == datetime(2026, 9, 28)
+                assert item["link"] == link
 
     @pytest.mark.asyncio
     async def test_extracts_full_queue_item_with_path_category(self):
@@ -2429,6 +3036,29 @@ class TestGNFIFocus:
             "https://www.goodnewsfromindonesia.id/2025/12/01/old-article",
         }
 
+    def test_card_titles_from_search_and_latest_not_taxonomy_or_offsite(self):
+        base = "https://www.goodnewsfromindonesia.id"
+        html = '''<nav><a href="/ragam/alam-lingkungan/bali-story">Bali story</a></nav>
+            <div class="thumbnail-list container">
+              <a href="/ragam/alam-lingkungan/bali-story"><img alt="Bali"></a>
+              <div class="thumbnail-list--category"><a href="/ragam/alam-lingkungan">Bali</a></div>
+              <h2 class="thumbnail-list--title"><a href="/ragam/alam-lingkungan/bali-story">Bali story</a></h2>
+              <h2 class="thumbnail-list--title"><a href="https://other.example.com/ragam/alam-lingkungan/bali-foreign">Bali foreign</a></h2>
+              <a href="/u/bali-author">Bali author</a>
+            </div>
+            <div class="thumbnail-list">
+              <h2 class="thumbnail-list--title"><a href="/indonesiana/wisata/artotel-bali">Artotel Bali</a></h2>
+              <h2 class="thumbnail-list--title"><a href="/video/wisata/bali-clip">Bali clip</a></h2>
+              <h2 class="thumbnail-list--title"><a href="/indonesiana/wisata">Wisata taxonomy</a></h2>
+            </div>'''
+        s = self._scraper()
+        s._current_keyword = "bali story"
+        assert s.parse_article_links(html) == {f"{base}/ragam/alam-lingkungan/bali-story"}
+        assert s.parse_latest_article_links(html) == {
+            f"{base}/ragam/alam-lingkungan/bali-story",
+            f"{base}/indonesiana/wisata/artotel-bali",
+        }
+
     @pytest.mark.asyncio
     async def test_latest_targets_explore_page_one_only(self):
         s = GNFIScraper(keywords="bali", queue_=asyncio.Queue())
@@ -2453,6 +3083,48 @@ class TestGNFIFocus:
         assert item["category"] == "Lingkungan"
         assert item["source"] == "goodnewsfromindonesia.id"
         assert item["link"] == link
+
+    @pytest.mark.asyncio
+    async def test_ordinary_article_content_queues_without_promo_or_caption(self):
+        link = "https://www.goodnewsfromindonesia.id/ragam/alam-lingkungan/bali-story"
+        html = '''<meta property="og:title" content="Bali story">
+            <meta property="article:published_time" content="2026-09-25T11:37:28+07:00">
+            <div class="article-sheet">
+              <div class="article-content"><p>First Bali paragraph.</p><p>Second paragraph.</p>
+                <figure><figcaption><p>Image caption.</p></figcaption></figure></div>
+              <div class="article-read"><p>Promo article-read.</p></div>
+              <footer><p>Footer paragraph.</p></footer>
+            </div>'''
+        s = self._scraper()
+        _attach_fetch(s, {link: html})
+        await s.get_article(link, "bali")
+        assert s.queue_.get_nowait()["content"] == "First Bali paragraph. Second paragraph."
+
+    @pytest.mark.asyncio
+    async def test_attributed_body_excludes_attributed_caption_and_promo(self):
+        link = "https://www.goodnewsfromindonesia.id/ragam/alam-lingkungan/bali-story"
+        html = '''<meta property="og:title" content="Bali story">
+            <meta property="article:published_time" content="2026-09-25T11:37:28+07:00">
+            <div class="article-sheet">
+              <div class="article-content"><p data-path-to-node="0">Actual body.</p>
+                <figure><figcaption><p data-path-to-node="1">Caption.</p></figcaption></figure></div>
+              <div class="article-read"><p data-path-to-node="2">Promo.</p></div>
+            </div>'''
+        s = self._scraper()
+        _attach_fetch(s, {link: html})
+        await s.get_article(link, "bali")
+        assert s.queue_.get_nowait()["content"] == "Actual body."
+
+    @pytest.mark.asyncio
+    async def test_no_article_body_does_not_queue_promo(self):
+        link = "https://www.goodnewsfromindonesia.id/ragam/alam-lingkungan/bali-story"
+        html = '''<meta property="og:title" content="Bali story">
+            <meta property="article:published_time" content="2026-09-25T11:37:28+07:00">
+            <div class="article-sheet"><div class="article-read"><p>Promo only.</p></div></div>'''
+        s = self._scraper()
+        _attach_fetch(s, {link: html})
+        await s.get_article(link, "bali")
+        assert s.queue_.empty()
 
     @pytest.mark.asyncio
     async def test_missing_date_short_circuits(self):

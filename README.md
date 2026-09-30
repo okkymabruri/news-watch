@@ -161,7 +161,7 @@ The output file contains the following columns:
 - `latest` is intended for latest-news monitoring and does not require keywords.
 
 <!-- BEGIN GENERATED: readme-heading -->
-## Supported Websites (81)
+## Supported Websites (82)
 <!-- END GENERATED: readme-heading -->
 <!-- BEGIN GENERATED: readme-sources -->
 [ABC News](https://abcnews.com),
@@ -227,6 +227,7 @@ The output file contains the following columns:
 [Pikiran Rakyat](https://pikiran-rakyat.com),
 [Poskota](https://poskota.co.id),
 [Project Multatuli](https://projectmultatuli.org),
+[Harian Rakyat Aceh](https://harianrakyataceh.com),
 [Republika](https://republika.co.id),
 [RM.ID (Rakyat Merdeka)](https://rm.id),
 [RMOL](https://rmol.id),
@@ -249,8 +250,8 @@ The output file contains the following columns:
 
 <!-- BEGIN GENERATED: readme-counts -->
 > **Notes:**
-> - 81 registered sources: 76 with keyword search, 81 with latest mode.
-> - 79 stable scrapers in the current release: 74 with keyword search, 79 with latest mode.
+> - 82 registered sources: 77 with keyword search, 82 with latest mode.
+> - 80 stable scrapers in the current release: 75 with keyword search, 80 with latest mode.
 > - 1 source under investigation; 1 source quarantined.
 > - AP News uses topic hub pages with keyword-in-title filtering (robots disallows /search?q=*).
 > - Al Jazeera is latest-only via RSS feed (search page is JS-rendered).
