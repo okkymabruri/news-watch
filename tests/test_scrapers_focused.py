@@ -100,6 +100,128 @@ from newswatch.scrapers.tvrinews import TVRINewsScraper
 from newswatch.scrapers.rmid import RmidScraper
 from newswatch.scrapers.metrotvnews import MetrotvnewsScraper
 from newswatch.scrapers.rakyataceh import RakyatAcehScraper
+from newswatch.scrapers.galamedia import GalamediaScraper
+from newswatch.registry import get_available_scrapers_from_registry
+
+
+class TestGalamediaOffline:
+    base = "https://galamedia.pikiran-rakyat.com"
+
+    def card(self, href, title):
+        return f'<div class="latest__item"><a href="{href}">{title}</a></div>'
+
+    def test_search_and_latest_normalize_dedupe_and_reject_offsite(self):
+        scraper = GalamediaScraper("ekonomi")
+        path = "/news/pr-123456789/ekonomi-baru"
+        html = "".join((
+            self.card(path, "Ekonomi baru"),
+            self.card(self.base + path, "Ekonomi baru"),
+            self.card("https://evil.example/news/pr-123456789/ekonomi-baru", "Ekonomi palsu"),
+            self.card("https://galamedia.pikiran-rakyat.com.evil.example" + path, "Ekonomi palsu"),
+            self.card("/news/pr-123456789/", "Ekonomi tanpa slug"),
+            self.card("/search?q=ekonomi", "Ekonomi hasil pencarian"),
+            self.card("/news/pr-987654321/politik-baru", "Politik baru"),
+        ))
+        assert scraper.parse_article_links(html) == {self.base + path}
+        assert scraper.parse_latest_article_links(html) == {
+            self.base + path, self.base + "/news/pr-987654321/politik-baru"
+        }
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("second_keyword", ("politik", "latest"))
+    async def test_concurrent_keywords_keep_page_attribution_and_detail_guard(
+        self, monkeypatch, second_keyword
+    ):
+        scraper = GalamediaScraper(f"ekonomi,{second_keyword}", queue_=asyncio.Queue())
+        scraper.max_pages = 1
+        ekonomi = self.base + "/news/pr-123456789/ekonomi"
+        politik = self.base + "/news/pr-987654321/politik"
+        # Each listing has a crossed result title that belongs to the other
+        # keyword; neither should be fetched under the wrong query.
+        crossed_ekonomi = self.base + "/news/pr-111111111/crossed-ekonomi"
+        crossed_politik = self.base + "/news/pr-222222222/crossed-politik"
+        mismatch = self.base + "/news/pr-456789123/mismatch"
+        second_mismatch = self.base + "/news/pr-456789124/second-mismatch"
+        listings = {
+            "ekonomi": "".join((self.card(ekonomi, "Ekonomi naik"),
+                               self.card(crossed_politik, "Politik lain"),
+                               self.card(mismatch, "Ekonomi headline"))),
+            second_keyword: "".join((self.card(politik, f"{second_keyword} baru"),
+                                     self.card(crossed_ekonomi, "Ekonomi lain"),
+                                     self.card(second_mismatch, f"{second_keyword} headline"))),
+        }
+        articles = {
+            ekonomi: "Ekonomi naik",
+            politik: f"{second_keyword} baru",
+            mismatch: "Tidak terkait",
+            second_mismatch: "Tidak terkait",
+        }
+        calls = []
+
+        async def offline_fetch(url, **kwargs):
+            calls.append(url)
+            if "/search?" in url:
+                await asyncio.sleep(0)
+                return listings[parse_qs(urlparse(url).query)["q"][0]]
+            assert url in articles
+            return (f'<h1>{articles[url]}</h1><span>21 Sep 2026</span>'
+                    '<div class="read__article">Isi berita.</div>')
+
+        async def offline_enter(self):
+            return self
+
+        monkeypatch.setattr(GalamediaScraper, "__aenter__", offline_enter)
+        scraper.fetch = offline_fetch
+        await scraper.scrape("search")
+        items = [scraper.queue_.get_nowait() for _ in range(scraper.queue_.qsize())]
+        assert {(item["link"], item["keyword"]) for item in items} == {
+            (ekonomi, "ekonomi"), (politik, second_keyword)
+        }
+        assert calls.count(ekonomi) == calls.count(politik) == 1
+        assert calls.count(mismatch) == calls.count(second_mismatch) == 1
+        assert crossed_ekonomi not in calls and crossed_politik not in calls
+
+        latest = GalamediaScraper("ekonomi", queue_=asyncio.Queue())
+
+        async def latest_fetch(url, **kwargs):
+            if url == self.base:
+                return self.card(mismatch, "Tidak terkait")
+            return await offline_fetch(url, **kwargs)
+
+        latest.fetch = latest_fetch
+        await latest.scrape("latest")
+        item = latest.queue_.get_nowait()
+        assert (item["link"], item["title"], item["keyword"]) == (
+            mismatch, "Tidak terkait", "latest"
+        )
+        assert latest.queue_.empty()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("fetch_error", (False, True))
+    async def test_direct_search_resets_mode_before_direct_latest(self, fetch_error):
+        scraper = GalamediaScraper("latest", queue_=asyncio.Queue())
+        scraper.max_pages = 1
+        link = self.base + "/news/pr-123456789/unrelated"
+
+        async def offline_fetch(url, **kwargs):
+            if "/search?" in url:
+                if fetch_error:
+                    raise RuntimeError("controlled listing failure")
+                return self.card(link, "Latest listing")
+            return ('<h1>Tidak terkait</h1><span>21 Sep 2026</span>'
+                    '<div class="read__article">Isi berita.</div>')
+
+        scraper.fetch = offline_fetch
+        if fetch_error:
+            with pytest.raises(RuntimeError, match="controlled listing failure"):
+                await scraper.fetch_search_results("latest")
+        else:
+            await scraper.fetch_search_results("latest")
+        assert scraper.queue_.empty()
+        await scraper.get_article(link, "latest")
+        item = scraper.queue_.get_nowait()
+        assert (item["link"], item["keyword"]) == (link, "latest")
+        assert scraper.queue_.empty()
 
 
 class TestRakyatAcehOffline:
@@ -128,6 +250,52 @@ class TestRakyatAcehOffline:
                   f'{self.card("third")}{self.card("fourth")}</div></div></main>')
         assert scraper.parse_latest_article_links(latest) == [self.base + slug + "/index.html"
                                                               for slug in ("first", "second", "third")]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("method", ("search", "latest"))
+    @pytest.mark.parametrize("sample_limit, expected_count", ((2, 2), (10, 3)))
+    async def test_registry_params_scrape_bounded_even_with_page_override(
+        self, monkeypatch, method, sample_limit, expected_count
+    ):
+        info = get_available_scrapers_from_registry(method)["rakyataceh"]
+        scraper = info["class"](
+            "ekonomi", queue_=asyncio.Queue(), sample_limit=sample_limit, **info["params"]
+        )
+        scraper.max_pages = scraper.max_latest_pages = 20  # API/CLI page override
+        calls = []
+        slugs = ("ekonomi-satu", "ekonomi-dua", "ekonomi-tiga", "ekonomi-empat")
+        cards = "".join(self.card(slug) for slug in (slugs[0], slugs[0], *slugs[1:]))
+        listing = (f'<main><div class="row"><div class="col-md-8">{cards}</div></div></main>'
+                   if method == "search" else
+                   f'<main><div class="block"><div class="block-title">Berita Terkini</div>'
+                   f'<div class="block-content">{cards}</div></div></main>')
+
+        async def offline_fetch(url, **kwargs):
+            calls.append(url)  # Count mocked fetch calls, not URL-builder invocations.
+            if url == scraper.base_url + ("/search/?q=ekonomi" if method == "search" else "/"):
+                return listing
+            assert url in {self.base + slug + "/index.html" for slug in slugs[:expected_count]}
+            return (f'<link rel="canonical" href="{url}"><main><article><div class="detail">'
+                    '<h1>Berita ekonomi</h1><div class="meta-post">'
+                    '<time datetime="2026-09-21T10:00:00+07:00"></time></div>'
+                    '<div class="the-content"><p>Isi ekonomi.</p></div>'
+                    '</div></article></main>')
+
+        async def offline_enter(self):
+            return self
+
+        monkeypatch.setattr(RakyatAcehScraper, "__aenter__", offline_enter)
+        scraper.fetch = offline_fetch
+        await scraper.scrape(method)
+        listing_calls = [url for url in calls if "/news/" not in url]
+        detail_calls = [url for url in calls if "/news/" in url]
+        assert len(listing_calls) == 1
+        assert detail_calls == [self.base + slug + "/index.html" for slug in slugs[:expected_count]]
+        assert len(detail_calls) == len(set(detail_calls)) <= 3
+        items = [scraper.queue_.get_nowait() for _ in range(expected_count)]
+        assert scraper.queue_.empty()
+        assert [item["link"] for item in items] == detail_calls
+        assert {item["keyword"] for item in items} == {"ekonomi" if method == "search" else "latest"}
 
     @pytest.mark.asyncio
     async def test_article_boundary_timezone_keyword_and_missing_date(self):

@@ -91,6 +91,8 @@
 
 These bounded diagnostics are not a new full-source health campaign. Unchanged rows retain their earlier observation dates.
 
+Subsequent offline integration checks found and fixed a Rakyat Aceh constructor failure when invoked with registry parameters; its September 27 direct-adapter samples did not exercise that path. Both registry-backed modes now pass mocked integration tests, including page-override bounds, but were not live-retested. Galamedia's relative-link handling and per-keyword filtering were also repaired using offline fixtures; its historical status in the table is not promoted by those tests.
+
 - **Alinea latest:** `/indeks` redirected to the homepage, which the search-card parser could not read. Latest discovery now uses the homepage-advertised RSS feed. The captured feed yielded 100 allowed article links; one recent article was fetched and replayed through the existing extractor. Focused offline regressions cover the new feed path and date cutoff. No post-fix end-to-end live run was performed; the six-request diagnostic allowance was exhausted. Search was not rechecked.
 - **BBC latest:** the RSS feed yielded 17 links, but the article host's published policy prohibits scraping/systematic extraction. Validation stopped before article requests. The historical Search Passed result is not permission for further requests; no capability or lifecycle change is implied.
 - **Fajar latest:** a captured homepage yielded 39 article links; one captured article extracted successfully offline. This does not reproduce or explain the earlier Empty result, nor validate all 39 articles. No production change.

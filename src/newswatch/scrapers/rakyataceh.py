@@ -22,6 +22,9 @@ class RakyatAcehScraper(BaseScraper):
 
     def __init__(self, keywords, concurrency=1, start_date=None, queue_=None,
                  sample_limit=3, **kwargs):
+        # The registry supplies keyword_concurrency=1; keep it serial without
+        # forwarding the same keyword twice to BaseScraper.
+        kwargs.pop("keyword_concurrency", None)
         super().__init__(keywords, concurrency=1, queue_=queue_, max_pages=1,
                          max_latest_pages=1, keyword_concurrency=1, **kwargs)
         self.start_date = start_date
