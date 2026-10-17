@@ -25,7 +25,7 @@ class TempoScraper(BaseScraper):
             "hitsPerPage": 20,
             "page": page - 1,
         }
-        return await self.fetch(
+        response_text = await self.fetch(
             url,
             method="POST",
             data=json.dumps(body),
@@ -38,14 +38,23 @@ class TempoScraper(BaseScraper):
             },
             timeout=45,
         )
+        if not response_text:
+            raise RuntimeError("Tempo discovery fetch failed")
+        return response_text
 
     def parse_article_links(self, response_text):
         try:
             response_json = json.loads(response_text)
-        except Exception as e:
-            logging.error(f"Error decoding JSON response: {e}")
-            return None
-        hits = response_json.get("hits", [])
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Tempo discovery returned malformed JSON") from exc
+        if not isinstance(response_json, dict) or "message" in response_json or "error" in response_json:
+            raise ValueError("Tempo discovery returned an error payload")
+        hits = response_json.get("hits")
+        if not isinstance(hits, list) or any(
+            not isinstance(hit, dict) or not isinstance(hit.get("canonical_url"), str)
+            for hit in hits
+        ):
+            raise ValueError("Tempo discovery returned invalid hits")
         if not hits:
             return None
         filtered_hrefs = set()
@@ -165,7 +174,7 @@ class TempoScraper(BaseScraper):
             "hitsPerPage": 20,
             "page": page - 1,
         }
-        return await self.fetch(
+        response_text = await self.fetch(
             url,
             method="POST",
             data=json.dumps(body),
@@ -178,22 +187,9 @@ class TempoScraper(BaseScraper):
             },
             timeout=45,
         )
+        if not response_text:
+            raise RuntimeError("Tempo discovery fetch failed")
+        return response_text
 
     def parse_latest_article_links(self, response_text):
-        if not response_text:
-            return None
-        try:
-            response_json = json.loads(response_text)
-        except Exception:
-            return None
-        hits = response_json.get("hits", [])
-        if not hits:
-            return None
-        filtered_hrefs = set()
-        for hit in hits:
-            url = hit.get("canonical_url", "")
-            if url:
-                if not url.startswith("http"):
-                    url = f"{self.base_url}/{url}"
-                filtered_hrefs.add(url)
-        return filtered_hrefs or None
+        return self.parse_article_links(response_text)

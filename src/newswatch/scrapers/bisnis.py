@@ -31,7 +31,20 @@ class BisnisScraper(BaseScraper):
             "page": page,
         }
         url = f"https://search.{self.base_url}/?{urlencode(query_params)}"
-        return await self.fetch(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
+        response_text = await self.fetch(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
+        self._validate_listing(response_text)
+        return response_text
+
+    @staticmethod
+    def _validate_listing(html):
+        if not html:
+            raise RuntimeError("Bisnis listing fetch failed")
+        soup = BeautifulSoup(html, "html.parser")
+        title = soup.title.get_text(strip=True).casefold() if soup.title else ""
+        if title in {"just a moment...", "attention required! | cloudflare", "access denied", "403 forbidden"} or soup.select_one(
+            "#challenge-form, #cf-challenge-running, #challenge-running, .cf-browser-verification"
+        ):
+            raise RuntimeError("Bisnis listing blocked by an access challenge")
 
     def parse_article_links(self, response_text):
         if not response_text:
@@ -220,17 +233,19 @@ class BisnisScraper(BaseScraper):
                     user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
                 )
                 page = await context.new_page()
+                seen = set(self.dedup_links)
 
                 for p_num in range(1, self.max_latest_pages + 1):
                     if not self.continue_scraping:
                         break
 
                     url = f"https://www.{self.base_url}/berita" if p_num == 1 else f"https://www.{self.base_url}/indeks"
-                    try:
-                        await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-                    except Exception:
-                        break
+                    response = await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                    if response is None or response.status >= 400:
+                        status = response.status if response is not None else "no response"
+                        raise RuntimeError(f"Bisnis listing navigation failed: {status}")
                     await page.wait_for_timeout(3000)
+                    self._validate_listing(await page.content())
 
                     # Extract article links
                     raw_links = await page.evaluate("""() => {
@@ -241,16 +256,19 @@ class BisnisScraper(BaseScraper):
                         )]
                     }""")
 
-                    if not raw_links:
+                    links = list(dict.fromkeys(
+                        link for link in raw_links
+                        if self._is_supported_article_url(link) and link not in seen
+                    ))
+                    if not links:
                         break
+                    seen.update(links)
 
                     # Process articles
-                    for link in raw_links[:10]:
+                    for link in links[:10]:
                         if not self.continue_scraping:
                             break
                         try:
-                            if not self._is_supported_article_url(link):
-                                continue
                             await page.goto(link, wait_until="domcontentloaded", timeout=15000)
                             await page.wait_for_timeout(2000)
                             html = await page.content()
@@ -288,6 +306,8 @@ class BisnisScraper(BaseScraper):
 
                             publish_date = self.parse_date(publish_date_str.replace("'", ""))
                             if not publish_date:
+                                continue
+                            if self.start_date and publish_date < self.start_date:
                                 continue
 
                             author_elem = soup.select_one(".authorName") or soup.select_one(".authorNames")

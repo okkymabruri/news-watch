@@ -8,7 +8,9 @@ Flow: 1) pass Cloudflare challenge on search page, 2) capture CSE results,
 import json
 import logging
 import re
+from urllib.parse import urlencode
 
+from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
 
 from .basescraper import BaseScraper
@@ -22,6 +24,53 @@ class TirtoScraper(BaseScraper):
         self.continue_scraping = True
         self._article_href = re.compile(r"^https?://tirto\.id/[a-z][a-z0-9-]+-[a-z0-9]+$")
 
+    @staticmethod
+    async def _validate_listing(page, response):
+        if response is None or response.status >= 400:
+            status = response.status if response is not None else "no response"
+            raise RuntimeError(f"Tirto listing navigation failed: {status}")
+        soup = BeautifulSoup(await page.content(), "html.parser")
+        title = soup.title.get_text(strip=True).casefold() if soup.title else ""
+        if title in {"just a moment...", "attention required! | cloudflare", "access denied", "403 forbidden"} or soup.select_one(
+            "#challenge-form, #cf-challenge-running, #challenge-running, .cf-browser-verification"
+        ):
+            raise RuntimeError("Tirto listing blocked by an access challenge")
+
+    async def _queue_article_from_page(self, page, link, keyword):
+        title_el = await page.query_selector("h1")
+        title = (await title_el.inner_text()).strip() if title_el else ""
+        if not title:
+            return
+        article_el = await page.query_selector("article") or await page.query_selector(".detail-content")
+        if not article_el:
+            return
+        content = " ".join(
+            p.strip() for p in (await article_el.inner_text()).split("\n") if len(p.strip()) > 30
+        )
+        if not content:
+            return
+        body_text = await page.evaluate("() => document.body.textContent")
+        date_match = re.search(r"(\d{1,2}\s+[A-Z][a-z]+\s+\d{4})", body_text)
+        publish_date_str = date_match.group(1) if date_match else ""
+        publish_date = self.parse_date(publish_date_str, locales=["id"])
+        if not publish_date:
+            logging.debug("Tirto date parse failed | url: %s | date: %r", link, publish_date_str[:50])
+            return
+        if self.start_date and publish_date < self.start_date:
+            return
+        author_match = re.search(r"Penulis[:\s]+([^\n,]+)", body_text)
+        author = author_match.group(1).strip() if author_match else "Unknown"
+        await self.queue_.put({
+            "title": title,
+            "publish_date": publish_date,
+            "author": author,
+            "content": content,
+            "keyword": keyword,
+            "category": "Unknown",
+            "source": "tirto.id",
+            "link": link,
+        })
+
     async def fetch_search_results(self, keyword):
         """Use Playwright: pass Cloudflare, capture CSE, fetch articles."""
         async with async_playwright() as p:
@@ -32,11 +81,7 @@ class TirtoScraper(BaseScraper):
                 )
                 page = await context.new_page()
 
-                # Step 1: Pass Cloudflare challenge
-                await page.goto(f"{self.base_url}/search?q={keyword}", wait_until="domcontentloaded", timeout=30000)
-                await page.wait_for_timeout(3000)
-
-                # Step 2: Capture CSE results
+                # Listen before navigation so initial CSE responses are captured.
                 cse_results = []
                 async def handle_response(response):
                     if "cse.google.com/cse/element" in response.url:
@@ -50,14 +95,17 @@ class TirtoScraper(BaseScraper):
                             pass
 
                 page.on("response", handle_response)
-                # Reload to capture CSE
-                await page.reload(wait_until="domcontentloaded", timeout=20000)
+                response = await page.goto(
+                    f"{self.base_url}/search?{urlencode({'q': keyword})}",
+                    wait_until="domcontentloaded", timeout=30000,
+                )
                 await page.wait_for_timeout(8000)
+                await self._validate_listing(page, response)
 
                 article_links = []
                 for r in cse_results:
                     url = r.get("url", "")
-                    if self._article_href.match(url):
+                    if self._article_href.match(url) and url not in self.dedup_links and url not in article_links:
                         article_links.append(url)
 
                 if not article_links:
@@ -72,50 +120,7 @@ class TirtoScraper(BaseScraper):
                         await page.goto(link, wait_until="domcontentloaded", timeout=15000)
                         await page.wait_for_timeout(3000)
 
-                        title_el = await page.query_selector("h1")
-                        title = await title_el.inner_text() if title_el else ""
-                        title = title.strip()
-                        if not title:
-                            continue
-
-                        article_el = await page.query_selector("article") or await page.query_selector(".detail-content")
-                        if not article_el:
-                            continue
-
-                        content = await article_el.inner_text()
-                        content = " ".join([p.strip() for p in content.split("\n") if len(p.strip()) > 30])
-                        if not content:
-                            continue
-
-                        # Extract date from page text
-                        body_text = await page.evaluate("() => document.body.textContent")
-                        date_match = re.search(r"(\d{1,2}\s+[A-Z][a-z]+\s+\d{4})", body_text)
-                        publish_date_str = date_match.group(1) if date_match else ""
-
-                        publish_date = self.parse_date(publish_date_str, locales=["id"])
-                        if not publish_date:
-                            logging.debug("Tirto date parse failed | url: %s | date: %r", link, publish_date_str[:50])
-                            continue
-
-                        if self.start_date and publish_date < self.start_date:
-                            self.continue_scraping = False
-                            continue
-
-                        # Extract author from page
-                        author_match = re.search(r"Penulis[:\s]+([^\n,]+)", body_text)
-                        author = author_match.group(1).strip() if author_match else "Unknown"
-
-                        item = {
-                            "title": title,
-                            "publish_date": publish_date,
-                            "author": author,
-                            "content": content,
-                            "keyword": keyword,
-                            "category": "Unknown",
-                            "source": "tirto.id",
-                            "link": link,
-                        }
-                        await self.queue_.put(item)
+                        await self._queue_article_from_page(page, link, keyword)
                     except Exception as e:
                         logging.debug(f"Tirto article fetch failed for {link}: {e}")
 
@@ -140,6 +145,7 @@ class TirtoScraper(BaseScraper):
                     user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
                 )
                 page = await context.new_page()
+                seen = set(self.dedup_links)
 
                 for p_num in range(1, self.max_latest_pages + 1):
                     if not self.continue_scraping:
@@ -147,11 +153,9 @@ class TirtoScraper(BaseScraper):
 
                     # Navigate to homepage or latest index
                     url = self.base_url if p_num == 1 else f"{self.base_url}/indeks"
-                    try:
-                        await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-                    except Exception:
-                        break
+                    response = await page.goto(url, wait_until="domcontentloaded", timeout=30000)
                     await page.wait_for_timeout(3000)
+                    await self._validate_listing(page, response)
 
                     # Extract article links from the page
                     raw_links = await page.evaluate("""() => {
@@ -162,64 +166,27 @@ class TirtoScraper(BaseScraper):
                         )]
                     }""")
 
-                    if not raw_links:
+                    links = list(dict.fromkeys(
+                        link for link in raw_links
+                        if self._article_href.match(link) and link not in seen
+                    ))
+                    if not links:
                         break
+                    seen.update(links)
 
                     # Navigate to each article and extract content
-                    for link in raw_links[:10]:
+                    for link in links[:10]:
                         if not self.continue_scraping:
                             break
                         try:
                             await page.goto(link, wait_until="domcontentloaded", timeout=15000)
                             await page.wait_for_timeout(2000)
 
-                            title_el = await page.query_selector("h1")
-                            title = await title_el.inner_text() if title_el else ""
-                            title = title.strip()
-                            if not title:
-                                continue
-
-                            article_el = await page.query_selector("article") or await page.query_selector(".detail-content")
-                            if not article_el:
-                                continue
-
-                            content = await article_el.inner_text()
-                            content = " ".join([p.strip() for p in content.split("\n") if len(p.strip()) > 30])
-                            if not content:
-                                continue
-
-                            body_text = await page.evaluate("() => document.body.textContent")
-                            date_match = re.search(r"(\d{1,2}\s+[A-Z][a-z]+\s+\d{4})", body_text)
-                            publish_date_str = date_match.group(1) if date_match else ""
-                            publish_date = self.parse_date(publish_date_str, locales=["id"])
-                            if not publish_date:
-                                continue
-
-                            author_match = re.search(r"Penulis[:\s]+([^\n,]+)", body_text)
-                            author = author_match.group(1).strip() if author_match else "Unknown"
-
-                            item = {
-                                "title": title,
-                                "publish_date": publish_date,
-                                "author": author,
-                                "content": content,
-                                "keyword": "latest",
-                                "category": "Unknown",
-                                "source": "tirto.id",
-                                "link": link,
-                            }
-                            await self.queue_.put(item)
+                            await self._queue_article_from_page(page, link, "latest")
                         except Exception as e:
                             logging.debug(f"Error processing Tirto article {link}: {e}")
             finally:
                 await browser.close()
-
-    async def scrape(self, method="search"):
-        async with self:
-            if method == "latest":
-                await self.fetch_latest_results()
-            else:
-                await self.fetch_search_results(self.keywords[0] if self.keywords else "prabowo")
 
     def build_latest_url(self, page):
         return None

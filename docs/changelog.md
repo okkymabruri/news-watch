@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Require Python 3.12 or newer and test Python 3.12–3.15 with explicitly selected CI interpreters. Python 3.10 and 3.11 are no longer supported.
 - Update aiohttp, lxml, pandas, Playwright, and dateparser for modern Python compatibility, including ISO-date parsing on Python 3.15. Keep stable rnet on Python 3.12–3.14; Python 3.15 uses the existing aiohttp and Playwright paths.
 
+### Fixed
+- Bisnis and Tirto latest discovery avoid duplicate article navigation, stop on repeated listings, and apply the date cutoff without dropping newer articles after an older result.
+- Tirto searches every supplied keyword through the browser concurrency gate, encodes search queries, and captures initial search responses without reloading the listing.
+- Bisnis and Tirto surface failed or challenged listings instead of silently reporting empty results. Tempo distinguishes failed, malformed, and error discovery responses from a valid empty result. Already queued articles survive later listing failures.
+
+These scraper changes have offline regression coverage. Bounded browser observations on 2026-10-17 encountered access blocks; live article extraction remains unverified.
 
 ## [1.3.0] - 2026-09-30
 

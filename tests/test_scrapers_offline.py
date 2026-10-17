@@ -7,7 +7,7 @@ HTTP layer; the scraper code under test is unchanged.
 Layers:
 1. **Registry sanity** — every stable, search-capable scraper can be
    imported and instantiated with its registry smoke keyword.
-2. **Parse contract** — given a canned HTML body, the full
+2. **Parse contract** — given a valid empty HTML/JSON result, the full
    ``build_search_url`` → ``fetch`` → ``parse_article_links`` pipeline
    works end-to-end without raising. The real ``build_search_url``
    executes so adapter-specific state (e.g. ``gatra._current_keyword``)
@@ -152,7 +152,10 @@ class TestScraperParseContract:
                 with aioresponses() as m:
                     m.get(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True,
                           response_class=_OfflineClientResponse)
-                    m.post(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True,
+                    # Tempo's discovery contract is JSON; an HTML response is
+                    # a failure, not a successful query with no matches.
+                    body = '{"hits": []}' if slug == "tempo" else _PASSTHROUGH_HTML
+                    m.post(re.compile(r".*"), body=body, status=200, repeat=True,
                            response_class=_OfflineClientResponse)
                     await s.fetch_search_results(entry.smoke_keyword)
         assert s._articles_collected == 0
@@ -173,7 +176,7 @@ class TestScraperLatestParseContract:
     @pytest.mark.asyncio
     @pytest.mark.parametrize("slug", _latest_capable_slugs())
     async def test_latest_handles_empty_response_without_raising(self, slug):
-        """Latest-mode empty-body contract: never raise, zero articles."""
+        """A valid empty latest result never raises and emits zero articles."""
         entry = SCRAPERS[slug]
         if entry.browser_required:
             pytest.skip("browser_required latest scraper uses Playwright; not offline")
@@ -195,7 +198,8 @@ class TestScraperLatestParseContract:
                 with aioresponses() as m:
                     m.get(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True,
                           response_class=_OfflineClientResponse)
-                    m.post(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True,
+                    body = '{"hits": []}' if slug == "tempo" else _PASSTHROUGH_HTML
+                    m.post(re.compile(r".*"), body=body, status=200, repeat=True,
                            response_class=_OfflineClientResponse)
                     await s.fetch_latest_results()
         assert s._articles_collected == 0

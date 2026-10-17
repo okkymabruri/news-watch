@@ -87,6 +87,24 @@
 | VOI.id | ⏱️ Probe limit (count unknown) | ⏱️ Probe limit (count unknown) | 2026-09-26 |
 | Warta Ekonomi | 🔎 Empty | ✅ Passed | 2026-09-26 |
 
+## Targeted follow-up — 2026-10-17
+
+REA browser scenarios observed HTTP 403/access challenges on Bisnis search and `/berita`, Tempo search and its homepage, and Tirto search and its homepage. Each source used two deliberate top-level navigations and less than seven seconds of scenario capture, below the four-navigation/90-second allowance. No article pages were requested. These are reference-page access observations, not successful runs of the adapters or a new full-source health campaign; the table retains its dated historical results.
+
+| Source | Deliberate navigations | Main-document requests, including redirects | Other browser requests | Scenario time |
+|---|---:|---:|---:|---:|
+| Bisnis | 2 | 4 | 30 | 6.293 s |
+| Tempo | 2 | 2 | 16 | 5.235 s |
+| Tirto | 2 | 4 | 32 | 5.532 s |
+
+Other browser requests include styles, scripts, challenge frames, and their requests. Bisnis and Tirto captures ended with some requests unfinished; later activity is unknown. Tempo's existing Algolia search endpoint separately returned HTTP 403 with an application-blocked error during diagnosis. No replacement endpoint or credentials were inferred from these failures.
+
+- **Bisnis:** offline browser replays verify latest-link deduplication, termination on repeated listings, the existing ten-article listing cap, and date filtering that permits a newer article after an older one. Failed search fetches and failed/challenged latest listings now propagate errors; a later failure preserves already queued articles. Discovery routes and article selectors are unchanged.
+- **Tempo:** offline tests distinguish valid empty `hits` from failed fetches, malformed JSON, error payloads, and invalid hit shapes in both modes. Later discovery failures preserve already queued articles. The blocked endpoint is retained; current publisher extraction remains unverified.
+- **Tirto:** offline replays verify multiple keywords through the existing concurrency gate, encoded query parameters, initial CSE response capture, latest deduplication and repeated-listing termination, and date filtering. Listing failures propagate while retaining queued articles. No current publisher article markup was available to validate the existing extraction selectors.
+
+REA evidence IDs: Bisnis search `ev_27122cb8333bb70463148bcee8266fce45dd2e56fa50685cfd90cf780e16a1fb`, latest `ev_9adff52896c73a2c58b818e12d1a1b3068813b032853194d43fcda59469efa8f`; Tempo search `ev_e9878ad10b5268b2b616f6f6cd7ba30f2a3cee57f781e0b9a3ad325aefffd074`, homepage `ev_0ba1d5eaf0a845874b1a8f663ac6a139837233e4b3c5b66c56c051a25d5a2946`; Tirto search `ev_1c512603eadcb7ace051aac4803f584638342312a0cb2574b7633f9f5d670cc4`, homepage `ev_7ac04467440b20f03b5b31265330c8638b21c475d5961173d3dbab74c8f7b3ed`.
+
 ## Targeted follow-up — 2026-09-29
 
 These bounded diagnostics are not a new full-source health campaign. Unchanged rows retain their earlier observation dates.
