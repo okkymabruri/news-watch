@@ -13,6 +13,8 @@ news-watch is a Python package that scrapes structured news data from [Indonesia
 
 ## Installation
 
+Requires Python 3.12 or newer; tested on Python 3.12–3.15. On Python 3.15, HTTP fallbacks use Playwright without rnet.
+
 ### Using pip
 
 ```bash

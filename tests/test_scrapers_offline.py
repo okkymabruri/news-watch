@@ -32,7 +32,9 @@ import asyncio
 from datetime import datetime, timedelta
 import importlib
 import re
+from types import SimpleNamespace
 
+from aiohttp import ClientResponse
 import pytest
 from aioresponses import aioresponses
 
@@ -68,6 +70,13 @@ _PASSTHROUGH_HTML = (
     "<!doctype html><html><head><title>ok</title></head>"
     "<body><p>noop</p></body></html>"
 )
+
+
+class _OfflineClientResponse(ClientResponse):
+    """aioresponses 0.7.9 predates aiohttp's required stream_writer argument."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, stream_writer=SimpleNamespace(output_size=0), **kwargs)
 
 _BLOCKED_HTML_PATTERNS = [
     "<!doctype html><html><body>Please enable JavaScript to continue.</body></html>",
@@ -141,8 +150,10 @@ class TestScraperParseContract:
         else:
             async with s:
                 with aioresponses() as m:
-                    m.get(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True)
-                    m.post(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True)
+                    m.get(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True,
+                          response_class=_OfflineClientResponse)
+                    m.post(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True,
+                           response_class=_OfflineClientResponse)
                     await s.fetch_search_results(entry.smoke_keyword)
         assert s._articles_collected == 0
 
@@ -182,8 +193,10 @@ class TestScraperLatestParseContract:
         else:
             async with s:
                 with aioresponses() as m:
-                    m.get(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True)
-                    m.post(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True)
+                    m.get(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True,
+                          response_class=_OfflineClientResponse)
+                    m.post(re.compile(r".*"), body=_PASSTHROUGH_HTML, status=200, repeat=True,
+                           response_class=_OfflineClientResponse)
                     await s.fetch_latest_results()
         assert s._articles_collected == 0
 

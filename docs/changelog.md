@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Require Python 3.12 or newer and test Python 3.12–3.15 with explicitly selected CI interpreters. Python 3.10 and 3.11 are no longer supported.
+- Update aiohttp, lxml, pandas, Playwright, and dateparser for modern Python compatibility, including ISO-date parsing on Python 3.15. Keep stable rnet on Python 3.12–3.14; Python 3.15 uses the existing aiohttp and Playwright paths.
+
+
 ## [1.3.0] - 2026-09-30
 
 ### Added
