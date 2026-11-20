@@ -57,6 +57,7 @@ import json
 import logging
 import warnings
 from datetime import datetime, timezone
+from types import SimpleNamespace
 from typing import Any
 from urllib.parse import parse_qs, quote, urlparse
 
@@ -68,6 +69,7 @@ from newswatch.scrapers.abcnews import ABCNewsScraper
 from newswatch.scrapers.alinea import AlineaScraper
 from newswatch.scrapers.nbcnews import NBCNewsScraper
 from newswatch.scrapers.betahita import BetahitaScraper
+from newswatch.scrapers.bisnis import BisnisScraper
 from newswatch.scrapers.conversationid import ConversationIDScraper
 from newswatch.scrapers.cnbcindonesia import CNBCScraper
 from newswatch.scrapers.cnaindonesia import CNAIndonesiaScraper
@@ -100,8 +102,283 @@ from newswatch.scrapers.tvrinews import TVRINewsScraper
 from newswatch.scrapers.rmid import RmidScraper
 from newswatch.scrapers.metrotvnews import MetrotvnewsScraper
 from newswatch.scrapers.rakyataceh import RakyatAcehScraper
+from newswatch.scrapers.tempo import TempoScraper
+from newswatch.scrapers.tirto import TirtoScraper
 from newswatch.scrapers.galamedia import GalamediaScraper
 from newswatch.registry import get_available_scrapers_from_registry
+
+
+@pytest.fixture
+def publisher_browser(monkeypatch):
+    """Replay publisher pages and CSE responses without starting a browser."""
+    def install(module, routes):
+        state = SimpleNamespace(visited=[], active=0, peak=0, closed=0)
+
+        class Page:
+            def __init__(self):
+                self.route = {}
+                self.handler = None
+
+            async def goto(self, url, **kwargs):
+                state.visited.append(url)
+                self.route = routes[url]
+                if isinstance(self.route, Exception):
+                    raise self.route
+                if self.handler and "cse" in self.route:
+                    async def text():
+                        return "google.search.cse.api1(" + json.dumps({
+                            "results": [{"url": link} for link in self.route["cse"]]
+                        }) + ")"
+                    await self.handler(SimpleNamespace(
+                        url="https://cse.google.com/cse/element", text=text,
+                    ))
+                return SimpleNamespace(status=self.route.get("status", 200))
+
+            def on(self, event, handler):
+                self.handler = handler
+
+            async def wait_for_timeout(self, duration):
+                await asyncio.sleep(0)
+
+            async def content(self):
+                return self.route.get("html", "<html><title>Publisher</title><footer>Cloudflare</footer></html>")
+
+            async def evaluate(self, script):
+                if "document.body.textContent" in script:
+                    return BeautifulSoup(await self.content(), "html.parser").get_text(" ", strip=True)
+                return self.route.get("links", [])
+
+            async def query_selector(self, selector):
+                element = BeautifulSoup(await self.content(), "html.parser").select_one(selector)
+                if element is None:
+                    return None
+
+                async def inner_text():
+                    return element.get_text("\n", strip=True)
+                return SimpleNamespace(inner_text=inner_text)
+
+        class Browser:
+            async def new_context(self, **kwargs):
+                return self
+
+            async def new_page(self):
+                return Page()
+
+            async def close(self):
+                state.active -= 1
+                state.closed += 1
+
+        async def launch(**kwargs):
+            state.active += 1
+            state.peak = max(state.peak, state.active)
+            return Browser()
+
+        class Playwright:
+            async def __aenter__(self):
+                return SimpleNamespace(chromium=SimpleNamespace(launch=launch))
+
+            async def __aexit__(self, *args):
+                pass
+
+        monkeypatch.setattr(module + ".async_playwright", Playwright)
+        return state
+
+    return install
+
+
+def _publisher_article(source, day):
+    if source == "bisnis":
+        return (
+            '<h1 class="detailsTitleCaption">Ekonomi baru</h1>'
+            f'<div class="detailsAttributeDates">{day} Oktober 2026</div>'
+            '<article class="detailsContent">Isi berita ekonomi yang panjang dan dapat dibaca.</article>'
+        )
+    return (
+        '<h1>Ekonomi baru</h1><article>Isi berita ekonomi yang panjang dan dapat dibaca.</article>'
+        f'<div>{day} Oktober 2026</div><div>Penulis: Reporter</div>'
+    )
+
+
+class TestPublisherBrowserDiscovery:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("source,cls,home,index,links", [
+        ("bisnis", BisnisScraper, "https://www.bisnis.com/berita", "https://www.bisnis.com/indeks",
+         [f"https://ekonomi.bisnis.com/read/20261017/1/{i}" for i in range(4)]),
+        ("tirto", TirtoScraper, "https://tirto.id", "https://tirto.id/indeks",
+         [f"https://tirto.id/ekonomi-baru-{i}" for i in range(4)]),
+    ])
+    async def test_latest_deduplicates_and_keeps_newer_after_old_article(
+        self, publisher_browser, source, cls, home, index, links
+    ):
+        known, old, boundary, new = links
+        listing = [known, old, old, boundary, new]
+        state = publisher_browser("newswatch.scrapers." + source, {
+            home: {"links": listing}, index: {"links": listing},
+            old: {"html": _publisher_article(source, 14)},
+            boundary: {"html": _publisher_article(source, 15)},
+            new: {"html": _publisher_article(source, 16)},
+        })
+        queue = asyncio.Queue()
+        scraper = cls("", start_date=datetime(2026, 10, 15), queue_=queue)
+        scraper.max_latest_pages = 8
+        scraper.dedup_links = {known}
+        await scraper.scrape(method="latest")
+        assert state.visited == [home, old, boundary, new, index]
+        items = [queue.get_nowait(), queue.get_nowait()]
+        assert [item["link"] for item in items] == [boundary, new]
+        assert all(item["keyword"] == "latest" for item in items)
+        assert queue.empty()
+        assert state.closed == 1
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("source,cls,home,index,links", [
+        ("bisnis", BisnisScraper, "https://www.bisnis.com/berita", "https://www.bisnis.com/indeks",
+         [f"https://ekonomi.bisnis.com/read/20261017/1/{i}" for i in range(12)]),
+        ("tirto", TirtoScraper, "https://tirto.id", "https://tirto.id/indeks",
+         [f"https://tirto.id/ekonomi-baru-{i}" for i in range(12)]),
+    ])
+    async def test_repeated_large_listing_does_not_advance_past_page_limit(
+        self, publisher_browser, source, cls, home, index, links
+    ):
+        routes = {home: {"links": links}, index: {"links": links}}
+        routes.update({link: {"html": _publisher_article(source, 17)} for link in links})
+        state = publisher_browser("newswatch.scrapers." + source, routes)
+        scraper = cls("", queue_=asyncio.Queue())
+        scraper.max_latest_pages = 8
+        await scraper.scrape(method="latest")
+        assert state.visited == [home, *links[:10], index]
+        assert scraper.queue_.qsize() == 10
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("source,cls,home,index,link", [
+        ("bisnis", BisnisScraper, "https://www.bisnis.com/berita", "https://www.bisnis.com/indeks",
+         "https://ekonomi.bisnis.com/read/20261017/1/1"),
+        ("tirto", TirtoScraper, "https://tirto.id", "https://tirto.id/indeks",
+         "https://tirto.id/ekonomi-baru-1"),
+    ])
+    @pytest.mark.parametrize("failure", [
+        {"status": 403}, TimeoutError("listing timed out"),
+        {"html": "<html><title>Just a moment...</title><form id='challenge-form'></form></html>"},
+    ])
+    async def test_failed_later_listing_raises_and_preserves_queued_article(
+        self, publisher_browser, source, cls, home, index, link, failure
+    ):
+        state = publisher_browser("newswatch.scrapers." + source, {
+            home: {"links": [link]}, index: failure,
+            link: {"html": _publisher_article(source, 17)},
+        })
+        queue = asyncio.Queue()
+        scraper = cls("", queue_=queue)
+        scraper.max_latest_pages = 2
+        with pytest.raises((RuntimeError, TimeoutError), match="listing"):
+            await scraper.scrape(method="latest")
+        assert queue.get_nowait()["link"] == link
+        assert queue.empty()
+        assert state.closed == 1
+
+    @pytest.mark.asyncio
+    async def test_tirto_search_encodes_all_keywords_and_obeys_browser_gate(self, publisher_browser):
+        keywords = ["ekonomi & bisnis/ihsg+market", "politik"]
+        links = [f"https://tirto.id/berita-baru-{i}" for i in range(2)]
+        # CSE results are emitted during initial navigation, before waiting.
+        from urllib.parse import urlencode
+        searches = ["https://tirto.id/search?" + urlencode({"q": keyword}) for keyword in keywords]
+        routes = {
+            search: {"cse": [link, link]} for search, link in zip(searches, links)
+        }
+        routes.update({link: {"html": _publisher_article("tirto", 17)} for link in links})
+        state = publisher_browser("newswatch.scrapers.tirto", routes)
+        queue = asyncio.Queue()
+        scraper = TirtoScraper(",".join(keywords), queue_=queue, keyword_concurrency=1)
+        await scraper.scrape()
+        assert state.visited == [searches[0], links[0], searches[1], links[1]]
+        assert [queue.get_nowait()["keyword"] for _ in keywords] == keywords
+        assert state.peak == 1
+        assert state.closed == 2
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("failure", [
+        {"status": 403}, TimeoutError("listing timed out"),
+        {"html": "<html><title>Attention Required! | Cloudflare</title></html>"},
+    ])
+    async def test_tirto_failed_search_raises(self, publisher_browser, failure):
+        state = publisher_browser("newswatch.scrapers.tirto", {
+            "https://tirto.id/search?q=ekonomi": failure,
+        })
+        with pytest.raises((RuntimeError, TimeoutError), match="listing"):
+            await TirtoScraper("ekonomi", queue_=asyncio.Queue()).scrape()
+        assert state.closed == 1
+
+
+class TestTempoBisnisDiscoveryFailures:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("body", [None, "", "<html><title>Just a moment...</title></html>"])
+    async def test_bisnis_failed_search_is_error(self, monkeypatch, body):
+        scraper = BisnisScraper("ekonomi", queue_=asyncio.Queue())
+
+        async def fetch(*args, **kwargs):
+            return body
+        monkeypatch.setattr(scraper, "fetch", fetch)
+        with pytest.raises(RuntimeError, match="Bisnis listing"):
+            await scraper.scrape()
+
+    @pytest.mark.parametrize("method", ["parse_article_links", "parse_latest_article_links"])
+    @pytest.mark.parametrize("body", [
+        None, "", "not json", "[]", "null", "{}", '{"message":"Application blocked","status":403}',
+        '{"error":"blocked","hits":[]}', '{"hits":{}}', '{"hits":[null]}',
+        '{"hits":[{}]}', '{"hits":[{"canonical_url":null}]}', '{"hits":[{"canonical_url":42}]}',
+    ])
+    def test_tempo_invalid_discovery_is_error(self, method, body):
+        with pytest.raises(ValueError, match="Tempo discovery"):
+            getattr(TempoScraper("ekonomi"), method)(body)
+
+    @pytest.mark.parametrize("method", ["parse_article_links", "parse_latest_article_links"])
+    def test_tempo_valid_empty_and_links(self, method):
+        parse = getattr(TempoScraper("ekonomi"), method)
+        assert parse('{"hits":[]}') is None
+        assert parse('{"hits":[{"canonical_url":"ekonomi/berita"},{"canonical_url":"https://www.tempo.co/ekonomi/berita"}]}') == {
+            "https://www.tempo.co/ekonomi/berita"
+        }
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("source,cls,mode", [
+        ("bisnis", BisnisScraper, "search"),
+        ("tempo", TempoScraper, "search"),
+        ("tempo", TempoScraper, "latest"),
+    ])
+    async def test_valid_empty_discovery_does_not_raise(self, monkeypatch, source, cls, mode):
+        scraper = cls("ekonomi", queue_=asyncio.Queue())
+
+        async def fetch(*args, **kwargs):
+            return '{"hits":[]}' if source == "tempo" else "<html><title>Bisnis</title><footer>Cloudflare</footer></html>"
+        monkeypatch.setattr(scraper, "fetch", fetch)
+        await scraper.scrape(method=mode)
+        assert scraper.queue_.empty()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("mode", ["search", "latest"])
+    @pytest.mark.parametrize("failure", [None, '{"message":"Application blocked","status":403}'])
+    async def test_tempo_failed_later_discovery_preserves_queue(self, monkeypatch, mode, failure):
+        queue = asyncio.Queue()
+        scraper = TempoScraper("ekonomi", queue_=queue)
+        scraper.max_latest_pages = 2
+        link = "https://www.tempo.co/ekonomi/berita"
+
+        async def fetch(url, **kwargs):
+            if url == link:
+                return (
+                    '<h1>Ekonomi baru</h1><meta property="article:published_time" content="2026-10-17T10:00:00+07:00">'
+                    '<article><p>Berita ekonomi terbaru yang cukup panjang untuk dibaca dan diperiksa.</p></article>'
+                )
+            if json.loads(kwargs["data"])["page"] == 0:
+                return json.dumps({"hits": [{"canonical_url": link}]})
+            return failure
+
+        monkeypatch.setattr(scraper, "fetch", fetch)
+        with pytest.raises((RuntimeError, ValueError), match="Tempo discovery"):
+            await scraper.scrape(method=mode)
+        assert queue.get_nowait()["link"] == link
+        assert queue.empty()
 
 
 class TestGalamediaOffline:

@@ -12,6 +12,8 @@ The current stable release supports 80 news scrapers (75 Indonesian/global sourc
 
 ## Install
 
+Requires Python 3.12 or newer; tested on Python 3.12–3.15. On Python 3.15, HTTP fallbacks use Playwright without rnet.
+
 ```bash
 pip install news-watch
 newswatch --help

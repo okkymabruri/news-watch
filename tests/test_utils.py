@@ -1,3 +1,7 @@
+import sys
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 
 from newswatch.utils import (
@@ -46,6 +50,37 @@ class TestLooksBlocked:
     def test_ignores_normal_html(self):
         html = "<!doctype html><html><head><title>Hello</title></head><body><h1>News</h1></body></html>"
         assert _looks_blocked(html) is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("rnet_available", [True, False])
+async def test_blocked_http_fallback_with_optional_rnet(monkeypatch, rnet_available):
+    from newswatch import utils
+
+    body = "<html><h1>Article</h1><p>News content.</p></html>"
+    rnet_get = AsyncMock(return_value=SimpleNamespace(status=200, text=AsyncMock(return_value=body)))
+    client = MagicMock(return_value=SimpleNamespace(get=rnet_get))
+    monkeypatch.setitem(sys.modules, "rnet", SimpleNamespace(Client=client, Proxy=MagicMock())
+                        if rnet_available else None)
+    browser_get = AsyncMock(return_value=body)
+    monkeypatch.setattr(utils, "_playwright_get", browser_get)
+
+    response = MagicMock()
+    response.raise_for_status.side_effect = utils.aiohttp.ClientResponseError(
+        request_info=None, history=(), status=403, message="Forbidden"
+    )
+    request = MagicMock()
+    request.__aenter__ = AsyncMock(return_value=response)
+    request.__aexit__ = AsyncMock(return_value=False)
+    scraper = AsyncScraper()
+    scraper.session = SimpleNamespace(headers={}, get=MagicMock(return_value=request))
+
+    assert await scraper.fetch("https://example.org/article") == body
+    if rnet_available:
+        rnet_get.assert_awaited_once()
+        browser_get.assert_not_awaited()
+    else:
+        browser_get.assert_awaited_once()
 
 
 @pytest.mark.asyncio
